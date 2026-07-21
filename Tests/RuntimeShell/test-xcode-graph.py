@@ -110,6 +110,7 @@ def main() -> None:
         "path = Extensions/GeckoView;",
         "path = Extensions/Helper;",
         "path = Extensions/OpenIn;",
+        "publicHeaders = (ExtensionBridge.h, );",
     )
     for token in required_tokens:
         require(token in text, f"missing graph contract: {token}")

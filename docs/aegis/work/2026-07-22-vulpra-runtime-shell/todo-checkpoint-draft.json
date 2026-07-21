@@ -1,20 +1,19 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Execute Task 4: add the exactly-once JIT readiness owner and bridge cleanup.",
+  "currentTodo": "Execute Task 5: add the new OpenIn extension owner.",
   "completedTodos": [
-    "Task 1 fresh Xcode graph and configuration owners.",
-    "Task 2 product metadata, entitlement profiles, and URL router.",
-    "Task 3 minimal one-session UIKit Gecko runtime shell, canonical missing-engine handling, and AppDelegate owner correction."
+    "Tasks 1-3 fresh graph, product contracts, and minimal one-session runtime shell.",
+    "Task 4 exactly-once JIT readiness coordinator, minimal bridge, public ExtensionBridge header, and TSUtils retirement."
   ],
-  "activeSlice": "Task 4 exactly-once child JIT readiness orchestration",
+  "activeSlice": "Task 5 one-path OpenIn URL delivery extension",
   "evidenceRefs": [
-    "Tests/RuntimeShell/test-runtime-shell.py",
-    "App/RuntimeShellViewController.swift",
-    "Extensions/GeckoView/Session/GeckoSession.swift",
-    "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
+    "Tests/RuntimeShell/test-jit-orchestration.py",
+    "App/RuntimeJITCoordinator.swift",
+    "App/Bridging/Vulpra-Bridging-Header.h",
+    "docs/provenance/import-manifest.tsv"
   ],
-  "blockedOn": "RuntimeJITCoordinator and bridging header are not implemented yet; Mac compilation remains deferred.",
-  "nextStep": "Commit Task 3, then write the failing JIT orchestration/header-closure test before creating RuntimeJITCoordinator and the bridging header.",
+  "blockedOn": "JIT attachment and C/Swift bridge compilation remain Phase 1B needs-verification; no portable blocker.",
+  "nextStep": "Commit Task 4, then write the failing OpenIn contract test before creating its plist and one-path NSExtensionContext.open implementation.",
   "updatedAt": "2026-07-22"
 }

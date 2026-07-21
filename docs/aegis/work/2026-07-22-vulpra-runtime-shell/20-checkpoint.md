@@ -122,3 +122,27 @@
 - New risk signals:
 - Static scene-manifest behavior and the adjusted GeckoSession path still require Xcode/device evidence in Phase 1B.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Execute Task 5: add the new OpenIn extension owner.
+- Active slice: Task 5 one-path OpenIn URL delivery extension
+- Completed todos:
+- Tasks 1-3 fresh graph, product contracts, and minimal one-session runtime shell.
+- Task 4 exactly-once JIT readiness coordinator, minimal bridge, public ExtensionBridge header, and TSUtils retirement.
+- Evidence refs:
+- Tests/RuntimeShell/test-jit-orchestration.py
+- App/RuntimeJITCoordinator.swift
+- App/Bridging/Vulpra-Bridging-Header.h
+- docs/provenance/import-manifest.tsv
+- Blocked on: JIT attachment and C/Swift bridge compilation remain Phase 1B needs-verification; no portable blocker.
+- Next step: Commit Task 4, then write the failing OpenIn contract test before creating its plist and one-path NSExtensionContext.open implementation.
+
+## DriftCheckDraft
+
+- Scope status: Task 4 added only child readiness orchestration and bridge cleanup; no JIT settings, failure UI, retry policy, or diagnostics owner.
+- Compatibility status: Every accepted positive PID receives at most one explicit status; tab-only attachment and hasTXMSupport false preserve the approved iOS 15/TrollStore boundary.
+- Retirement status: TSUtils import is deleted with no shim; old JITController/UI/prefs paths remain absent; one finish function owns all reports.
+- New risk signals:
+- Swift/C header and timing behavior require current Xcode plus physical-device evidence.
+- Advisory decision: continue

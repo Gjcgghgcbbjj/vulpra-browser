@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task4-jit-orchestration",
+  "type": "portable-verification",
+  "source": "Tests/RuntimeShell/test-jit-orchestration.py; App/RuntimeJITCoordinator.swift; App/Bridging/Vulpra-Bridging-Header.h; Extensions/GeckoView/View/GeckoView.h",
+  "summary": "Exactly-once JIT orchestration RED/GREEN passed: one attach queue, one state queue, positive PID validation, normalized tab-only attach, 4.5-second deadline, pending/completed duplicate suppression, atomic pending removal before one report, false non-tab/deadline/failure/teardown reporting, late completion suppression, hasTXMSupport false, observer removal, detach, 142-line owner, minimal bridge closure, and direct TSUtils import retirement.",
+  "verifier": "root"
+}

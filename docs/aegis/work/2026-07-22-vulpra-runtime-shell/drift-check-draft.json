@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
   ],
-  "scopeStatus": "Task 3 remains one-session smoke integration; no tab, data, settings, downloads, prompt UI, or final chrome owner was added.",
-  "compatStatus": "Static scene manifest composes with Gecko AppShellDelegate; iOS 15 identities and URL contract remain unchanged; missing view degrades visibly without renderer fallback.",
-  "retirementStatus": "The planned dead AppDelegate owner is retired before creation; GeckoSession fatal path is retired in favor of the canonical App failure owner; old source project remains rejected.",
+  "scopeStatus": "Task 4 added only child readiness orchestration and bridge cleanup; no JIT settings, failure UI, retry policy, or diagnostics owner.",
+  "compatStatus": "Every accepted positive PID receives at most one explicit status; tab-only attachment and hasTXMSupport false preserve the approved iOS 15/TrollStore boundary.",
+  "retirementStatus": "TSUtils import is deleted with no shim; old JITController/UI/prefs paths remain absent; one finish function owns all reports.",
   "newRiskSignals": [
-    "Static scene-manifest behavior and the adjusted GeckoSession path still require Xcode/device evidence in Phase 1B."
+    "Swift/C header and timing behavior require current Xcode plus physical-device evidence."
   ],
   "decision": "continue"
 }

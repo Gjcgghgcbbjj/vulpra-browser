@@ -57,3 +57,11 @@ No evidence has been recorded yet.
 - Source: Patches/widget/uikit/nsAppShell.mm.patch; docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md; docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md
 - Summary: Direct substrate evidence shows UIApplicationMain hardcodes Gecko AppShellDelegate. Design and plan were amended to keep it as the sole application delegate and let Info.plist instantiate SceneDelegate, avoiding dead AppDelegate code. GeckoSession fatal handling was narrowed so the App failure owner can execute. Legacy-project regression guard now rejects only the retired source graph, not Vulpra.xcodeproj.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task4-jit-orchestration
+- Type: portable-verification
+- Source: Tests/RuntimeShell/test-jit-orchestration.py; App/RuntimeJITCoordinator.swift; App/Bridging/Vulpra-Bridging-Header.h; Extensions/GeckoView/View/GeckoView.h
+- Summary: Exactly-once JIT orchestration RED/GREEN passed: one attach queue, one state queue, positive PID validation, normalized tab-only attach, 4.5-second deadline, pending/completed duplicate suppression, atomic pending removal before one report, false non-tab/deadline/failure/teardown reporting, late completion suppression, hasTXMSupport false, observer removal, detach, 142-line owner, minimal bridge closure, and direct TSUtils import retirement.
+- Verifier: root

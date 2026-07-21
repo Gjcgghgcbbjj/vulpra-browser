@@ -2,11 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume after Task 3 commit; implement Task 4 only, preserve the 4.5-second exactly-once contract, and delete TSUtils import rather than adding a shim.",
+  "resumeInstruction": "Resume after Task 4 commit; implement only public NSExtensionContext.open with one completion gate and no private host-opening path.",
   "knownPartialWork": [
-    "Task 1 fresh Xcode graph and configuration owners.",
-    "Task 2 product metadata, entitlement profiles, and URL router.",
-    "Task 3 minimal one-session UIKit Gecko runtime shell, canonical missing-engine handling, and AppDelegate owner correction."
+    "Tasks 1-3 fresh graph, product contracts, and minimal one-session runtime shell.",
+    "Task 4 exactly-once JIT readiness coordinator, minimal bridge, public ExtensionBridge header, and TSUtils retirement."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -14,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Portable source checks do not prove UIApplication scene creation, Gecko engine view availability, or Swift/Gecko compilation on current Xcode."
+    "Source checks cannot prove Objective-C Swift importer signatures, attachment timing, generated Gecko headers, or device JIT success."
   ]
 }
