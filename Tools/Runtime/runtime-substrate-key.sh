@@ -18,9 +18,7 @@ digest=$({
     printf 'firefox=%s\n' "$firefox_commit"
     printf 'idevice=%s\n' "$idevice_commit"
     cd "$ROOT_DIR"
-    find Patches -type f -name '*.patch' -print | LC_ALL=C sort | while IFS= read -r patch; do
-        shasum -a 256 "$patch"
-    done
+    find Patches -type f -name '*.patch' -print0 | sort -z | xargs -0 shasum -a 256
     shasum -a 256 Tools/Gecko/build-idevice.sh Tools/Runtime/build-runtime-substrate.sh
 } | shasum -a 256 | awk '{print $1}')
 printf 'vulpra-runtime-substrate-v1-%s\n' "$digest"
