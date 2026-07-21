@@ -500,28 +500,85 @@ The source repository is not used as a submodule or runtime dependency.
 - **Next action:** create the Vulpra implementation plan, then establish a new
   dual baseline and ADR in the new repository after substrate verification.
 
-## 20. Complexity Budget
+## 20. Efficiency and Complexity Budget
 
-- **Artifact class:** high-complexity repository extraction, architecture,
-  product rewrite, persistence replacement, and delivery migration.
-- **Target artifacts:** new repository, Xcode target graph, six Vulpra modules,
-  extensions, vendor substrate, patches, tools, tests, and documentation.
-- **Current pressure:** the source client contains roughly 91,000 lines across
-  about 260 client files plus tightly coupled Xcode/build metadata.
-- **Projected pressure:** high but bounded by module ownership and staged
-  vertical delivery.
-- **Budget result:** `at-risk` if planned as one task; `within-budget` only when
-  decomposed into independently buildable stages.
-- **Planned governance:** substrate import, runtime shell, core browsing,
-  session/data, library, advanced features, UI/accessibility, and release gates
-  are separate plan sections with explicit acceptance and no parallel owners.
+Efficiency is a Product and Architecture non-negotiable for Vulpra. Production
+source, tests, build tools, specifications, plans, and work records are all
+maintained complexity surfaces; documentation and test code do not receive a
+blanket exemption from ownership or size review.
+
+### Pressure Signals and Response
+
+- Any maintained single file at or above 800 lines is a pressure signal, not an
+  automatic deletion target. A cohesive touched block around 80 lines or more
+  also requires an owner/split review.
+- Mixed reasons to change, generic manager/controller growth, duplicate owners,
+  fallbacks or adapters, and dependency or process-artifact sprawl are pressure
+  signals even below the line thresholds.
+- Functionality is never deleted merely to satisfy an arbitrary line budget.
+  Before adding to an over-budget artifact, split the new or existing behavior
+  by a coherent owner and preserve the required behavior through verification.
+- New fallback, adapter, or parallel owner paths require an explicit retirement
+  trigger. Unknown dependency is not evidence for keeping duplicate ownership.
+
+### Dependency Budget
+
+No new third-party dependency may enter Vulpra unless the change documents the
+requirement it satisfies, binary and runtime cost, security/update owner, and a
+comparison with the native/platform alternative. Each future plan must carry a
+dependency inventory so dependency growth is reviewable rather than incidental.
+
+### Size and Runtime Measurement
+
+Vulpra-authored binary and resources are measured separately from imported
+Gecko/vendor payload. Imported `Vendor/` contents and raw `Patches/` are tracked
+as separate substrate inventories and cannot be used to excuse growth in the
+Vulpra client, tests, tools, or process artifacts. Gecko size must never hide
+client growth.
+
+The canonical commands, evidence template, and reproducible measurement
+protocol are owned by
+`docs/aegis/policies/efficiency-complexity-governance.md`. Each record names the
+exact commit/artifact, Release-equivalent configuration, device/chip and OS,
+installation/JIT mode, thermal/battery state, tool/version, deterministic
+workload and cache state, and verified baseline artifact.
+
+Use at least five samples and report median plus p95. Startup separately records
+chrome-interactive and first-Gecko-session-ready endpoints. Memory records its
+workload/source and reports steady-state plus per-tab growth. Frame evidence
+reports p95 and hitches over 1.5 times the 16.67 ms at 60 Hz or 8.33 ms at
+120 Hz budget. Every metric includes regression delta against the baseline.
+
+Phase 0 may remain `needs-verification`. The runtime-shell phase cannot complete
+without Vulpra client size/resource and startup evidence; the UI phase cannot
+complete without frame evidence; and the release phase cannot complete without
+physical-device evidence on iOS 15.8 and iOS 16.7. Missing required evidence is
+`needs-verification`, never pass by assumption.
+
+### Current and Planned Complexity Closure
+
+- Task 2 evidence is within budget: `import-substrate.sh` is 157 lines,
+  `generate-import-manifest.py` is 437 lines, and
+  `test-import-boundary.sh` is 275 lines. The generator and boundary test are
+  explicitly flagged for an owner split if their responsibilities or size grow
+  materially.
+- The wider extraction remains `at-risk` if planned as one task and
+  `within-budget` only when decomposed into independently verifiable stages.
+- Every implementation slice closes with `Complexity Closure` status
+  `within-budget`, `exceeded-and-governed`, or `exceeded-unresolved`.
+  `exceeded-unresolved` blocks slice/task completion.
+- Each future plan must include a dependency inventory, size/performance
+  evidence, owner map, and Complexity Closure, using the governed policy.
 
 ### Plan-Time Complexity Check
 
+- **Target artifacts:** new repository, Xcode target graph, six Vulpra modules,
+  extensions, vendor substrate, patches, tools, tests, and documentation.
 - **Better file boundary:** new repository and named modules rather than edits
   inside the old client tree.
 - **Recommendation:** `split task`; keep each phase buildable and require
-  feature-owner and lingering-reference verification before proceeding.
+  feature-owner, lingering-reference, dependency, efficiency, and Complexity
+  Closure verification before proceeding.
 
 ## 21. ADR Signals
 

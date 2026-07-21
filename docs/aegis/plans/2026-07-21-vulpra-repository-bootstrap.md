@@ -169,17 +169,37 @@ Gecko artifact contract tests passed.
 - **Task executability:** every task has exact source/target paths and commands.
 - **Pressure result:** `proceed`.
 
-## Complexity Budget
+## Efficiency and Complexity Budget
 
-- **Artifact class:** repository extraction and build-substrate migration.
-- **Target files/artifacts:** repository metadata, import script, manifest,
-  submodules, patches, Gecko tooling, GeckoView, Helper, and low-level JIT.
-- **Current pressure:** 355 candidate substrate files plus implicit path/name
-  dependencies.
-- **Projected post-change pressure:** bounded by a generated manifest and three
-  automated boundary scans.
-- **Budget result:** `within-budget` for Phase 0; full client work remains split.
-- **Planned governance:** one responsibility group and one commit per task.
+Efficiency is a Product and Architecture non-negotiable. Production source,
+tests, build tools, specifications, plans, and work records are maintained
+complexity surfaces. Imported `Vendor/` payload and raw `Patches/` inventory are
+measured separately and never used to excuse growth in Vulpra-authored code,
+tests, tools, resources, or process artifacts.
+
+- Review any maintained single file at or above 800 lines, any cohesive touched
+  block around 80 lines or more, mixed reasons to change, generic
+  manager/controller growth, duplicate owners/fallbacks/adapters, and dependency
+  or process-artifact sprawl.
+- Do not delete functionality merely to meet an arbitrary budget. Split by
+  coherent owner before adding to an over-budget artifact.
+- Do not add a third-party dependency unless the plan records its requirement,
+  binary/runtime cost, security/update owner, and native-alternative comparison.
+- Report Vulpra client binary/resource delta separately from IPA and
+  Gecko/vendor delta. Report cold/warm startup, steady-state and tab memory,
+  frame performance against 16.67 ms at 60 Hz and 8.33 ms at 120 Hz, and the
+  regression versus the last verified phase. Missing device/macOS evidence is
+  `needs-verification`, not pass.
+- Task 2 is currently `within-budget`: importer 157 lines, generator 437 lines,
+  and boundary test 275 lines. Split the generator or test by owner if its
+  responsibilities or size grow materially.
+- This Phase 0 plan is itself above the 800-line pressure threshold and is
+  `exceeded-and-governed`: its single owner is the Task 1-8 bootstrap sequence,
+  future runtime/product work is split into separate follow-up plans, and no
+  new task semantics may be appended here without a fresh owner review.
+- Every Task 3-8 slice/review must record `Complexity Closure` as
+  `within-budget`, `exceeded-and-governed`, or `exceeded-unresolved`.
+  `exceeded-unresolved` blocks completion.
 
 ## Plan-Time Complexity Check
 
@@ -193,6 +213,24 @@ Gecko artifact contract tests passed.
 - **Better file boundary:** allowlisted groups under `Vendor`, `Patches`,
   `Extensions`, `Modules`, and `Tools`.
 - **Recommendation:** `split task` as below.
+
+### Governed Verification and Closure
+
+The reusable maintained-file pressure report, broad dependency inventory,
+reproducible performance protocol, phase gates, and `Complexity Closure`
+template are owned by
+`docs/aegis/policies/efficiency-complexity-governance.md`. Run its exact commands
+after every Task 3-8 slice/review. Review cohesive touched blocks, owner fit,
+duplicate paths, and process-artifact growth alongside the automated reports.
+
+This plan is already above the 800-line pressure threshold and is
+`exceeded-and-governed`, not within budget. Its exception controls are
+objective: the Task 1-8 Phase 0 scope is fixed and immutable; no new task, owner,
+or contract may be appended; corrections only are allowed here; any change over
+50 net new lines or introducing an owner/contract requires a separate addendum
+or plan; the exception expires and this plan retires to historical evidence
+after the Phase 0 baseline closeout; and each further correction requires an
+independent owner review recorded in the slice evidence.
 
 ## File Map
 
@@ -210,6 +248,7 @@ Gecko artifact contract tests passed.
 - `docs/aegis/baseline/2026-07-21-initial-baseline.md`
 - `docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md`
 - `docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md`
+- `docs/aegis/policies/efficiency-complexity-governance.md`
 - `Tools/Bootstrap/import-substrate.sh`
 - `Tools/Bootstrap/import-allowlist.tsv`
 - `Tools/Bootstrap/generate-import-manifest.py`
@@ -275,7 +314,7 @@ enters the repository.
   #!/bin/sh
   set -eu
   root="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
-  required="README.md NOTICE.md LICENSE LICENSE.firefox docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md"
+  required="README.md NOTICE.md LICENSE LICENSE.firefox docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md docs/aegis/policies/efficiency-complexity-governance.md"
   for path in $required; do
       [ -f "$root/$path" ] || { echo "missing required file: $path" >&2; exit 1; }
   done
@@ -337,10 +376,11 @@ enters the repository.
   ```bash
   cd /root/vulpra-browser
   git init -b main
-  mkdir -p docs/aegis/{baseline,plans,specs,adr,work} docs/provenance
+  mkdir -p docs/aegis/{baseline,plans,specs,policies,adr,work} docs/provenance
   cp /root/reynard-browser/docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/BASELINE-GOVERNANCE.md
   cp /root/reynard-browser/docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/specs/
   cp /root/reynard-browser/docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md docs/aegis/plans/
+  cp /root/reynard-browser/docs/aegis/policies/efficiency-complexity-governance.md docs/aegis/policies/
   cat > README.md <<'EOF'
   # Vulpra Browser
 
@@ -392,18 +432,41 @@ enters the repository.
   | 2026-07-21 | baseline | docs/aegis/baseline/2026-07-21-initial-baseline.md | Vulpra Initial Baseline |
   | 2026-07-21 | spec | docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md | Vulpra Core-Substrate Repository Design |
   | 2026-07-21 | plan | docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md | Vulpra Repository Bootstrap and Substrate Extraction Implementation Plan |
+  | 2026-07-21 | policy | docs/aegis/policies/efficiency-complexity-governance.md | Vulpra Efficiency and Complexity Governance |
   EOF
   cat > docs/aegis/baseline/2026-07-21-initial-baseline.md <<'EOF'
   # Vulpra Initial Baseline
 
   Date: `2026-07-21`
-  Status: `empty-repository-before-substrate-import`
+  Status: `bootstrap-in-progress`
 
   ## Product / Requirement Baseline
   Vulpra is a new Gecko browser client for iOS 15+ with no Reynard user-data compatibility.
+  Efficiency is a Product non-negotiable: Vulpra-authored binary, resources,
+  runtime performance, dependencies, and maintained complexity must remain
+  explicitly budgeted rather than hidden by Gecko/vendor payload.
 
   ## Architecture / Runtime Boundary Baseline
   Only audited Gecko, GeckoView, Helper, low-level JIT, idevice, patch, and build substrate may be imported.
+  Efficiency is an Architecture non-negotiable: production source, tests, build
+  tools, specs, plans, and work records are maintained complexity surfaces, with
+  imported `Vendor/` and raw `Patches/` measured separately.
+
+  No third-party dependency may be added without documenting its requirement,
+  binary/runtime cost, security/update owner, and native-alternative comparison.
+
+  Task 2 evidence snapshot as of `2026-07-21` is within budget:
+  `Tools/Bootstrap/import-substrate.sh` is 157 lines,
+  `Tools/Bootstrap/generate-import-manifest.py` is 437 lines, and
+  `Tests/Bootstrap/test-import-boundary.sh` is 275 lines. The generator and
+  boundary test require an owner split if responsibilities or size grow
+  materially. No third-party dependencies are present. Client binary/resource,
+  IPA, startup, memory, and frame-budget measurements remain
+  `needs-verification` until macOS/device evidence exists.
+
+  Exact implementation-file counts are dated evidence, not durable authority.
+  Durable budgets, measurement protocol, dependency gates, and closure rules are
+  owned by `docs/aegis/policies/efficiency-complexity-governance.md`.
 
   ## Compatibility Boundary
   No old client, UI, persistence, brand resource, app entry point, or Xcode project enters this repository.
@@ -853,7 +916,11 @@ separate workstreams:
    ADRs, and final baseline sync.
 
 Each follow-up plan must cite the verified Phase 0 manifest and may not broaden
-the import boundary without a design amendment.
+the import boundary without a design amendment. Every follow-up plan must also
+include a dependency inventory, Vulpra-versus-Gecko/vendor size and performance
+evidence, an owner map, and a per-slice Complexity Closure. Imported `Vendor/`
+and raw `Patches/` remain separately measured substrate and cannot excuse
+Vulpra-authored growth.
 
 ## Risks
 
