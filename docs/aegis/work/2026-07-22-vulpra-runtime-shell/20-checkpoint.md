@@ -169,3 +169,27 @@
 - New risk signals:
 - Host-opening success is device-only evidence and remains explicitly open.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Execute Task 7: add archive, ptrace, IPA, and TIPA producers.
+- Active slice: Task 7 deterministic archive and portable package producers
+- Completed todos:
+- Tasks 1-5 graph, runtime, JIT, and OpenIn contracts.
+- Task 6 deterministic macOS runtime substrate producer, artifact v3, and generated-output governance.
+- Evidence refs:
+- Tests/RuntimeShell/test-runtime-artifacts.sh
+- Tools/Runtime/build-runtime-substrate.sh
+- Tools/Gecko/gecko-artifact.sh
+- docs/provenance/import-manifest.tsv
+- Blocked on: Actual Gecko/idevice production requires macOS and remains unexecuted; portable packaging fixtures can continue.
+- Next step: Commit Task 6, then write the failing release-packaging fixture before creating build-app, build-ptrace-jit, package-app, and create-ipa scripts.
+
+## DriftCheckDraft
+
+- Scope status: Task 6 changed producer contracts only; Linux did not fetch, build, or generate runtime payloads.
+- Compatibility status: iOS 15.0 and canonical .build/dist roots are explicit; Xcode remains a verifier/consumer rather than a silent producer.
+- Retirement status: iOS 13 settings, Modules idevice output, artifact v2, stale SDK acceptance, and escaping AddGecko path are deleted with no compatibility copies.
+- New risk signals:
+- The macOS producer sequence and real generated header layout still require Phase 1B execution.
+- Advisory decision: continue

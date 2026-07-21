@@ -2,10 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume after Task 5 commit and start Task 6 with RED fixtures; do not build artifacts on Linux or write generated output under Modules.",
+  "resumeInstruction": "Resume after Task 6 commit; Task 7 must package only copied staging trees under dist/temp and never mutate the xcarchive.",
   "knownPartialWork": [
-    "Tasks 1-4 graph, product/runtime, and exactly-once JIT contracts.",
-    "Task 5 new one-path OpenIn share extension passes portable verification."
+    "Tasks 1-5 graph, runtime, JIT, and OpenIn contracts.",
+    "Task 6 deterministic macOS runtime substrate producer, artifact v3, and generated-output governance."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -13,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Portable extension source checks do not prove NSExtensionContext.open succeeds on iOS 15.8."
+    "Passing artifact fixtures does not prove actual Xcode/SDK fingerprints, Gecko compilation, or binary compatibility."
   ]
 }

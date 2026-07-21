@@ -2,14 +2,16 @@
 
 set -eu
 
+"${SRCROOT}/Tools/Runtime/verify-runtime-artifacts.sh"
+
 GECKO_DIST_BIN="${GECKO_DIST}/bin"
 APP_BUNDLE="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
 FRAMEWORKS_DIR="${APP_BUNDLE}/Frameworks"
 GECKOVIEW_FW="${FRAMEWORKS_DIR}/GeckoView.framework"
 GECKOVIEW_FW_FRAMEWORKS="${GECKOVIEW_FW}/Frameworks"
 
-SIGN_IDENTITY="${EXPANDED_CODE_SIGN_IDENTITY:-${EXPANDED_CODE_SIGN_IDENTITY_NAME:-Apple Development}}"
-DEFAULT_THEME_SRC="${SRCROOT}/../Vendor/firefox/toolkit/mozapps/extensions/default-theme"
+SIGN_IDENTITY="${EXPANDED_CODE_SIGN_IDENTITY:-${EXPANDED_CODE_SIGN_IDENTITY_NAME:-}}"
+DEFAULT_THEME_SRC="${SRCROOT}/Vendor/firefox/toolkit/mozapps/extensions/default-theme"
 
 mkdir -p "${FRAMEWORKS_DIR}"
 mkdir -p "${GECKOVIEW_FW_FRAMEWORKS}"
@@ -19,6 +21,10 @@ cp -fL "${GECKO_DIST_BIN}/"*.dylib "${FRAMEWORKS_DIR}/"
 cp -fL "${GECKO_DIST_BIN}/XUL" "${FRAMEWORKS_DIR}/XUL"
 
 if [ "${CODE_SIGNING_ALLOWED:-YES}" != "NO" ]; then
+	[ -n "$SIGN_IDENTITY" ] || {
+		echo "Missing expanded code-sign identity" >&2
+		exit 1
+	}
 	for file in "${FRAMEWORKS_DIR}/XUL" "${FRAMEWORKS_DIR}/"*.dylib; do
 		if [ -f "${file}" ]; then
 			codesign --force --sign "${SIGN_IDENTITY}" --preserve-metadata=identifier,entitlements "${file}"

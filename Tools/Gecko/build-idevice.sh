@@ -7,14 +7,15 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 SUBMODULE_PATH="$REPO_ROOT/Vendor/idevice"
 FFI_DIR="$SUBMODULE_PATH/ffi"
-OUTPUT_LIB="$REPO_ROOT/Modules/VulpraRuntime/JIT/RPPairing/libidevice_ffi.a"
+OUTPUT_LIB="$REPO_ROOT/.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a"
+CARGO_TARGET_DIR="$REPO_ROOT/.build/idevice"
+DEPLOYMENT_TARGET="15.0"
 
-TARGET_DIR="$SUBMODULE_PATH/target"
-DEPLOYMENT_TARGET="13.0"
-
-if [ ! -e "$SUBMODULE_PATH/.git" ]; then
-  git -C "$REPO_ROOT" submodule update --init --recursive Vendor/idevice
-fi
+[ -f "$FFI_DIR/Cargo.toml" ] || {
+	echo "Missing idevice source at $FFI_DIR" >&2
+	echo "Run Tools/Runtime/build-runtime-substrate.sh on macOS." >&2
+	exit 1
+}
 
 RUST_TARGET="aarch64-apple-ios"
 DEPLOYMENT_FLAG="-miphoneos-version-min=${DEPLOYMENT_TARGET}"
@@ -29,9 +30,12 @@ if [ -n "${RUSTFLAGS:-}" ]; then
 else
   export RUSTFLAGS="-C link-arg=${DEPLOYMENT_FLAG}"
 fi
-export TARGET_DIR
+export CARGO_TARGET_DIR
 
-mkdir -p "$(dirname "$OUTPUT_LIB")"
+mkdir -p "$CARGO_TARGET_DIR"
 cd "$FFI_DIR"
 cargo build --release --target "$RUST_TARGET" --no-default-features --features full,ring
-cp "$TARGET_DIR/$RUST_TARGET/release/libidevice_ffi.a" "$OUTPUT_LIB"
+[ -s "$OUTPUT_LIB" ] || {
+	echo "Missing idevice output: $OUTPUT_LIB" >&2
+	exit 1
+}

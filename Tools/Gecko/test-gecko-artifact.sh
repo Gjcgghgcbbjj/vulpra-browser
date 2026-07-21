@@ -7,6 +7,9 @@ HELPER="$SCRIPT_DIR/gecko-artifact.sh"
 FIXTURE="$(mktemp -d)"
 MIRROR="$(mktemp -d)"
 FIREFOX_COMMIT=0123456789abcdef0123456789abcdef01234567
+VULPRA_XCODE_BUILD=17A400
+VULPRA_SDK_BUILD=23A340
+export VULPRA_XCODE_BUILD VULPRA_SDK_BUILD
 trap 'rm -rf "$FIXTURE" "$MIRROR"' EXIT HUP INT TERM
 
 fail() {
@@ -16,7 +19,7 @@ fail() {
 
 mkdir -p \
 	"$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/bin" \
-	"$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include" \
+	"$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView" \
 	"$FIXTURE/Vendor/firefox/toolkit/mozapps/extensions/default-theme" \
 	"$FIXTURE/Patches/widget" \
 	"$FIXTURE/Tools/Gecko"
@@ -26,9 +29,10 @@ printf '%s\n' 'patch-v1' > "$FIXTURE/Patches/widget/test.patch"
 printf '%s\n' '#!/bin/sh' 'echo build' > "$FIXTURE/Tools/Gecko/build-gecko.sh"
 printf '%s\n' 'xul' > "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/bin/XUL"
 printf '%s\n' 'dylib' > "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/bin/libfixture.dylib"
-printf '%s\n' 'header' > "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/test.h"
+printf '%s\n' 'header' > "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/IOSBootstrap.h"
+printf '%s\n' 'swift-header' > "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/GeckoViewSwiftSupport.h"
 printf '%s\n' 'generated-header' > "$FIXTURE/generated-header.h"
-ln -s "$FIXTURE/generated-header.h" "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/generated.h"
+ln -s "$FIXTURE/generated-header.h" "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/generated.h"
 printf '%s\n' 'theme' > "$FIXTURE/Vendor/firefox/toolkit/mozapps/extensions/default-theme/theme.css"
 
 key_one="$(VULPRA_ROOT_DIR="$FIXTURE" VULPRA_FIREFOX_COMMIT="$FIREFOX_COMMIT" "$HELPER" key Xcode_26.4.1.app)"
@@ -45,6 +49,12 @@ key_mirror="$(VULPRA_ROOT_DIR="$MIRROR" VULPRA_FIREFOX_COMMIT="$FIREFOX_COMMIT" 
 key_commit_changed="$(VULPRA_ROOT_DIR="$FIXTURE" VULPRA_FIREFOX_COMMIT=1111111111111111111111111111111111111111 "$HELPER" key Xcode_26.4.1.app)"
 [ "$key_one" != "$key_commit_changed" ] || fail "Firefox commit change did not change key"
 
+key_sdk_changed="$(VULPRA_ROOT_DIR="$FIXTURE" VULPRA_FIREFOX_COMMIT="$FIREFOX_COMMIT" VULPRA_SDK_BUILD=23B999 "$HELPER" key Xcode_26.4.1.app)"
+[ "$key_one" != "$key_sdk_changed" ] || fail "SDK build change did not change key"
+
+key_xcode_build_changed="$(VULPRA_ROOT_DIR="$FIXTURE" VULPRA_FIREFOX_COMMIT="$FIREFOX_COMMIT" VULPRA_XCODE_BUILD=17B999 "$HELPER" key Xcode_26.4.1.app)"
+[ "$key_one" != "$key_xcode_build_changed" ] || fail "Xcode build change did not change key"
+
 printf '%s\n' 'patch-v2' > "$FIXTURE/Patches/widget/test.patch"
 key_changed="$(VULPRA_ROOT_DIR="$FIXTURE" VULPRA_FIREFOX_COMMIT="$FIREFOX_COMMIT" "$HELPER" key Xcode_26.4.1.app)"
 [ "$key_one" != "$key_changed" ] || fail "patch change did not change key"
@@ -59,8 +69,20 @@ VULPRA_ROOT_DIR="$FIXTURE" VULPRA_FIREFOX_COMMIT="$FIREFOX_COMMIT" "$HELPER" ver
 [ -s "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/bin/XUL" ] || fail "XUL was not restored"
 [ -s "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/bin/libfixture.dylib" ] || fail "dylib was not restored"
 [ -s "$FIXTURE/Vendor/firefox/toolkit/mozapps/extensions/default-theme/theme.css" ] || fail "theme was not restored"
-[ ! -L "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/generated.h" ] || fail "absolute header symlink was not dereferenced"
-grep -Fqx 'generated-header' "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/generated.h" || fail "dereferenced header content was not restored"
+[ ! -L "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/generated.h" ] || fail "absolute header symlink was not dereferenced"
+grep -Fqx 'generated-header' "$FIXTURE/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/generated.h" || fail "dereferenced header content was not restored"
+
+if VULPRA_ROOT_DIR="$FIXTURE" VULPRA_FIREFOX_COMMIT="$FIREFOX_COMMIT" VULPRA_SDK_BUILD=23B999 "$HELPER" verify Xcode_26.4.1.app >/dev/null 2>&1; then
+	fail "stale SDK fingerprint was accepted"
+fi
+
+manifest="$FIXTURE/dist/gecko-artifact-manifest.txt"
+cp "$manifest" "$FIXTURE/manifest-v3.backup"
+sed 's/^format=3$/format=2/' "$FIXTURE/manifest-v3.backup" > "$manifest"
+if VULPRA_ROOT_DIR="$FIXTURE" VULPRA_FIREFOX_COMMIT="$FIREFOX_COMMIT" "$HELPER" verify Xcode_26.4.1.app >/dev/null 2>&1; then
+	fail "stale manifest format was accepted"
+fi
+cp "$FIXTURE/manifest-v3.backup" "$manifest"
 
 if VULPRA_ROOT_DIR="$FIXTURE" VULPRA_FIREFOX_COMMIT="$FIREFOX_COMMIT" "$HELPER" verify Xcode_26.5.app >/dev/null 2>&1; then
 	fail "mismatched Xcode key was accepted"

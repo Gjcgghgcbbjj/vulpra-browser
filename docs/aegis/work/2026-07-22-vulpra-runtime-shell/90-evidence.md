@@ -73,3 +73,11 @@ No evidence has been recorded yet.
 - Source: Tests/RuntimeShell/test-open-in.py; Extensions/OpenIn/Info.plist; Extensions/OpenIn/OpenInViewController.swift
 - Summary: OpenIn RED/GREEN passed: exactly one web-URL activation rule, Vulpra principal/error identities, UTType URL extraction, URLComponents-encoded vulpra://open query, one NSExtensionContext.open call, one MainActor completion gate, one complete and one cancel path, no private workspace/responder API, and a 104-line owner.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task6-runtime-artifacts
+- Type: portable-verification
+- Source: Tests/RuntimeShell/test-runtime-artifacts.sh; Tools/Runtime; Tools/Gecko; Tools/Build/AddGecko.sh; docs/provenance/import-manifest.tsv
+- Summary: Runtime artifact RED/GREEN passed: Gecko and idevice deploy at 15.0; Cargo output is .build/idevice/aarch64-apple-ios/release/libidevice_ffi.a with no Modules write; format v3 keys include Xcode and SDK builds, Firefox/patch/build inputs, reject stale format/SDK, and require IOSBootstrap/GeckoViewSwiftSupport/XUL/dylibs/theme; non-Darwin prerequisite exits 78 needs-macos; orchestrator orders submodules, patching, idevice, Gecko, pack, verify; AddGecko verifies and uses repository-root paths. All scripts under 250 lines and no generated output appeared.
+- Verifier: root

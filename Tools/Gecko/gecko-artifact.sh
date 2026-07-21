@@ -8,7 +8,7 @@ ROOT_DIR="${VULPRA_ROOT_DIR:-$DEFAULT_ROOT}"
 GECKO_DIST_REL="Vendor/firefox/obj-aarch64-apple-ios/dist"
 DEFAULT_THEME_REL="Vendor/firefox/toolkit/mozapps/extensions/default-theme"
 MANIFEST_REL="dist/gecko-artifact-manifest.txt"
-FORMAT_VERSION="2"
+FORMAT_VERSION="3"
 
 usage() {
 	cat >&2 <<'EOF'
@@ -59,6 +59,10 @@ resolved_firefox_commit() {
 
 artifact_key() {
 	xcode_app="$1"
+	xcode_build="${VULPRA_XCODE_BUILD:-}"
+	sdk_build="${VULPRA_SDK_BUILD:-}"
+	[ -n "$xcode_build" ] || die "VULPRA_XCODE_BUILD is required"
+	[ -n "$sdk_build" ] || die "VULPRA_SDK_BUILD is required"
 	require_file "$ROOT_DIR/Vendor/firefox-release.txt"
 	require_file "$ROOT_DIR/Tools/Gecko/build-gecko.sh"
 	require_file "$SCRIPT_DIR/gecko-artifact.sh"
@@ -67,7 +71,9 @@ artifact_key() {
 
 	digest="$({
 		printf 'format=%s\n' "$FORMAT_VERSION"
-		printf 'xcode=%s\n' "$xcode_app"
+		printf 'xcode_app=%s\n' "$xcode_app"
+		printf 'xcode_build=%s\n' "$xcode_build"
+		printf 'sdk_build=%s\n' "$sdk_build"
 		printf 'firefox=%s\n' "$firefox_commit"
 		printf 'release=' && tr -d '\000\r\n' < "$ROOT_DIR/Vendor/firefox-release.txt" && printf '\n'
 		(
@@ -101,11 +107,15 @@ verify_payload() {
 	actual_key="$(manifest_value key "$manifest")"
 	[ "$actual_format" = "$FORMAT_VERSION" ] || die "unsupported manifest format: $actual_format"
 	[ "$actual_key" = "$expected_key" ] || die "artifact key mismatch: expected $expected_key, got $actual_key"
+	[ "$(manifest_value xcode_build "$manifest")" = "$VULPRA_XCODE_BUILD" ] || die "Xcode build fingerprint mismatch"
+	[ "$(manifest_value sdk_build "$manifest")" = "$VULPRA_SDK_BUILD" ] || die "SDK build fingerprint mismatch"
 
 	require_file "$payload_root/$GECKO_DIST_REL/bin/XUL"
 	require_dylib "$payload_root/$GECKO_DIST_REL/bin"
 	require_directory "$payload_root/$GECKO_DIST_REL/include"
 	find "$payload_root/$GECKO_DIST_REL/include" -type f -print -quit | grep -q . || die "Gecko include payload is empty"
+	require_file "$payload_root/$GECKO_DIST_REL/include/GeckoView/IOSBootstrap.h"
+	require_file "$payload_root/$GECKO_DIST_REL/include/GeckoView/GeckoViewSwiftSupport.h"
 	require_directory "$payload_root/$DEFAULT_THEME_REL"
 	find "$payload_root/$DEFAULT_THEME_REL" -type f -print -quit | grep -q . || die "default theme payload is empty"
 }
@@ -125,6 +135,8 @@ pack_artifact() {
 format=$FORMAT_VERSION
 key=$expected_key
 xcode=$xcode_app
+xcode_build=$VULPRA_XCODE_BUILD
+sdk_build=$VULPRA_SDK_BUILD
 firefox_commit=$(resolved_firefox_commit)
 release=$(tr -d '\000\r\n' < "$ROOT_DIR/Vendor/firefox-release.txt")
 EOF

@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
   ],
-  "scopeStatus": "Task 5 added only URL handoff; no browser UI, persistence, alternate opener, or old extension source.",
-  "compatStatus": "One shared http/https URL maps to the existing vulpra://open router contract; public API remains the sole path.",
-  "retirementStatus": "Old OpenIn implementation and all private/responder fallbacks remain absent; device failure is still the only amendment trigger.",
+  "scopeStatus": "Task 6 changed producer contracts only; Linux did not fetch, build, or generate runtime payloads.",
+  "compatStatus": "iOS 15.0 and canonical .build/dist roots are explicit; Xcode remains a verifier/consumer rather than a silent producer.",
+  "retirementStatus": "iOS 13 settings, Modules idevice output, artifact v2, stale SDK acceptance, and escaping AddGecko path are deleted with no compatibility copies.",
   "newRiskSignals": [
-    "Host-opening success is device-only evidence and remains explicitly open."
+    "The macOS producer sequence and real generated header layout still require Phase 1B execution."
   ],
   "decision": "continue"
 }

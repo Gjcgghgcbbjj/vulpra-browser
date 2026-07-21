@@ -1,18 +1,19 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Execute Task 6: govern Gecko and idevice artifact production.",
+  "currentTodo": "Execute Task 7: add archive, ptrace, IPA, and TIPA producers.",
   "completedTodos": [
-    "Tasks 1-4 graph, product/runtime, and exactly-once JIT contracts.",
-    "Task 5 new one-path OpenIn share extension passes portable verification."
+    "Tasks 1-5 graph, runtime, JIT, and OpenIn contracts.",
+    "Task 6 deterministic macOS runtime substrate producer, artifact v3, and generated-output governance."
   ],
-  "activeSlice": "Task 6 deterministic macOS runtime substrate producers and artifact v3",
+  "activeSlice": "Task 7 deterministic archive and portable package producers",
   "evidenceRefs": [
-    "Tests/RuntimeShell/test-open-in.py",
-    "Extensions/OpenIn/Info.plist",
-    "Extensions/OpenIn/OpenInViewController.swift"
+    "Tests/RuntimeShell/test-runtime-artifacts.sh",
+    "Tools/Runtime/build-runtime-substrate.sh",
+    "Tools/Gecko/gecko-artifact.sh",
+    "docs/provenance/import-manifest.tsv"
   ],
-  "blockedOn": "Physical-device host opening remains Phase 1B needs-verification; producer contract work can continue on Linux.",
-  "nextStep": "Commit Task 5, then write failing runtime-artifact tests for iOS 15, .build idevice output, format v3 Xcode/SDK fingerprints, and needs-macos behavior.",
+  "blockedOn": "Actual Gecko/idevice production requires macOS and remains unexecuted; portable packaging fixtures can continue.",
+  "nextStep": "Commit Task 6, then write the failing release-packaging fixture before creating build-app, build-ptrace-jit, package-app, and create-ipa scripts.",
   "updatedAt": "2026-07-22"
 }

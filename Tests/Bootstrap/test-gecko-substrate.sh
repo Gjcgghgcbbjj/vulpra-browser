@@ -174,8 +174,11 @@ for script in apply-patches.sh create-patches.sh update-gecko.sh; do
 done
 grep -Fq 'Vendor/idevice' "$ROOT/Tools/Gecko/build-idevice.sh" ||
 	fail "idevice path was not ported"
-grep -Fq 'Modules/VulpraRuntime/JIT/RPPairing' "$ROOT/Tools/Gecko/build-idevice.sh" ||
-	fail "JIT output path was not ported"
+grep -Fq '.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a' "$ROOT/Tools/Gecko/build-idevice.sh" ||
+	fail "idevice output path is not the generated .build owner"
+if grep -Fq 'Modules/VulpraRuntime/JIT/RPPairing/libidevice_ffi.a' "$ROOT/Tools/Gecko/build-idevice.sh"; then
+	fail "idevice producer still writes a generated archive under Modules"
+fi
 grep -Fq 'VULPRA_ROOT_DIR' "$ROOT/Tools/Gecko/gecko-artifact.sh" ||
 	fail "artifact root environment variable was not ported"
 grep -Fq 'vulpra-gecko-ios-arm64' "$ROOT/Tools/Gecko/gecko-artifact.sh" ||
