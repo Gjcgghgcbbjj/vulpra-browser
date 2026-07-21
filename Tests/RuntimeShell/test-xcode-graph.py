@@ -155,6 +155,14 @@ def main() -> None:
     app_config = config_text["App"]
     require("$(VULPRA_GECKO_DIST)/bin/XUL" in app_config, "app does not link Gecko XUL")
     require("$(VULPRA_IDEVICE_ARCHIVE)" in app_config, "app does not link idevice archive")
+    require(
+        "SWIFT_OBJC_BRIDGING_HEADER" not in config_text["GeckoView"],
+        "framework target must expose Objective-C through its module, not a bridging header",
+    )
+    require(
+        "SWIFT_OBJC_BRIDGING_HEADER" not in config_text["Helper"],
+        "helper must consume the GeckoView module instead of the app bridging header",
+    )
 
     require("Reynard" not in text, "old product identity found in project")
     all_settings = text + "\n" + "\n".join(config_text.values())

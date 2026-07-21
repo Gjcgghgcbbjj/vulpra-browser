@@ -99,10 +99,21 @@ def main() -> None:
     bridge = BRIDGE.read_text(encoding="utf-8")
     for header in ("JITEnabler.h", "Utils.h", "IOSBootstrap.h"):
         require(header in bridge, f"bridge missing {header}")
-    for forbidden in ("UIKit+Private.h", "TSUtils.h", "JITController"):
+    for forbidden in (
+        "UIKit+Private.h",
+        "TSUtils.h",
+        "JITController",
+        "ExtensionBridge.h",
+        "GeckoRuntimeBridge.h",
+    ):
         require(forbidden not in bridge, f"bridge contains forbidden header: {forbidden}")
 
-    require("TSUtils.h" not in GECKO_HEADER.read_text(encoding="utf-8"), "stale TSUtils.h import remains")
+    gecko_header = GECKO_HEADER.read_text(encoding="utf-8")
+    require("TSUtils.h" not in gecko_header, "stale TSUtils.h import remains")
+    require(
+        "GeckoViewSwiftSupport.h" not in gecko_header,
+        "framework umbrella header must not import its generated Swift interface",
+    )
     require_header_closure(BRIDGE)
     require_header_closure(GECKO_HEADER)
 
