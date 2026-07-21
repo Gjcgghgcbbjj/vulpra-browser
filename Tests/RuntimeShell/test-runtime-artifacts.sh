@@ -85,7 +85,8 @@ import sys
 text = Path(sys.argv[1]).read_text()
 ordered = [
     "check-macos-prerequisites.sh",
-    "submodule update --init --recursive Vendor/firefox Vendor/idevice",
+    "update-gecko.sh",
+    "submodule update --init --depth 1 Vendor/idevice",
     "build-idevice.sh",
     "build-gecko.sh",
     "gecko-artifact.sh\" pack",

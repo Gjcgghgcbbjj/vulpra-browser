@@ -7,8 +7,8 @@ ROOT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)
 "$SCRIPT_DIR/check-macos-prerequisites.sh"
 cd "$ROOT_DIR"
 
-git submodule update --init --recursive Vendor/firefox Vendor/idevice
 "$ROOT_DIR/Tools/Gecko/update-gecko.sh"
+git submodule update --init --depth 1 Vendor/idevice
 "$ROOT_DIR/Tools/Gecko/apply-patches.sh"
 "$ROOT_DIR/Tools/Gecko/build-idevice.sh"
 "$ROOT_DIR/Tools/Gecko/build-gecko.sh"
