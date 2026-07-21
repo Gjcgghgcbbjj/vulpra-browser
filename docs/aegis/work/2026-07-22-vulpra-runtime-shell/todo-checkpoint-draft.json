@@ -1,17 +1,17 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Execute Task 9: record the Phase 1A portable baseline and architecture decision.",
+  "currentTodo": "Execute Task 10: run the final Phase 1A portable closeout at the exact final commit.",
   "completedTodos": [
-    "Tasks 1-7 runtime shell and producer implementation.",
-    "Task 8 one canonical portable RuntimeShell gate integrated into existing dependency-free Ubuntu workflow."
+    "Tasks 1-8 implementation and canonical portable gate.",
+    "Task 9 runtime-shell-portable-verified baseline, ADR-0002, README Mac handoff, indexed work reflection."
   ],
-  "activeSlice": "Task 9 portable baseline, ADR, index, build handoff, and work closeout records",
+  "activeSlice": "Task 10 fresh full-gate verification and clean-worktree handoff",
   "evidenceRefs": [
-    "Tests/RuntimeShell/run-portable.sh",
-    ".github/workflows/bootstrap-core.yml"
+    "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md",
+    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md"
   ],
-  "blockedOn": "Mac/Xcode/IPA/device/performance evidence remains explicitly open; documentation closeout can proceed.",
-  "nextStep": "Commit Task 8, then extend shape expectations for a runtime-shell-portable-verified baseline and create the baseline/ADR with exact current evidence.",
+  "blockedOn": "Phase 1B Apple-platform evidence remains external but does not block Phase 1A portable closeout.",
+  "nextStep": "Commit Task 9, then run every Bootstrap/runtime/artifact/syntax/identity/manifest/complexity/Aegis/hygiene check against the final feature commit.",
   "updatedAt": "2026-07-22"
 }

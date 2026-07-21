@@ -237,3 +237,25 @@
 - New risk signals:
 - GitHub-hosted execution remains unobserved because this repository has no configured remote.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Execute Task 10: run the final Phase 1A portable closeout at the exact final commit.
+- Active slice: Task 10 fresh full-gate verification and clean-worktree handoff
+- Completed todos:
+- Tasks 1-8 implementation and canonical portable gate.
+- Task 9 runtime-shell-portable-verified baseline, ADR-0002, README Mac handoff, indexed work reflection.
+- Evidence refs:
+- docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md
+- docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md
+- Blocked on: Phase 1B Apple-platform evidence remains external but does not block Phase 1A portable closeout.
+- Next step: Commit Task 9, then run every Bootstrap/runtime/artifact/syntax/identity/manifest/complexity/Aegis/hygiene check against the final feature commit.
+
+## DriftCheckDraft
+
+- Scope status: Task 9 documents implemented Phase 1A owners and evidence only; later browser UI/data work remains excluded.
+- Compatibility status: Baseline preserves iOS 15 arm64 TrollStore-first compatibility and labels every Mac/device/performance fact needs-verification.
+- Retirement status: ADR and reflection preserve the explicit retirement of old project/client/fallbacks and the future runtime-shell replacement trigger.
+- New risk signals:
+- No new risk beyond the recorded Phase 1B Apple-platform and publication gates.
+- Advisory decision: continue

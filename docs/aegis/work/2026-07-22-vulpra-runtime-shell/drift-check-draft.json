@@ -3,13 +3,13 @@
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "taskIntentRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/task-intent-draft.json",
   "baselineRefs": [
-    "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
+    "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md"
   ],
-  "scopeStatus": "Task 8 consolidated verification only; no second workflow, dependency, or runtime behavior was added.",
-  "compatStatus": "Portable/Mac evidence split remains explicit and Ubuntu remains submodule-free.",
-  "retirementStatus": "Duplicated workflow-level artifact/syntax commands are replaced by the canonical runner; Bootstrap tests remain direct prerequisites.",
+  "scopeStatus": "Task 9 documents implemented Phase 1A owners and evidence only; later browser UI/data work remains excluded.",
+  "compatStatus": "Baseline preserves iOS 15 arm64 TrollStore-first compatibility and labels every Mac/device/performance fact needs-verification.",
+  "retirementStatus": "ADR and reflection preserve the explicit retirement of old project/client/fallbacks and the future runtime-shell replacement trigger.",
   "newRiskSignals": [
-    "GitHub-hosted execution remains unobserved because this repository has no configured remote."
+    "No new risk beyond the recorded Phase 1B Apple-platform and publication gates."
   ],
   "decision": "continue"
 }

@@ -2,10 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume after Task 8 commit; Task 9 must not claim IPA-ready or device-verified and must list every Phase 1B needs-verification item.",
+  "resumeInstruction": "Resume after Task 9 commit and perform verification only; do not begin tabs/data/final UI or claim Mac/device evidence.",
   "knownPartialWork": [
-    "Tasks 1-7 runtime shell and producer implementation.",
-    "Task 8 one canonical portable RuntimeShell gate integrated into existing dependency-free Ubuntu workflow."
+    "Tasks 1-8 implementation and canonical portable gate.",
+    "Task 9 runtime-shell-portable-verified baseline, ADR-0002, README Mac handoff, indexed work reflection."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -13,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Local Linux execution does not prove GitHub-hosted execution or any Apple-platform result."
+    "Baseline and ADR record evidence boundaries; they do not replace final fresh commands or Apple-platform verification."
   ]
 }

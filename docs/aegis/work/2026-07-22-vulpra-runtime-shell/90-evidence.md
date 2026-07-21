@@ -97,3 +97,11 @@ No evidence has been recorded yet.
 - Source: .github/workflows/bootstrap-core.yml; Tests/RuntimeShell/run-portable.sh; Tests/Bootstrap/test-repository-shape.sh
 - Summary: Canonical portable gate passed: existing ubuntu-latest workflow keeps submodules false and no package installs, runs all six Bootstrap tests then one RuntimeShell runner; runner executes graph/product/runtime/JIT/OpenIn/artifact/package fixtures, Gecko artifact regression, interpreter-aware shell syntax, plist/scheme parsing, and diff check. Nested Git-root regression and Aegis workspace check pass.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task9-baseline-adr
+- Type: architecture-baseline
+- Source: docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md; docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md; README.md
+- Summary: Phase 1A portable baseline records exact implementation snapshot, 345-row manifest hash, graph/artifact/runner hashes, four targets and identities, owner map, artifact v3 and packaging contracts, portable commands, complexity accounting, Mac continuation, and explicit Xcode/Gecko/IPA/OpenIn/JIT/iOS 15.8/performance needs-verification. ADR gate passed and ADR-0002 records the durable ownership/evidence trade-offs with baseline sync.
+- Verifier: root

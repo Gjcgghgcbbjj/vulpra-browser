@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 root="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
-required="README.md NOTICE.md LICENSE LICENSE.firefox .github/workflows/bootstrap-core.yml Tests/RuntimeShell/run-portable.sh docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md"
+required="README.md NOTICE.md LICENSE LICENSE.firefox .github/workflows/bootstrap-core.yml Tests/RuntimeShell/run-portable.sh docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md"
 for path in $required; do
     [ -f "$root/$path" ] || { echo "missing required file: $path" >&2; exit 1; }
 done
@@ -40,6 +40,32 @@ grep -Fqx 'Status: `substrate-import-verified`' "$baseline" || {
 grep -Fq '| provenance | docs/provenance/substrate-boundary.md |' \
     "$root/docs/aegis/INDEX.md" || {
     echo 'substrate boundary is not indexed' >&2
+    exit 1
+}
+
+runtime_baseline="$root/docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md"
+for contract in \
+    'Status: `runtime-shell-portable-verified`' \
+    'Vulpra — `com.apple.product-type.application` — `com.vulpra.browser`' \
+    'GeckoView — `com.apple.product-type.framework` — `com.vulpra.browser.geckoview`' \
+    'Vulpra Helper — `com.apple.product-type.app-extension` — `com.vulpra.browser.helper`' \
+    'OpenIn — `com.apple.product-type.app-extension` — `com.vulpra.browser.open-in`' \
+    'Deployment target: `15.0`' \
+    'Xcode compilation: `needs-verification`' \
+    'Gecko rebuild: `needs-verification`' \
+    'IPA/TIPA creation: `needs-verification`' \
+    'OpenIn device behavior: `needs-verification`' \
+    'iOS 15.8 launch: `needs-verification`'
+do
+    grep -Fq "$contract" "$runtime_baseline" || {
+        echo "runtime baseline is missing contract: $contract" >&2
+        exit 1
+    }
+done
+
+manifest_hash=$(sha256sum "$root/docs/provenance/import-manifest.tsv" | awk '{print $1}')
+grep -Fqx -- "- Import manifest SHA-256: \`$manifest_hash\`" "$runtime_baseline" || {
+    echo 'runtime baseline manifest hash is stale' >&2
     exit 1
 }
 

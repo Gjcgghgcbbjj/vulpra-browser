@@ -33,3 +33,8 @@
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task6-runtime-artifacts.json | 2026-07-22-vulpra-runtime-shell evidence task6-runtime-artifacts |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task7-release-packaging.json | 2026-07-22-vulpra-runtime-shell evidence task7-release-packaging |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task8-portable-gate.json | 2026-07-22-vulpra-runtime-shell evidence task8-portable-gate |
+| 2026-07-22 | baseline | docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md | Vulpra Runtime Shell Portable Baseline |
+| 2026-07-22 | adr | docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md | ADR-0002 - Runtime Shell Ownership and Evidence Boundary |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task9-baseline-adr.json | 2026-07-22-vulpra-runtime-shell evidence task9-baseline-adr |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/gate-input-pack.json | 2026-07-22-vulpra-runtime-shell gate input pack |
+| 2026-07-22 | work | docs/aegis/work/2026-07-22-vulpra-runtime-shell/proof-bundle.md | 2026-07-22-vulpra-runtime-shell proof bundle |
