@@ -32,6 +32,17 @@ while IFS='|' read -r _date _kind indexed_path _title _rest; do
     esac
 done < "$root/docs/aegis/INDEX.md"
 
+baseline="$root/docs/aegis/baseline/2026-07-21-initial-baseline.md"
+grep -Fqx 'Status: `substrate-import-verified`' "$baseline" || {
+    echo 'baseline status is not substrate-import-verified' >&2
+    exit 1
+}
+grep -Fq '| provenance | docs/provenance/substrate-boundary.md |' \
+    "$root/docs/aegis/INDEX.md" || {
+    echo 'substrate boundary is not indexed' >&2
+    exit 1
+}
+
 workflow="$root/.github/workflows/bootstrap-core.yml"
 for command in \
     './Tests/Bootstrap/test-repository-shape.sh' \
