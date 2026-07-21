@@ -89,3 +89,11 @@ No evidence has been recorded yet.
 - Source: Tests/RuntimeShell/test-release-packaging.sh; Tools/Release
 - Summary: Release packaging RED/GREEN passed: unsigned generic-iOS archive command, iOS 15 arm64 ptrace compile, archive/app/stage/output package owner, exact four bundle identities, required Gecko products, deterministic fixed-metadata Payload zip, sorted SHA256SUMS, refusal cases, copied-stage ldid entitlement flow, no archive mutation, no team/profile/plist identity rewrite. Script lines are 18/20/35/77 and no output artifact appeared.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task8-portable-gate
+- Type: portable-verification
+- Source: .github/workflows/bootstrap-core.yml; Tests/RuntimeShell/run-portable.sh; Tests/Bootstrap/test-repository-shape.sh
+- Summary: Canonical portable gate passed: existing ubuntu-latest workflow keeps submodules false and no package installs, runs all six Bootstrap tests then one RuntimeShell runner; runner executes graph/product/runtime/JIT/OpenIn/artifact/package fixtures, Gecko artifact regression, interpreter-aware shell syntax, plist/scheme parsing, and diff check. Nested Git-root regression and Aegis workspace check pass.
+- Verifier: root

@@ -2,10 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume after Task 7 commit; keep one existing Ubuntu workflow owner and do not install packages or initialize submodules.",
+  "resumeInstruction": "Resume after Task 8 commit; Task 9 must not claim IPA-ready or device-verified and must list every Phase 1B needs-verification item.",
   "knownPartialWork": [
-    "Tasks 1-6 graph/runtime/JIT/OpenIn and runtime artifact producers.",
-    "Task 7 deterministic archive, ptrace, IPA, and TIPA producer contracts."
+    "Tasks 1-7 runtime shell and producer implementation.",
+    "Task 8 one canonical portable RuntimeShell gate integrated into existing dependency-free Ubuntu workflow."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -13,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Portable zip fixtures do not prove Mach-O signing, ldid behavior, Xcode archive layout, or TrollStore installation."
+    "Local Linux execution does not prove GitHub-hosted execution or any Apple-platform result."
   ]
 }

@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
   ],
-  "scopeStatus": "Task 7 added producer scripts and fixtures only; no release artifact or signing identity entered Git.",
-  "compatStatus": "Packaging consumes exact Vulpra products from a copied stage and preserves the unsigned archive; iOS 15 ptrace and private entitlement paths are explicit.",
-  "retirementStatus": "Old release workflow remains absent; bundle rewriting and archive mutation are forbidden rather than retained as compatibility.",
+  "scopeStatus": "Task 8 consolidated verification only; no second workflow, dependency, or runtime behavior was added.",
+  "compatStatus": "Portable/Mac evidence split remains explicit and Ubuntu remains submodule-free.",
+  "retirementStatus": "Duplicated workflow-level artifact/syntax commands are replaced by the canonical runner; Bootstrap tests remain direct prerequisites.",
   "newRiskSignals": [
-    "Actual executable names, ldid signatures, and TrollStore install require Phase 1B evidence."
+    "GitHub-hosted execution remains unobserved because this repository has no configured remote."
   ],
   "decision": "continue"
 }

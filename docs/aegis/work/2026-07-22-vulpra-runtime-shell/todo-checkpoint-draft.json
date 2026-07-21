@@ -1,17 +1,17 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Execute Task 8: add the canonical portable runtime-shell gate.",
+  "currentTodo": "Execute Task 9: record the Phase 1A portable baseline and architecture decision.",
   "completedTodos": [
-    "Tasks 1-6 graph/runtime/JIT/OpenIn and runtime artifact producers.",
-    "Task 7 deterministic archive, ptrace, IPA, and TIPA producer contracts."
+    "Tasks 1-7 runtime shell and producer implementation.",
+    "Task 8 one canonical portable RuntimeShell gate integrated into existing dependency-free Ubuntu workflow."
   ],
-  "activeSlice": "Task 8 one portable runner and existing CI workflow integration",
+  "activeSlice": "Task 9 portable baseline, ADR, index, build handoff, and work closeout records",
   "evidenceRefs": [
-    "Tests/RuntimeShell/test-release-packaging.sh",
-    "Tools/Release/package-app.sh"
+    "Tests/RuntimeShell/run-portable.sh",
+    ".github/workflows/bootstrap-core.yml"
   ],
-  "blockedOn": "Real archive/sign/package execution remains Phase 1B; portable CI integration can continue.",
-  "nextStep": "Commit Task 7, then make repository shape fail for missing run-portable.sh/workflow invocation and implement the canonical runner.",
+  "blockedOn": "Mac/Xcode/IPA/device/performance evidence remains explicitly open; documentation closeout can proceed.",
+  "nextStep": "Commit Task 8, then extend shape expectations for a runtime-shell-portable-verified baseline and create the baseline/ADR with exact current evidence.",
   "updatedAt": "2026-07-22"
 }

@@ -215,3 +215,25 @@
 - New risk signals:
 - Actual executable names, ldid signatures, and TrollStore install require Phase 1B evidence.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Execute Task 9: record the Phase 1A portable baseline and architecture decision.
+- Active slice: Task 9 portable baseline, ADR, index, build handoff, and work closeout records
+- Completed todos:
+- Tasks 1-7 runtime shell and producer implementation.
+- Task 8 one canonical portable RuntimeShell gate integrated into existing dependency-free Ubuntu workflow.
+- Evidence refs:
+- Tests/RuntimeShell/run-portable.sh
+- .github/workflows/bootstrap-core.yml
+- Blocked on: Mac/Xcode/IPA/device/performance evidence remains explicitly open; documentation closeout can proceed.
+- Next step: Commit Task 8, then extend shape expectations for a runtime-shell-portable-verified baseline and create the baseline/ADR with exact current evidence.
+
+## DriftCheckDraft
+
+- Scope status: Task 8 consolidated verification only; no second workflow, dependency, or runtime behavior was added.
+- Compatibility status: Portable/Mac evidence split remains explicit and Ubuntu remains submodule-free.
+- Retirement status: Duplicated workflow-level artifact/syntax commands are replaced by the canonical runner; Bootstrap tests remain direct prerequisites.
+- New risk signals:
+- GitHub-hosted execution remains unobserved because this repository has no configured remote.
+- Advisory decision: continue

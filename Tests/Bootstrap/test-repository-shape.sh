@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 root="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
-required="README.md NOTICE.md LICENSE LICENSE.firefox .github/workflows/bootstrap-core.yml docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md"
+required="README.md NOTICE.md LICENSE LICENSE.firefox .github/workflows/bootstrap-core.yml Tests/RuntimeShell/run-portable.sh docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md"
 for path in $required; do
     [ -f "$root/$path" ] || { echo "missing required file: $path" >&2; exit 1; }
 done
@@ -51,12 +51,27 @@ for command in \
     './Tests/Bootstrap/test-gecko-substrate.sh' \
     './Tests/Bootstrap/test-active-identity.sh' \
     './Tests/Bootstrap/test-jit-substrate.sh' \
-    './Tools/Gecko/test-gecko-artifact.sh' \
-    "find Tools Tests -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n" \
-    'git diff --check'
+    './Tests/RuntimeShell/run-portable.sh'
 do
     grep -Fq -- "$command" "$workflow" || {
         echo "bootstrap workflow is missing portable command: $command" >&2
+        exit 1
+    }
+done
+
+grep -Fq 'submodules: false' "$workflow" || {
+    echo 'portable workflow must not initialize submodules' >&2
+    exit 1
+}
+if grep -Eq 'apt-get|brew install|pip(3)? install|npm install|cargo install' "$workflow"; then
+    echo 'portable workflow must not install packages' >&2
+    exit 1
+fi
+
+runner="$root/Tests/RuntimeShell/run-portable.sh"
+for test in test-xcode-graph.py test-product-contracts.py test-runtime-shell.py test-jit-orchestration.py test-open-in.py test-runtime-artifacts.sh test-release-packaging.sh; do
+    grep -Fq "$test" "$runner" || {
+        echo "portable runner is missing runtime test: $test" >&2
         exit 1
     }
 done
