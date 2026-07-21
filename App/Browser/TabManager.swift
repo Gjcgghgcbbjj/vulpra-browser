@@ -7,6 +7,7 @@ protocol TabManagerDelegate: AnyObject {
     func tabManager(_ manager: TabManager, requestedDownload response: ExternalResponseInfo) async -> Bool
     func tabManager(_ manager: TabManager, downloadAt path: String, received bytes: Int64) -> Bool
     func tabManager(_ manager: TabManager, completedDownloadAt path: String, succeeded: Bool)
+    func tabManager(_ manager: TabManager, requestedContextMenu element: ContextElement)
 }
 
 final class TabManager: BrowserTabObserver {
@@ -141,5 +142,9 @@ final class TabManager: BrowserTabObserver {
 
     func browserTab(_ tab: BrowserTab, completedDownloadAt path: String, succeeded: Bool) {
         delegate?.tabManager(self, completedDownloadAt: path, succeeded: succeeded)
+    }
+
+    func browserTab(_ tab: BrowserTab, requestedContextMenu element: ContextElement) {
+        delegate?.tabManager(self, requestedContextMenu: element)
     }
 }

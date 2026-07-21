@@ -17,6 +17,7 @@ protocol BrowserTabObserver: AnyObject {
     func browserTab(_ tab: BrowserTab, requestedDownload response: ExternalResponseInfo) async -> Bool
     func browserTab(_ tab: BrowserTab, downloadAt path: String, received bytes: Int64) -> Bool
     func browserTab(_ tab: BrowserTab, completedDownloadAt path: String, succeeded: Bool)
+    func browserTab(_ tab: BrowserTab, requestedContextMenu element: ContextElement)
 }
 
 final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
@@ -140,6 +141,10 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
     func onTitleChange(session: GeckoSession, title: String) {
         self.title = title.isEmpty ? "New Tab" : title
         observer?.browserTabDidChange(self)
+    }
+
+    func onContextMenu(session: GeckoSession, screenX: Int, screenY: Int, element: ContextElement) {
+        observer?.browserTab(self, requestedContextMenu: element)
     }
 
     func onCloseRequest(session: GeckoSession) { observer?.browserTabDidRequestClose(self) }

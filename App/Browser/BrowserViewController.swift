@@ -10,6 +10,8 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private let promptController = BrowserPromptController()
     private let addonController = BrowserAddonController()
     private let pageTools = PageToolsController()
+    private let pictureInPicture = BrowserPictureInPictureController()
+    private let contextMenu = BrowserContextMenuController()
     private let contentContainer = UIView()
     private let chrome = BrowserChromeView()
     private let startPage = StartPageViewController()
@@ -71,6 +73,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         addonController.tabManager = tabManager
         addonController.onOpenURL = { [weak self] in self?.open($0) }
         pageTools.delegate = self
+        contextMenu.onOpenURL = { [weak self] in self?.open($0) }
         chrome.delegate = self
         startPage.delegate = self
         suggestionsView.onSelect = { [weak self] suggestion in
@@ -117,6 +120,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
         guard tab.url != nil else { showStartPage(); return }
         let session = tab.activate(settings: BrowserSettingsStore.shared.value)
+        pictureInPicture.attach(to: session)
         tab.setActive(isSceneActive)
         guard let engineView = session.engineView else { showFailure("Gecko engine view unavailable"); return }
         engineView.removeFromSuperview()
@@ -204,6 +208,9 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     func tabManager(_ manager: TabManager, requestedDownload response: ExternalResponseInfo) async -> Bool { DownloadManager.shared.accept(response) }
     func tabManager(_ manager: TabManager, downloadAt path: String, received bytes: Int64) -> Bool { DownloadManager.shared.update(path: path, bytes: bytes) }
     func tabManager(_ manager: TabManager, completedDownloadAt path: String, succeeded: Bool) { DownloadManager.shared.complete(path: path, succeeded: succeeded) }
+    func tabManager(_ manager: TabManager, requestedContextMenu element: ContextElement) {
+        contextMenu.present(element: element, from: self, sourceView: contentContainer)
+    }
 
     func startPage(_ controller: StartPageViewController, open text: String) { browserChrome(chrome, submitted: text) }
     func startPageDidRequestPrivateTab(_ controller: StartPageViewController) { _ = tabManager.newTab(url: nil, privateMode: true); showSelectedTab() }
@@ -235,6 +242,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         BrowserSettingsStore.shared.update { $0.pageZoom = level }
         tabManager.selectedTab?.applySettings(BrowserSettingsStore.shared.value)
     }
+    func pageToolsDidRequestPictureInPicture(_ controller: PageToolsController) { pictureInPicture.start() }
     func pageToolsDidRequestQRScanner(_ controller: PageToolsController) {
         let scanner = QRScannerViewController(); scanner.onCode = { [weak self] value in
             guard let self else { return }; self.browserChrome(self.chrome, submitted: value)
