@@ -13,6 +13,8 @@ Tests/RuntimeShell/test-runtime-artifacts.sh
 Tests/RuntimeShell/test-release-packaging.sh
 Tools/Gecko/test-gecko-artifact.sh
 python3 Tests/Browser/test-runtime-workflow.py
+python3 Tests/Browser/test-package-workflow.py
+python3 Tests/Browser/test-browser-client.py
 
 find Tools Tests -type f -name '*.sh' -print | LC_ALL=C sort | while IFS= read -r script; do
 	case "$(head -n 1 "$script")" in
