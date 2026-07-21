@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
   ],
-  "scopeStatus": "Task 6 changed producer contracts only; Linux did not fetch, build, or generate runtime payloads.",
-  "compatStatus": "iOS 15.0 and canonical .build/dist roots are explicit; Xcode remains a verifier/consumer rather than a silent producer.",
-  "retirementStatus": "iOS 13 settings, Modules idevice output, artifact v2, stale SDK acceptance, and escaping AddGecko path are deleted with no compatibility copies.",
+  "scopeStatus": "Task 7 added producer scripts and fixtures only; no release artifact or signing identity entered Git.",
+  "compatStatus": "Packaging consumes exact Vulpra products from a copied stage and preserves the unsigned archive; iOS 15 ptrace and private entitlement paths are explicit.",
+  "retirementStatus": "Old release workflow remains absent; bundle rewriting and archive mutation are forbidden rather than retained as compatibility.",
   "newRiskSignals": [
-    "The macOS producer sequence and real generated header layout still require Phase 1B execution."
+    "Actual executable names, ldid signatures, and TrollStore install require Phase 1B evidence."
   ],
   "decision": "continue"
 }

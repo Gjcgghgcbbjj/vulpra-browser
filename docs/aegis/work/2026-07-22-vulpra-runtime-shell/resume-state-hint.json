@@ -2,10 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume after Task 6 commit; Task 7 must package only copied staging trees under dist/temp and never mutate the xcarchive.",
+  "resumeInstruction": "Resume after Task 7 commit; keep one existing Ubuntu workflow owner and do not install packages or initialize submodules.",
   "knownPartialWork": [
-    "Tasks 1-5 graph, runtime, JIT, and OpenIn contracts.",
-    "Task 6 deterministic macOS runtime substrate producer, artifact v3, and generated-output governance."
+    "Tasks 1-6 graph/runtime/JIT/OpenIn and runtime artifact producers.",
+    "Task 7 deterministic archive, ptrace, IPA, and TIPA producer contracts."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -13,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Passing artifact fixtures does not prove actual Xcode/SDK fingerprints, Gecko compilation, or binary compatibility."
+    "Portable zip fixtures do not prove Mach-O signing, ldid behavior, Xcode archive layout, or TrollStore installation."
   ]
 }

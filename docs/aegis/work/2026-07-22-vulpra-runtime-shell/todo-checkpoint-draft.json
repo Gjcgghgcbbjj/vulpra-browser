@@ -1,19 +1,17 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Execute Task 7: add archive, ptrace, IPA, and TIPA producers.",
+  "currentTodo": "Execute Task 8: add the canonical portable runtime-shell gate.",
   "completedTodos": [
-    "Tasks 1-5 graph, runtime, JIT, and OpenIn contracts.",
-    "Task 6 deterministic macOS runtime substrate producer, artifact v3, and generated-output governance."
+    "Tasks 1-6 graph/runtime/JIT/OpenIn and runtime artifact producers.",
+    "Task 7 deterministic archive, ptrace, IPA, and TIPA producer contracts."
   ],
-  "activeSlice": "Task 7 deterministic archive and portable package producers",
+  "activeSlice": "Task 8 one portable runner and existing CI workflow integration",
   "evidenceRefs": [
-    "Tests/RuntimeShell/test-runtime-artifacts.sh",
-    "Tools/Runtime/build-runtime-substrate.sh",
-    "Tools/Gecko/gecko-artifact.sh",
-    "docs/provenance/import-manifest.tsv"
+    "Tests/RuntimeShell/test-release-packaging.sh",
+    "Tools/Release/package-app.sh"
   ],
-  "blockedOn": "Actual Gecko/idevice production requires macOS and remains unexecuted; portable packaging fixtures can continue.",
-  "nextStep": "Commit Task 6, then write the failing release-packaging fixture before creating build-app, build-ptrace-jit, package-app, and create-ipa scripts.",
+  "blockedOn": "Real archive/sign/package execution remains Phase 1B; portable CI integration can continue.",
+  "nextStep": "Commit Task 7, then make repository shape fail for missing run-portable.sh/workflow invocation and implement the canonical runner.",
   "updatedAt": "2026-07-22"
 }

@@ -31,3 +31,4 @@
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task4-jit-orchestration.json | 2026-07-22-vulpra-runtime-shell evidence task4-jit-orchestration |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task5-open-in.json | 2026-07-22-vulpra-runtime-shell evidence task5-open-in |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task6-runtime-artifacts.json | 2026-07-22-vulpra-runtime-shell evidence task6-runtime-artifacts |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task7-release-packaging.json | 2026-07-22-vulpra-runtime-shell evidence task7-release-packaging |

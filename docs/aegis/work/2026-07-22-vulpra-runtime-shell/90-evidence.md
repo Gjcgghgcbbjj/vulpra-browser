@@ -81,3 +81,11 @@ No evidence has been recorded yet.
 - Source: Tests/RuntimeShell/test-runtime-artifacts.sh; Tools/Runtime; Tools/Gecko; Tools/Build/AddGecko.sh; docs/provenance/import-manifest.tsv
 - Summary: Runtime artifact RED/GREEN passed: Gecko and idevice deploy at 15.0; Cargo output is .build/idevice/aarch64-apple-ios/release/libidevice_ffi.a with no Modules write; format v3 keys include Xcode and SDK builds, Firefox/patch/build inputs, reject stale format/SDK, and require IOSBootstrap/GeckoViewSwiftSupport/XUL/dylibs/theme; non-Darwin prerequisite exits 78 needs-macos; orchestrator orders submodules, patching, idevice, Gecko, pack, verify; AddGecko verifies and uses repository-root paths. All scripts under 250 lines and no generated output appeared.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task7-release-packaging
+- Type: portable-verification
+- Source: Tests/RuntimeShell/test-release-packaging.sh; Tools/Release
+- Summary: Release packaging RED/GREEN passed: unsigned generic-iOS archive command, iOS 15 arm64 ptrace compile, archive/app/stage/output package owner, exact four bundle identities, required Gecko products, deterministic fixed-metadata Payload zip, sorted SHA256SUMS, refusal cases, copied-stage ldid entitlement flow, no archive mutation, no team/profile/plist identity rewrite. Script lines are 18/20/35/77 and no output artifact appeared.
+- Verifier: root

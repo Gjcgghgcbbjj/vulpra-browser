@@ -193,3 +193,25 @@
 - New risk signals:
 - The macOS producer sequence and real generated header layout still require Phase 1B execution.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Execute Task 8: add the canonical portable runtime-shell gate.
+- Active slice: Task 8 one portable runner and existing CI workflow integration
+- Completed todos:
+- Tasks 1-6 graph/runtime/JIT/OpenIn and runtime artifact producers.
+- Task 7 deterministic archive, ptrace, IPA, and TIPA producer contracts.
+- Evidence refs:
+- Tests/RuntimeShell/test-release-packaging.sh
+- Tools/Release/package-app.sh
+- Blocked on: Real archive/sign/package execution remains Phase 1B; portable CI integration can continue.
+- Next step: Commit Task 7, then make repository shape fail for missing run-portable.sh/workflow invocation and implement the canonical runner.
+
+## DriftCheckDraft
+
+- Scope status: Task 7 added producer scripts and fixtures only; no release artifact or signing identity entered Git.
+- Compatibility status: Packaging consumes exact Vulpra products from a copied stage and preserves the unsigned archive; iOS 15 ptrace and private entitlement paths are explicit.
+- Retirement status: Old release workflow remains absent; bundle rewriting and archive mutation are forbidden rather than retained as compatibility.
+- New risk signals:
+- Actual executable names, ldid signatures, and TrollStore install require Phase 1B evidence.
+- Advisory decision: continue
