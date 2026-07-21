@@ -36,6 +36,11 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 22).cgPath
+    }
+
     func update(tab: BrowserTab, tabCount: Int) {
         if !addressField.isFirstResponder { addressField.text = tab.url?.absoluteString }
         backButton.isEnabled = tab.canGoBack
@@ -63,7 +68,7 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         material.translatesAutoresizingMaskIntoConstraints = false
         addSubview(material)
 
-        progressView.tintColor = .systemBlue
+        progressView.tintColor = VulpraAppearance.accent
         progressView.trackTintColor = .clear
         progressView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(progressView)

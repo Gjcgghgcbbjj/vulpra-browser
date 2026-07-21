@@ -8,9 +8,11 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
         let initialURL = RuntimeURLRouter.resolve(connectionOptions.urlContexts.first?.url)
+        VulpraAppearance.applyGlobal()
         let browser = BrowserViewController(initialURL: initialURL)
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = .systemBackground
+        window.tintColor = VulpraAppearance.accent
         window.rootViewController = browser
         self.browser = browser
         self.window = window

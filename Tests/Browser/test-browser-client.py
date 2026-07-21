@@ -45,7 +45,10 @@ def main():
     require('privateTabs never persist' not in combined, 'placeholder prose leaked into source')
     require('trackingProtection: trackingProtection != .standard' in text('App/Settings/BrowserSettings.swift'),
             'tracking protection is not connected to Gecko settings')
-    require('<key>NSCameraUsageDescription</key>' in text('App/Info.plist'), 'QR camera usage description missing')
+    info = text('App/Info.plist')
+    require('<key>NSCameraUsageDescription</key>' in info, 'QR camera usage description missing')
+    require('<key>CADisableMinimumFrameDurationOnPhone</key>' in info and '<true/>' in info, '120 Hz opt-in missing')
+    require('VulpraAppearance.applyGlobal()' in scene, 'global appearance is not installed')
 
     owners = list(APP.rglob('*.swift'))
     over = [(p.relative_to(ROOT), len(p.read_text().splitlines())) for p in owners if len(p.read_text().splitlines()) >= 350]
