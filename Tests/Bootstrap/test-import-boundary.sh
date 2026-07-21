@@ -5,6 +5,39 @@ ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT HUP INT TERM
 
+PROVENANCE=$ROOT/docs/provenance/substrate-boundary.md
+[ -f "$PROVENANCE" ] || {
+	echo 'FAIL: missing provenance file: docs/provenance/substrate-boundary.md' >&2
+	exit 1
+}
+grep -q '^## Imported$' "$PROVENANCE"
+grep -q '^## Excluded$' "$PROVENANCE"
+
+python3 - "$ROOT" <<'PY'
+from pathlib import Path
+import csv
+import sys
+
+root = Path(sys.argv[1])
+approved = {"Vendor", "Patches", "Tools", "Extensions", "Modules"}
+with (root / "docs/provenance/import-manifest.tsv").open(
+    newline="", encoding="utf-8"
+) as source:
+    rows = list(csv.DictReader(source, delimiter="\t"))
+
+top_levels = {row["target_path"].split("/", 1)[0] for row in rows}
+unexpected = top_levels - approved
+if unexpected:
+    raise SystemExit(
+        "FAIL: unapproved manifest top-level paths: " + ", ".join(sorted(unexpected))
+    )
+if top_levels != approved:
+    missing = approved - top_levels
+    raise SystemExit(
+        "FAIL: approved manifest groups missing: " + ", ".join(sorted(missing))
+    )
+PY
+
 SRC=$TMP/source
 mkdir -p "$SRC/single" "$SRC/tree/sub" "$SRC/browser/Reynard/Client"
 git -C "$SRC" init -q
