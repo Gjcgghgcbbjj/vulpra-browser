@@ -60,6 +60,9 @@ def main() -> None:
     require(source.count("completeRequest(") == 1, "expected one completion call")
     require(source.count("cancelRequest(") == 1, "expected one cancellation call")
     require('domain: "Vulpra.OpenIn"' in source, "wrong OpenIn error identity")
+    require(source.count("self.finish(") == 4, "escaping closures must call finish with explicit self")
+    require(source.count("self.makeError(") == 2, "escaping closures must create errors with explicit self")
+    require("self.openSharedURL(sharedURL)" in source, "escaping closure must open with explicit self")
 
     for forbidden in (
         "LSApplicationWorkspace",

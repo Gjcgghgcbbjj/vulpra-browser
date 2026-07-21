@@ -34,7 +34,7 @@ final class VulpraOpenInViewController: UIViewController {
                     return
                 }
                 if let error {
-                    finish(.failure(error))
+                    self.finish(.failure(error))
                     return
                 }
                 guard
@@ -42,10 +42,10 @@ final class VulpraOpenInViewController: UIViewController {
                     let scheme = sharedURL.scheme?.lowercased(),
                     scheme == "http" || scheme == "https"
                 else {
-                    finish(.failure(makeError(code: 2, description: "The shared item is not a web URL")))
+                    self.finish(.failure(self.makeError(code: 2, description: "The shared item is not a web URL")))
                     return
                 }
-                openSharedURL(sharedURL)
+                self.openSharedURL(sharedURL)
             }
         }
     }
@@ -69,9 +69,9 @@ final class VulpraOpenInViewController: UIViewController {
                     return
                 }
                 if opened {
-                    finish(.success(()))
+                    self.finish(.success(()))
                 } else {
-                    finish(.failure(makeError(code: 4, description: "Vulpra did not accept the shared URL")))
+                    self.finish(.failure(self.makeError(code: 4, description: "Vulpra did not accept the shared URL")))
                 }
             }
         }
