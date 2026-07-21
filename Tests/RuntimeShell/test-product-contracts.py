@@ -63,6 +63,14 @@ def main() -> None:
     require(info.get("UIRequiredDeviceCapabilities") == ["arm64"], "app must require arm64")
     require(isinstance(info.get("UILaunchScreen"), dict), "UILaunchScreen dictionary is required")
 
+    helper_info = load_plist("Extensions/Helper/Info.plist")
+    require(
+        helper_info.get("CFBundleIdentifier") == "$(PRODUCT_BUNDLE_IDENTIFIER)",
+        "Helper plist bundle identifier is not build-owned",
+    )
+    require(helper_info.get("CFBundleExecutable") == "$(EXECUTABLE_NAME)", "Helper executable metadata is missing")
+    require(helper_info.get("CFBundlePackageType") == "XPC!", "Helper package type is wrong")
+
     url_types = info.get("CFBundleURLTypes")
     require(isinstance(url_types, list) and len(url_types) == 1, "expected one URL type")
     require(url_types[0].get("CFBundleURLSchemes") == ["vulpra"], "expected only the vulpra URL scheme")
