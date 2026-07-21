@@ -111,9 +111,10 @@ def main() -> None:
     gecko_header = GECKO_HEADER.read_text(encoding="utf-8")
     require("TSUtils.h" not in gecko_header, "stale TSUtils.h import remains")
     require(
-        "GeckoViewSwiftSupport.h" not in gecko_header,
-        "framework umbrella header must not import its generated Swift interface",
+        "<GeckoView/GeckoViewSwiftSupport.h>" in gecko_header,
+        "framework module must import the Gecko runtime Swift support contract",
     )
+    require('"Utils.h"' in gecko_header, "framework module must expose the shared native runtime contract")
     require_header_closure(BRIDGE)
     require_header_closure(GECKO_HEADER)
 

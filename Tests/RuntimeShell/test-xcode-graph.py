@@ -111,6 +111,7 @@ def main() -> None:
         "path = Extensions/Helper;",
         "path = Extensions/OpenIn;",
         "publicHeaders = (ExtensionBridge.h, );",
+        "publicHeaders = (Utils.h, );",
     )
     for token in required_tokens:
         require(token in text, f"missing graph contract: {token}")
@@ -162,6 +163,10 @@ def main() -> None:
     require(
         "SWIFT_OBJC_BRIDGING_HEADER" not in config_text["Helper"],
         "helper must consume the GeckoView module instead of the app bridging header",
+    )
+    require(
+        "SWIFT_OBJC_INTERFACE_HEADER_NAME = VulpraGeckoView-Swift.h" in config_text["GeckoView"],
+        "framework-generated Swift header must not shadow Gecko runtime support headers",
     )
 
     require("Reynard" not in text, "old product identity found in project")
