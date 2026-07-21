@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task10-final-portable-closeout",
+  "type": "final-portable-verification",
+  "source": "HEAD 8d78d0c3b40ce1bc9131e9ba743954552ffa46e3; all Bootstrap tests; Tools/Gecko/test-gecko-artifact.sh; Tests/RuntimeShell/run-portable.sh; deterministic manifest/complexity/dependency/exclusion/Aegis checks",
+  "summary": "Fresh Phase 1A closeout passed at commit 8d78d0c: six Bootstrap tests, Gecko artifact fixtures, full runtime runner, Python compile, all product plists and scheme, workflow contract, deterministic manifest regeneration, active identity, import boundary, no unexpected >=800-line file, empty dependency inventory, no excluded/generated output, proof bundle, workspace check, diff check, clean status, and zero remotes. Apple-platform scope remains explicitly unexecuted.",
+  "verifier": "root"
+}

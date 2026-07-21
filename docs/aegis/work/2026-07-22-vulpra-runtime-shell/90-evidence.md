@@ -105,3 +105,11 @@ No evidence has been recorded yet.
 - Source: docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md; docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md; README.md
 - Summary: Phase 1A portable baseline records exact implementation snapshot, 345-row manifest hash, graph/artifact/runner hashes, four targets and identities, owner map, artifact v3 and packaging contracts, portable commands, complexity accounting, Mac continuation, and explicit Xcode/Gecko/IPA/OpenIn/JIT/iOS 15.8/performance needs-verification. ADR gate passed and ADR-0002 records the durable ownership/evidence trade-offs with baseline sync.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task10-final-portable-closeout
+- Type: final-portable-verification
+- Source: HEAD 8d78d0c3b40ce1bc9131e9ba743954552ffa46e3; all Bootstrap tests; Tools/Gecko/test-gecko-artifact.sh; Tests/RuntimeShell/run-portable.sh; deterministic manifest/complexity/dependency/exclusion/Aegis checks
+- Summary: Fresh Phase 1A closeout passed at commit 8d78d0c: six Bootstrap tests, Gecko artifact fixtures, full runtime runner, Python compile, all product plists and scheme, workflow contract, deterministic manifest regeneration, active identity, import boundary, no unexpected >=800-line file, empty dependency inventory, no excluded/generated output, proof bundle, workspace check, diff check, clean status, and zero remotes. Apple-platform scope remains explicitly unexecuted.
+- Verifier: root

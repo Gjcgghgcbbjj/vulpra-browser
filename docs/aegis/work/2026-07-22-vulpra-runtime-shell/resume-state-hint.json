@@ -2,10 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume after Task 9 commit and perform verification only; do not begin tabs/data/final UI or claim Mac/device evidence.",
+  "resumeInstruction": "Do not reopen Phase 1A owners or begin browser UI/data work unless Phase 1B evidence falsifies a canonical owner contract.",
   "knownPartialWork": [
-    "Tasks 1-8 implementation and canonical portable gate.",
-    "Task 9 runtime-shell-portable-verified baseline, ADR-0002, README Mac handoff, indexed work reflection."
+    "Tasks 1-9 implementation, portable gate, baseline, and ADR.",
+    "Task 10 full fresh portable closeout, hygiene scan, deterministic manifest, complexity/dependency inventory, and clean-worktree verification."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -13,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Baseline and ADR record evidence boundaries; they do not replace final fresh commands or Apple-platform verification."
+    "No Xcode compile, Gecko/idevice build, IPA/TIPA, installed entitlement, OpenIn/JIT device, iOS launch, or performance result has been observed."
   ]
 }

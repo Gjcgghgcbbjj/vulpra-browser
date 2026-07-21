@@ -21,6 +21,7 @@ This proof bundle is an advisory Aegis Method Pack record. It does not determine
 - docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-phase1a-design-spec.json
 - docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-phase1a-implementation-plan.json
 - docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task1-xcode-graph.json
+- docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task10-final-portable-closeout.json
 - docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task2-product-contracts.json
 - docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task3-owner-amendment.json
 - docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task3-runtime-shell.json
@@ -33,7 +34,7 @@ This proof bundle is an advisory Aegis Method Pack record. It does not determine
 
 ## Drift Check
 
-- Scope status: Task 9 documents implemented Phase 1A owners and evidence only; later browser UI/data work remains excluded.
-- Compatibility status: Baseline preserves iOS 15 arm64 TrollStore-first compatibility and labels every Mac/device/performance fact needs-verification.
-- Retirement status: ADR and reflection preserve the explicit retirement of old project/client/fallbacks and the future runtime-shell replacement trigger.
-- Advisory decision: continue
+- Scope status: All Phase 1A planned source/project/tool/test/documentation tasks are complete; tabs/data/final UI were not started.
+- Compatibility status: Portable contracts align with iOS 15 arm64 TrollStore-first requirements, but Apple-platform acceptance is unverified.
+- Retirement status: All named old/duplicate paths remain retired; RuntimeShellViewController retains its future browser-UI replacement trigger.
+- Advisory decision: needs-verification

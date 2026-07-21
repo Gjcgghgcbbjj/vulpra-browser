@@ -1,17 +1,18 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Execute Task 10: run the final Phase 1A portable closeout at the exact final commit.",
+  "currentTodo": "Phase 1A is closed; continue only with the Phase 1B Mac/Xcode/device verification sequence.",
   "completedTodos": [
-    "Tasks 1-8 implementation and canonical portable gate.",
-    "Task 9 runtime-shell-portable-verified baseline, ADR-0002, README Mac handoff, indexed work reflection."
+    "Tasks 1-9 implementation, portable gate, baseline, and ADR.",
+    "Task 10 full fresh portable closeout, hygiene scan, deterministic manifest, complexity/dependency inventory, and clean-worktree verification."
   ],
-  "activeSlice": "Task 10 fresh full-gate verification and clean-worktree handoff",
+  "activeSlice": "Phase 1A handoff complete; Phase 1B needs-verification",
   "evidenceRefs": [
     "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md",
-    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md"
+    "docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task10-final-portable-closeout.json",
+    "Tests/RuntimeShell/run-portable.sh"
   ],
-  "blockedOn": "Phase 1B Apple-platform evidence remains external but does not block Phase 1A portable closeout.",
-  "nextStep": "Commit Task 9, then run every Bootstrap/runtime/artifact/syntax/identity/manifest/complexity/Aegis/hygiene check against the final feature commit.",
+  "blockedOn": "A Mac with current Xcode/iPhoneOS SDK and physical iOS 15.8/16.7 devices is required for Phase 1B.",
+  "nextStep": "On Mac run check-macos-prerequisites.sh, build-runtime-substrate.sh, build-app.sh, and create-ipa.sh, then collect Xcode/device/performance evidence.",
   "updatedAt": "2026-07-22"
 }

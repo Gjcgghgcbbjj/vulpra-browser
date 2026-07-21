@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md"
   ],
-  "scopeStatus": "Task 9 documents implemented Phase 1A owners and evidence only; later browser UI/data work remains excluded.",
-  "compatStatus": "Baseline preserves iOS 15 arm64 TrollStore-first compatibility and labels every Mac/device/performance fact needs-verification.",
-  "retirementStatus": "ADR and reflection preserve the explicit retirement of old project/client/fallbacks and the future runtime-shell replacement trigger.",
+  "scopeStatus": "All Phase 1A planned source/project/tool/test/documentation tasks are complete; tabs/data/final UI were not started.",
+  "compatStatus": "Portable contracts align with iOS 15 arm64 TrollStore-first requirements, but Apple-platform acceptance is unverified.",
+  "retirementStatus": "All named old/duplicate paths remain retired; RuntimeShellViewController retains its future browser-UI replacement trigger.",
   "newRiskSignals": [
-    "No new risk beyond the recorded Phase 1B Apple-platform and publication gates."
+    "Only the already-recorded Mac/device/performance/publication evidence gap remains."
   ],
-  "decision": "continue"
+  "decision": "needs-verification"
 }

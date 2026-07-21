@@ -259,3 +259,26 @@
 - New risk signals:
 - No new risk beyond the recorded Phase 1B Apple-platform and publication gates.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Phase 1A is closed; continue only with the Phase 1B Mac/Xcode/device verification sequence.
+- Active slice: Phase 1A handoff complete; Phase 1B needs-verification
+- Completed todos:
+- Tasks 1-9 implementation, portable gate, baseline, and ADR.
+- Task 10 full fresh portable closeout, hygiene scan, deterministic manifest, complexity/dependency inventory, and clean-worktree verification.
+- Evidence refs:
+- docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md
+- docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task10-final-portable-closeout.json
+- Tests/RuntimeShell/run-portable.sh
+- Blocked on: A Mac with current Xcode/iPhoneOS SDK and physical iOS 15.8/16.7 devices is required for Phase 1B.
+- Next step: On Mac run check-macos-prerequisites.sh, build-runtime-substrate.sh, build-app.sh, and create-ipa.sh, then collect Xcode/device/performance evidence.
+
+## DriftCheckDraft
+
+- Scope status: All Phase 1A planned source/project/tool/test/documentation tasks are complete; tabs/data/final UI were not started.
+- Compatibility status: Portable contracts align with iOS 15 arm64 TrollStore-first requirements, but Apple-platform acceptance is unverified.
+- Retirement status: All named old/duplicate paths remain retired; RuntimeShellViewController retains its future browser-UI replacement trigger.
+- New risk signals:
+- Only the already-recorded Mac/device/performance/publication evidence gap remains.
+- Advisory decision: needs-verification

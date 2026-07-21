@@ -38,3 +38,4 @@
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task9-baseline-adr.json | 2026-07-22-vulpra-runtime-shell evidence task9-baseline-adr |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/gate-input-pack.json | 2026-07-22-vulpra-runtime-shell gate input pack |
 | 2026-07-22 | work | docs/aegis/work/2026-07-22-vulpra-runtime-shell/proof-bundle.md | 2026-07-22-vulpra-runtime-shell proof bundle |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task10-final-portable-closeout.json | 2026-07-22-vulpra-runtime-shell evidence task10-final-portable-closeout |
