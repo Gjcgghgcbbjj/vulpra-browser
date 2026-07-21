@@ -108,7 +108,7 @@ final class TabManager: BrowserTabObserver {
 
     func closePrivateTabs() {
         privateTabs.forEach { $0.suspend() }
-        tabs.removeAll(\.isPrivate)
+        tabs.removeAll(where: \.isPrivate)
         if selectedTab == nil { selectedID = normalTabs.first?.id }
         if tabs.isEmpty { _ = newTab(url: nil, privateMode: false, select: true) }
         changed()

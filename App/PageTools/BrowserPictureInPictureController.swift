@@ -52,10 +52,10 @@ final class BrowserPictureInPictureController: NSObject, PictureInPictureDelegat
 
     func pictureInPictureController(_ pictureInPictureController: AVPictureInPictureController,
                                     skipByInterval skipInterval: CMTime,
-                                    completionHandler: @escaping () -> Void) {
+                                    completion: @escaping @Sendable () -> Void) {
         let seconds = CMTimeGetSeconds(skipInterval)
         if seconds >= 0 { session?.mediaSession.seekForward(offset: seconds) }
         else { session?.mediaSession.seekBackward(offset: abs(seconds)) }
-        completionHandler()
+        completion()
     }
 }

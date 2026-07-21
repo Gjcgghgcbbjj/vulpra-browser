@@ -21,7 +21,7 @@ def main():
 
     required = {
         'App/Browser/BrowserViewController.swift': ('final class BrowserViewController', 'BrowserChromeViewDelegate', 'TabManagerDelegate'),
-        'App/Browser/TabManager.swift': ('final class TabManager', 'suspendBackgroundTabs', 'closePrivateTabs'),
+        'App/Browser/TabManager.swift': ('final class TabManager', 'suspendBackgroundTabs', 'closePrivateTabs', 'removeAll(where: \\.isPrivate)'),
         'App/Browser/BrowserTab.swift': ('final class BrowserTab', 'GeckoSession', 'isPrivate'),
         'App/UI/BrowserChromeView.swift': ('UIVisualEffectView', 'UIView.animate', 'UIAccessibility.isReduceMotionEnabled'),
         'App/Tabs/TabOverviewViewController.swift': ('UICollectionView', 'privateControl', 'newTab'),
@@ -32,6 +32,7 @@ def main():
         'App/Addons/AddonManagementViewController.swift': ('AddonRuntime.shared', 'UIDocumentPicker'),
         'App/Settings/BrowserSettings.swift': ('TrackingProtectionLevel', 'httpsOnly', 'SearchEngine'),
         'App/PageTools/PageToolsController.swift': ('Find in Page', 'Request Desktop Site', 'Page Zoom'),
+        'App/PageTools/BrowserPictureInPictureController.swift': ('AVPictureInPictureSampleBufferPlaybackDelegate', 'completion: @escaping'),
         'App/PageTools/QRScannerViewController.swift': ('AVCaptureSession', 'metadataObjectTypes = [.qr]'),
         'App/Persistence/AtomicJSONStore.swift': ('JSONEncoder', 'replaceItemAt', 'DispatchQueue'),
     }
