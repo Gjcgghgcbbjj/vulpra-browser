@@ -1,0 +1,30 @@
+name: Bootstrap Core
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  portable-boundary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out audited repository only
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Verify portable substrate boundary
+        run: |
+          ./Tests/Bootstrap/test-repository-shape.sh
+          ./Tests/Bootstrap/test-repository-shape-nested-parent.sh
+          ./Tests/Bootstrap/test-import-boundary.sh
+          ./Tests/Bootstrap/test-gecko-substrate.sh
+          ./Tests/Bootstrap/test-active-identity.sh
+          ./Tests/Bootstrap/test-jit-substrate.sh
+          ./Tools/Gecko/test-gecko-artifact.sh
+          find Tools Tests -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
+          git diff --check

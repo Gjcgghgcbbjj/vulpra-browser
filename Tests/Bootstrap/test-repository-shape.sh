@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 root="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
-required="README.md NOTICE.md LICENSE LICENSE.firefox docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md"
+required="README.md NOTICE.md LICENSE LICENSE.firefox .github/workflows/bootstrap-core.yml docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md"
 for path in $required; do
     [ -f "$root/$path" ] || { echo "missing required file: $path" >&2; exit 1; }
 done
@@ -31,5 +31,23 @@ while IFS='|' read -r _date _kind indexed_path _title _rest; do
             ;;
     esac
 done < "$root/docs/aegis/INDEX.md"
+
+workflow="$root/.github/workflows/bootstrap-core.yml"
+for command in \
+    './Tests/Bootstrap/test-repository-shape.sh' \
+    './Tests/Bootstrap/test-repository-shape-nested-parent.sh' \
+    './Tests/Bootstrap/test-import-boundary.sh' \
+    './Tests/Bootstrap/test-gecko-substrate.sh' \
+    './Tests/Bootstrap/test-active-identity.sh' \
+    './Tests/Bootstrap/test-jit-substrate.sh' \
+    './Tools/Gecko/test-gecko-artifact.sh' \
+    "find Tools Tests -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n" \
+    'git diff --check'
+do
+    grep -Fq -- "$command" "$workflow" || {
+        echo "bootstrap workflow is missing portable command: $command" >&2
+        exit 1
+    }
+done
 
 echo "Repository shape checks passed."

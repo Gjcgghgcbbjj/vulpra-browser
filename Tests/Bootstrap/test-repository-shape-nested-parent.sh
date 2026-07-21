@@ -13,7 +13,7 @@ trap cleanup EXIT HUP INT TERM
 mkdir -p "$fixture/Tests/Bootstrap"
 cp "$repo_root/Tests/Bootstrap/test-repository-shape.sh" "$fixture/Tests/Bootstrap/"
 
-required="README.md NOTICE.md LICENSE LICENSE.firefox docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md"
+required="README.md NOTICE.md LICENSE LICENSE.firefox .github/workflows/bootstrap-core.yml docs/aegis/README.md docs/aegis/INDEX.md docs/aegis/BASELINE-GOVERNANCE.md docs/aegis/baseline/2026-07-21-initial-baseline.md docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md"
 for path in $required; do
     mkdir -p "$fixture/$(dirname -- "$path")"
     : > "$fixture/$path"
