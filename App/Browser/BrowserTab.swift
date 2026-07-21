@@ -32,6 +32,7 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
     private(set) var progress = 0
     private(set) var isLoading = false
     private(set) var lastAccess: Date
+    private(set) var thumbnail: UIImage?
     var permissionDelegate: PermissionEmbedderDelegate?
     var promptDelegate: PromptDelegate?
 
@@ -72,6 +73,17 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
         if windowID == nil, let url { created.load(url.absoluteString) }
         observer?.browserTabDidChange(self)
         return created
+    }
+
+    func captureThumbnail(maximumSize: CGSize = CGSize(width: 360, height: 480)) {
+        guard !isPrivate, let view = engineView, view.bounds.width > 0, view.bounds.height > 0 else { return }
+        let scale = min(maximumSize.width / view.bounds.width, maximumSize.height / view.bounds.height, 1)
+        let size = CGSize(width: view.bounds.width * scale, height: view.bounds.height * scale)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        thumbnail = renderer.image { context in
+            context.cgContext.scaleBy(x: scale, y: scale)
+            view.drawHierarchy(in: view.bounds, afterScreenUpdates: false)
+        }
     }
 
     func suspend() {

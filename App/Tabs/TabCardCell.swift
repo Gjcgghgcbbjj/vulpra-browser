@@ -52,7 +52,8 @@ final class TabCardCell: UICollectionViewCell {
         urlLabel.text = tab.url?.host ?? (tab.isPrivate ? "Private tab" : "New tab")
         contentView.layer.borderWidth = selected ? 2 : 0
         contentView.layer.borderColor = UIColor.systemBlue.cgColor
-        preview.image = UIImage(systemName: tab.isPrivate ? "hand.raised.fill" : "globe")
+        preview.image = tab.thumbnail ?? UIImage(systemName: tab.isPrivate ? "hand.raised.fill" : "globe")
+        preview.contentMode = tab.thumbnail == nil ? .center : .scaleAspectFill
         accessibilityLabel = "\(tab.title), \(urlLabel.text ?? "")"
     }
 }

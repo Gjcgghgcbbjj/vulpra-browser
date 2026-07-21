@@ -49,6 +49,7 @@ final class TabManager: BrowserTabObserver {
 
     func select(_ tab: BrowserTab) {
         guard tabs.contains(where: { $0 === tab }) else { return }
+        selectedTab?.captureThumbnail()
         selectedTab?.setActive(false)
         selectedID = tab.id
         tab.setActive(true)
