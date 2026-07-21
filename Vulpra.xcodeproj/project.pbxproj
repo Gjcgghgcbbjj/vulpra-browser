@@ -65,6 +65,7 @@
 		A50000000000000000000005 /* Helper metadata exclusions */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Info.plist, Entitlements/Vulpra-Helper.entitlements, Entitlements/Vulpra-Helper.private.entitlements, ); target = AB0000000000000000000003 /* Vulpra Helper */; };
 		A50000000000000000000006 /* OpenIn exclusions */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Info.plist, ); target = AB0000000000000000000004 /* OpenIn */; };
 		A50000000000000000000007 /* Native Shared headers */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (); publicHeaders = (Utils.h, ); target = AB0000000000000000000002 /* GeckoView */; };
+		A50000000000000000000008 /* Gecko Runtime headers */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (); publicHeaders = (GeckoViewRuntimeSupport.h, GeckoViewSwiftSupport.h, IOSBootstrap.h, ); target = AB0000000000000000000002 /* GeckoView */; };
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -74,6 +75,7 @@
 		A60000000000000000000004 /* Helper */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000004 /* Helper exclusions for GeckoView */, A50000000000000000000005 /* Helper metadata exclusions */, ); path = Extensions/Helper; sourceTree = "<group>"; };
 		A60000000000000000000005 /* OpenIn */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000006 /* OpenIn exclusions */, ); path = Extensions/OpenIn; sourceTree = "<group>"; };
 		A60000000000000000000006 /* Native Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000007 /* Native Shared headers */, ); path = Modules/VulpraRuntime/Native; sourceTree = "<group>"; };
+		A60000000000000000000007 /* Gecko Runtime Headers */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000008 /* Gecko Runtime headers */, ); path = Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -93,6 +95,7 @@
 				A60000000000000000000004 /* Helper */,
 				A60000000000000000000005 /* OpenIn */,
 				A60000000000000000000006 /* Native Shared */,
+				A60000000000000000000007 /* Gecko Runtime Headers */,
 				A80000000000000000000003 /* Configuration */,
 				A80000000000000000000002 /* Products */,
 			);
@@ -126,7 +129,7 @@
 			buildPhases = (AA0000000000000000000002 /* Sources */, A70000000000000000000002 /* Frameworks */, A90000000000000000000001 /* Headers */, AD0000000000000000000002 /* Resources */, );
 			buildRules = ();
 			dependencies = ();
-			fileSystemSynchronizedGroups = (A60000000000000000000003 /* GeckoView */, A60000000000000000000004 /* Helper */, A60000000000000000000006 /* Native Shared */, );
+			fileSystemSynchronizedGroups = (A60000000000000000000003 /* GeckoView */, A60000000000000000000004 /* Helper */, A60000000000000000000006 /* Native Shared */, A60000000000000000000007 /* Gecko Runtime Headers */, );
 			name = GeckoView;
 			packageProductDependencies = ();
 			productName = GeckoView;
