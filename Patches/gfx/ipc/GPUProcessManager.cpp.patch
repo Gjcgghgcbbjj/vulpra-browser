@@ -17,7 +17,7 @@ index 8429c88bf057..63b1a78fa8a6 100644
                                aOutVRBridge)) {
      return false;
    }
-+  // REYNARD: Publish the current GPU process token so content can report
++  // VULPRA: Publish the current GPU process token so content can report
 +  // compositor abnormal shutdowns for the correct process instance.
 +  *aOutProcessToken = mProcessToken;
    // RemoteMediaManager is only supported in the GPU process, so we allow this

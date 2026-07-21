@@ -15,7 +15,7 @@ index 0f60a5d3a9ad..b64a64ae0a5a 100644
  bool JitRuntime::generateTrampolines(JSContext* cx) {
    TempAllocator temp(&cx->tempLifoAlloc());
 -  StackMacroAssembler masm(cx, temp);
-+  // REYNARD: Keep the trampoline assembler state off this stack frame so iOS
++  // VULPRA: Keep the trampoline assembler state off this stack frame so iOS
 +  // child-process codegen does not trip stack protector checks while emitting
 +  // the large trampoline bundle.
 +  auto masmStorage = MakeUnique<StackMacroAssembler>(cx, temp);

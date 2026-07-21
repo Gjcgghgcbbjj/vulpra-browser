@@ -42,7 +42,7 @@ index dc8ae907d0a1..24321e4e5326 100644
    // mCompositionStart.
 -  if (mTextRectArray.isSome()) {
 +
-+  // REYNARD: Commenting this to allow the neighborhood around the
++  // VULPRA: Commenting this to allow the neighborhood around the
 +  // selection to be stored for line boundary checks.
 +  /* if (mTextRectArray.isSome()) {
      if (NS_WARN_IF(mCompositionStart.isNothing())) {
@@ -75,7 +75,7 @@ index dc8ae907d0a1..24321e4e5326 100644
               this));
      return false;
    }
-+  // REYNARD: Keep the editor-rect cache tied to the editable-content state
++  // VULPRA: Keep the editor-rect cache tied to the editable-content state
 +  // returned by the content query so parent-side replies can preserve it.
 +  mEditorRectIsEditable = true;
    mEditorRect = queryEditorRectEvent.mReply->mRect;
@@ -86,7 +86,7 @@ index dc8ae907d0a1..24321e4e5326 100644
      mCompositionStart.reset();
      mTextRectArray.reset();
 +
-+    // REYNARD: Cache character rects for a neighborhood around a non-collapsed
++    // VULPRA: Cache character rects for a neighborhood around a non-collapsed
 +    // selection so the parent process can detect visual line boundaries during
 +    // handle dragging.
 +    static bool sInLineRectCache = false;

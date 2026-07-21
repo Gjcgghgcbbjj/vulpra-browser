@@ -21,7 +21,7 @@ index f8296d72e32c..2028ed4edb3e 100644
  
  using mozilla::DebugOnly;
  
-+// REYNARD: Late arm64 JIT patches can update instructions and literal pools
++// VULPRA: Late arm64 JIT patches can update instructions and literal pools
 +// through the writable alias while the executable mapping stays live. Refresh
 +// the executable view so subsequent indirect jumps see the patched targets.
 +static void FinalizeExecutablePatch(void* address, size_t size) {
@@ -91,7 +91,7 @@ index f8296d72e32c..2028ed4edb3e 100644
      }
    }
 +
-+  // REYNARD: On iOS, the initial executable copy and its pending jump fixups
++  // VULPRA: On iOS, the initial executable copy and its pending jump fixups
 +  // happen through the writable alias. Refresh the executable mapping once the
 +  // whole buffer is finalized so hardcoded branches don't execute recycled
 +  // stale targets from a previous allocation.

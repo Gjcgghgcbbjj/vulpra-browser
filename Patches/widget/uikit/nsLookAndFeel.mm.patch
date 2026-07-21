@@ -53,7 +53,7 @@ index e5198c6f3fac..04d7a248fc1a 100644
 +  sSystemUsesDarkThemeInitialized = true;
 +  sSystemUsesDarkTheme = aUseDarkTheme;
 +
-+  // REYNARD: Recompute cached UIKit look-and-feel values when the host view's
++  // VULPRA: Recompute cached UIKit look-and-feel values when the host view's
 +  // trait collection changes so Gecko can follow the current interface style.
 +  LookAndFeel::NotifyChangedAllWindows(widget::ThemeChangeKind::StyleAndLayout);
 +}

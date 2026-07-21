@@ -25,7 +25,7 @@ index ea3a8902d28f..47b3e98ec03f 100644
  
    CGFontRef GetFont() const { return mFont; }
  
-+  // REYNARD: Expose the preserved CoreText descriptor so shaping and metrics
++  // VULPRA: Expose the preserved CoreText descriptor so shaping and metrics
 +  // can reuse the original Apple system font identity.
 +  CTFontDescriptorRef GetFontDescriptorRef() const { return mFontDesc; }
 +

@@ -15,7 +15,7 @@ index 25ab0a1241dd..7abba9f85634 100644
    CSSPoint actualScrollOffset = ScrollFrameTo(sf, aRequest, scrollUpdated);
    CSSPoint scrollDelta = apzScrollOffset - actualScrollOffset;
  
-+  // REYNARD: If the scroll position was updated and an editable element is
++  // VULPRA: If the scroll position was updated and an editable element is
 +  // focused, notify the widget of position change so that the parent process
 +  // updates the cached editor/caret/selection rects for UIKit's selection
 +  // display.

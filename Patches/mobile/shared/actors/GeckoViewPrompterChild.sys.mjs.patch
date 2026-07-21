@@ -7,7 +7,7 @@ index dcb397c62cc4..7749e89729af 100644
     */
    async receiveMessage({ name, data }) {
 +
-+    // REYNARD: A hack to get the input button position of the file input element.
++    // VULPRA: A hack to get the input button position of the file input element.
 +    if (name == "GetFileInputRect") {
 +      const win = this.contentWindow;
 +      const el = win?.document?.activeElement;

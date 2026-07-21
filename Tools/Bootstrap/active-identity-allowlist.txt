@@ -1,0 +1,4 @@
+# Exact normalized provenance lines permitted to retain the source-project name.
+//  Reynard
+ * https://github.com/minh-ton/reynard-browser in Feb 2026. */
+* https://github.com/minh-ton/reynard-browser in Feb 2026. */

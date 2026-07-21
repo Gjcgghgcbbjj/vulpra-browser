@@ -14,7 +14,7 @@ index ac7005a5fcfc..8f0a303683ec 100644
    // Pointer to root the stub's JitCode.
    JitCode* stubCode_;
  
-+  // REYNARD: Keep track of the active Ion IC stub so GC can preserve its live
++  // VULPRA: Keep track of the active Ion IC stub so GC can preserve its live
 +  // nextCodeRaw_ chain while execution is inside a VM wrapper.
 +  IonICStub* stub_;
 +

@@ -8,7 +8,7 @@ index 07ff05d9f14b..a3c2367e4322 100644
    CGFontRef cgFont = static_cast<gfxMacFont*>(mFont)->GetCGFontRef();
 -  return CreateCTFontFromCGFontWithVariations(cgFont, aSize, isInstalledFont,
 -                                              aDescriptor);
-+  // REYNARD: Merge feature attributes onto the preserved base descriptor so
++  // VULPRA: Merge feature attributes onto the preserved base descriptor so
 +  // shaping keeps the Apple system-font descriptor instead of rebuilding from
 +  // CGFont alone.
 +  auto* unscaledFont =

@@ -19,7 +19,7 @@ index 5cddcd90765c..997c3f82bc4a 100644
      this._msg.capture = this._capture;
 +    const actor = this._browsingContext.currentWindowGlobal?.getActor("GeckoViewPrompter");
 +
-+    // REYNARD: Get the file input rect
++    // VULPRA: Get the file input rect
 +    const fallbackRect = { left: 0, top: 0, width: 0, height: 0 };
 +    const rect = actor ? await actor.sendQuery("GetFileInputRect").catch(() => null) : null;
 +    this._msg.rect = rect ?? fallbackRect;

@@ -46,7 +46,7 @@ index a63cb68d9f9d..9a01280b040e 100644
  
 +IPCResult ContentParent::RecvNotifyGPUProcessLost(
 +    const uint64_t& aProcessToken) {
-+  // REYNARD: Route content-side abnormal compositor shutdown events through
++  // VULPRA: Route content-side abnormal compositor shutdown events through
 +  // the active GPU process token so recovery targets the correct process.
 +  gfx::GPUProcessManager* gpm = gfx::GPUProcessManager::Get();
 +  if (gpm) {

@@ -15,7 +15,7 @@ index 6b218ca7d704..c501b4898212 100644
    // Match the default background color of content. Previously important on
    // Windows, but no longer has any effect there.
 +#ifdef XP_IOS
-+  // REYNARD: Seed iOS chrome windows with the active system window color so
++  // VULPRA: Seed iOS chrome windows with the active system window color so
 +  // the embedded Gecko surface starts with the current trait-based background.
 +  mWindow->SetBackgroundColor(mozilla::LookAndFeel::Color(
 +      mozilla::LookAndFeel::ColorID::Window,

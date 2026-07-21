@@ -30,7 +30,7 @@ index 8bfc08afb169..785a90cc36a8 100644
  namespace ipc {
  
 +#ifdef XP_IOS
-+// REYNARD: Track one bootstrap signal pipe per child pid so the Swift host can
++// VULPRA: Track one bootstrap signal pipe per child pid so the Swift host can
 +// report whether the iOS JIT attach workflow actually succeeded before the
 +// child enables SpiderMonkey JIT execution.
 +static StaticMutex sChildJITPipeMutex;
@@ -159,7 +159,7 @@ index 8bfc08afb169..785a90cc36a8 100644
 -    kind = ExtensionKitProcess::Kind::Networking;
 -  }
 -
-+  // REYNARD: Use the iOS extension-backed process launcher path and bootstrap
++  // VULPRA: Use the iOS extension-backed process launcher path and bootstrap
 +  // child processes over libxpc.
    DarwinObjectPtr<xpc_object_t> bootstrapMessage =
 -      AdoptDarwinObject(xpc_dictionary_create_empty());
@@ -167,7 +167,7 @@ index 8bfc08afb169..785a90cc36a8 100644
    xpc_dictionary_set_string(bootstrapMessage.get(), "message-name",
                              "bootstrap");
  
-+  // REYNARD: Pass a dedicated readiness pipe to each child so it can block
++  // VULPRA: Pass a dedicated readiness pipe to each child so it can block
 +  // JIT startup until the host-side attach flow reports success or failure.
 +  int jitReadyPipe[2] = {-1, -1};
 +  if (pipe(jitReadyPipe) != 0) {
@@ -320,11 +320,11 @@ index 8bfc08afb169..785a90cc36a8 100644
 +          const char* processType =
 +              XRE_GeckoProcessTypeToString(self->mProcessType);
 +          fprintf(stderr,
-+                  "REYNARD_DEBUG: Extension process started, pid=%d, type=%s\n",
++                  "VULPRA_DEBUG: Extension process started, pid=%d, type=%s\n",
 +                  static_cast<int>(pid), processType);
 +          fflush(stderr);
 +
-+          // REYNARD: Register pipe
++          // VULPRA: Register pipe
 +          {
 +            StaticMutexAutoLock lock(sChildJITPipeMutex);
 +            sChildJITPipeWriters.insert_or_assign(
@@ -332,7 +332,7 @@ index 8bfc08afb169..785a90cc36a8 100644
 +                std::move(self->mJITReadySignalWriteFd));
 +          }
 +
-+          // REYNARD: Notify child process start
++          // VULPRA: Notify child process start
 +          mozilla::widget::NotifyChildProcessStarted(static_cast<int32_t>(pid),
 +                                                     processType);
  

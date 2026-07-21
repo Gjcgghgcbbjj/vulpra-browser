@@ -40,9 +40,9 @@ index 000000000000..a23b41fc1128
 +// and clearly can only detect a full form containing both username and password fields.
 +//
 +// So see for yourself, open the ChatGPT/Claude/Vercel login page (which shows only the email
-+// field but no password field), and you'll see that Reynard can recognize the email field and
++// field but no password field), and you'll see that Vulpra can recognize the email field and
 +// show the password autofill chip! Same for GitHub's OTP field, which is not marked with the 
-+// "one-time-code" trait, but Reynard can still recognize it and show the chip!
++// "one-time-code" trait, but Vulpra can still recognize it and show the chip!
 +
 +const lazy = {};
 +

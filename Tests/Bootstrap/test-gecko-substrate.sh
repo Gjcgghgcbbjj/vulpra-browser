@@ -31,7 +31,7 @@ patches	Patches
 tools/development	Tools/Gecko
 browser/Scripts/AddGecko.sh	Tools/Build/AddGecko.sh
 EOF
-cmp "$EXPECTED_ALLOWLIST" "$ROOT/Tools/Bootstrap/import-allowlist.tsv" ||
+head -n 4 "$ROOT/Tools/Bootstrap/import-allowlist.tsv" | cmp "$EXPECTED_ALLOWLIST" - ||
 	fail "import allowlist differs from the approved Task 3 boundary"
 grep -Fqx 'Patches/** -whitespace' "$ROOT/.gitattributes" ||
 	fail "imported patch payloads are not exempted from diff whitespace checks"
@@ -97,10 +97,14 @@ if actual_tools != expected_tools:
 with manifest_path.open(newline="", encoding="utf-8") as source:
     rows = list(csv.DictReader(source, delimiter="\t"))
 
-if len(rows) != 271:
-    raise SystemExit(f"FAIL: manifest must contain 271 data rows, found {len(rows)}")
+if len({row["target_path"] for row in rows}) != len(rows):
+    raise SystemExit("FAIL: manifest contains duplicate target paths")
 
-manifest_targets = {row["target_path"] for row in rows}
+task3_rows = [row for row in rows if row["target_path"] in expected_targets]
+if len(task3_rows) != 271:
+    raise SystemExit(f"FAIL: manifest must contain 271 Task 3 rows, found {len(task3_rows)}")
+
+manifest_targets = {row["target_path"] for row in task3_rows}
 if manifest_targets != expected_targets:
     raise SystemExit(
         "FAIL: manifest target set mismatch: "
@@ -108,7 +112,7 @@ if manifest_targets != expected_targets:
         f"extra={sorted(manifest_targets - expected_targets)}"
     )
 
-for row in rows:
+for row in task3_rows:
     target = row["target_path"]
     if row["source_commit"] != source_sha:
         raise SystemExit(f"FAIL: non-canonical source commit for {target}")

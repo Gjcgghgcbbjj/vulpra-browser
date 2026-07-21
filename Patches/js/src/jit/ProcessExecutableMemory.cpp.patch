@@ -39,7 +39,7 @@ index cea7d764ca96..c9ef61b53f7d 100644
 +extern "C" void* __mmap(void* addr, size_t len, int prot, int flags, int fd,
 +                        off_t offset);
 +
-+void* reynard_mmap(void* addr, size_t len, int prot, int flags, int fd,
++void* vulpra_mmap(void* addr, size_t len, int prot, int flags, int fd,
 +                   off_t offset) {
 +  void* map = __mmap(addr, len, prot, flags, fd, offset);
 +  // Handle some cases where it will still map but without executable permission
@@ -135,7 +135,7 @@ index cea7d764ca96..c9ef61b53f7d 100644
 +  // Modifying exec page during execution may cause SIGBUS on some devices.
 +  signal(SIGBUS, SIG_IGN);
 +
-+  void* p = reynard_mmap(randomAddr, bytes, protection, flags, -1, 0);
++  void* p = vulpra_mmap(randomAddr, bytes, protection, flags, -1, 0);
 +  if (p == MAP_FAILED) {
 +    return nullptr;
 +  }

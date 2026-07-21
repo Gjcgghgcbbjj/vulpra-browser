@@ -271,7 +271,7 @@ index 000000000000..b005b279ef7b
 +                                       getter_AddRefs(mCapturedResponseFile));
 +  NS_ENSURE_SUCCESS(rv, rv);
 +
-+  mCapturedResponseFile->AppendNative("reynard-download.tmp"_ns);
++  mCapturedResponseFile->AppendNative("vulpra-download.tmp"_ns);
 +  rv = mCapturedResponseFile->CreateUnique(nsIFile::NORMAL_FILE_TYPE, 0600);
 +  NS_ENSURE_SUCCESS(rv, rv);
 +

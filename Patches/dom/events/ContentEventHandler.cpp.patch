@@ -32,7 +32,7 @@ index 526f4e0988e3..325bfbfaa706 100644
    aEvent->EmplaceReply();
  
    aEvent->mReply->mContentsRoot = mRootElement.get();
-+  // REYNARD: Focused text controls query against their anonymous editor root,
++  // VULPRA: Focused text controls query against their anonymous editor root,
 +  // which is not itself editable even though the host textarea/input is.
    aEvent->mReply->mIsEditableContent =
 -      mRootElement && mRootElement->IsEditable();
@@ -45,7 +45,7 @@ index 526f4e0988e3..325bfbfaa706 100644
  
    aEvent->mReply->mRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
        resultRect, presContext->AppUnitsPerDevPixel());
-+  // REYNARD: Keep editor/content rect queries in the same visual coordinate
++  // VULPRA: Keep editor/content rect queries in the same visual coordinate
 +  // space as caret and text rect queries so native iOS selection UI tracks
 +  // async zoom and panning correctly.
 +  if (nsPresContext* rootContext =
@@ -61,7 +61,7 @@ index 526f4e0988e3..325bfbfaa706 100644
    return NS_OK;
  }
  
-+// REYNARD: Detect the focused text control's anonymous editor root so iOS
++// VULPRA: Detect the focused text control's anonymous editor root so iOS
 +// query-content requests can use textarea scrollport-relative geometry.
 +static nsTextControlFrame* GetFocusedTextControlFrameForRoot(
 +    Element* aRootElement) {
@@ -87,7 +87,7 @@ index 526f4e0988e3..325bfbfaa706 100644
 +  return textControlFrame;
 +}
 +
-+// REYNARD: Collect text control range geometry without edge-clamping so iOS
++// VULPRA: Collect text control range geometry without edge-clamping so iOS
 +// selection UI can disappear when the selection scrolls fully out of view.
 +static bool GetUnclampedTextControlRangeRect(nsRange* aRange, nsRect& aRect) {
 +  if (!aRange) {
@@ -116,7 +116,7 @@ index 526f4e0988e3..325bfbfaa706 100644
    DOMRangeAndAdjustedOffsetInFlattenedText domRangeAndAdjustedOffset =
        domRangeAndAdjustedOffsetOrError.unwrap();
 +
-+  // REYNARD: Text controls need unclamped range geometry instead of the normal
++  // VULPRA: Text controls need unclamped range geometry instead of the normal
 +  // edge-clamped query path used for generic editable content.
 +  if (GetFocusedTextControlFrameForRoot(mRootElement)) {
 +    nsRect unclampedRect;
@@ -166,7 +166,7 @@ index 526f4e0988e3..325bfbfaa706 100644
  
 +  if (nsTextControlFrame* textControlFrame =
 +          GetFocusedTextControlFrameForRoot(mRootElement)) {
-+    // REYNARD: Focused text controls need the live scrollport here so native
++    // VULPRA: Focused text controls need the live scrollport here so native
 +    // UIKit selection UI can disappear once a textarea scrolls the selection
 +    // fully out of view.
 +    if (ScrollContainerFrame* scrollTargetFrame =
@@ -177,7 +177,7 @@ index 526f4e0988e3..325bfbfaa706 100644
 +        nsPresContext* presContext = scrollTargetFrame->PresContext();
 +        aEvent->mReply->mRect = LayoutDeviceIntRect::FromAppUnitsToOutside(
 +            resultRect, presContext->AppUnitsPerDevPixel());
-+        // REYNARD: Match the visual-space transform used by caret/text rect
++        // VULPRA: Match the visual-space transform used by caret/text rect
 +        // queries so the native selection bounds stay aligned while zoomed.
 +        if (nsPresContext* rootContext =
 +                presContext->GetInProcessRootContentDocumentPresContext()) {
@@ -192,7 +192,7 @@ index 526f4e0988e3..325bfbfaa706 100644
 +    }
 +  }
 +
-+  // REYNARD: For contenteditable elements (which don't have a text control
++  // VULPRA: For contenteditable elements (which don't have a text control
 +  // frame), find the nearest scroll container that clips the editor and use
 +  // its scroll port rect. Without this, the editor rect for overflowing
 +  // contenteditable divs would be the full element bounding rect, causing

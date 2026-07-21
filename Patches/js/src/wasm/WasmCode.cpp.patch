@@ -15,7 +15,7 @@ index 5db871f4daba..c8df080d076e 100644
      masm_->executableCopy(codeStart);
    } else {
 -    memcpy(codeStart, bytes_, length_);
-+    // REYNARD: Copy through the writable alias so iOS dual-mapped JIT pages
++    // VULPRA: Copy through the writable alias so iOS dual-mapped JIT pages
 +    // are never written via the RX address.
 +    uint8_t* writableCodeStart =
 +        WritableJitAllocationFromExecutable(codeStart, length_);
@@ -28,7 +28,7 @@ index 5db871f4daba..c8df080d076e 100644
    size_t paddingAfterCode = allocationEnd - codeEnd;
    // The swept code pattern is guaranteed to crash if it is ever executed.
 -  memset(codeEnd, JS_SWEPT_CODE_PATTERN, paddingAfterCode);
-+  // REYNARD: Poison wasm code padding through the writable alias to avoid
++  // VULPRA: Poison wasm code padding through the writable alias to avoid
 +  // faults when the executable mapping is RX-only.
 +  uint8_t* writableCodeEnd =
 +      WritableJitAllocationFromExecutable(codeEnd, paddingAfterCode);

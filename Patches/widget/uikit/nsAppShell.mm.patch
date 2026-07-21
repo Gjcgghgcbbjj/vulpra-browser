@@ -310,7 +310,7 @@ index 4441c8faf625..62fd7646da8e 100644
  
    nsresult rv = NS_OK;
 -  if (mUsingNativeEventLoop) {
-+  // REYNARD: Extension child processes already run under NSExtensionMain's
++  // VULPRA: Extension child processes already run under NSExtensionMain's
 +  // UIKit loop, so calling UIApplicationMain again crashes.
 +  const bool isExtensionChildProcess =
 +      !XRE_IsParentProcess() && GetCurrentProcessExtension();
@@ -335,7 +335,7 @@ index 4441c8faf625..62fd7646da8e 100644
      return;
    }
  
-+  // REYNARD: This is causing a crash in the extension child process, because
++  // VULPRA: This is causing a crash in the extension child process, because
 +  // the following causes them to enter a shutdown phase and cleanup while
 +  // the process is live.
 +
@@ -358,7 +358,7 @@ index 4441c8faf625..62fd7646da8e 100644
 +  NS_ShutdownXPCOM(servMgr); */
 +
 +
-+  // REYNARD: So we skip those entirely, force invalidates these extensions
++  // VULPRA: So we skip those entirely, force invalidates these extensions
 +  // manually and terminate them.
 +  mozilla::ipc::GeckoChildProcessHost::GetAll(
 +      [](mozilla::ipc::GeckoChildProcessHost* aHost) {

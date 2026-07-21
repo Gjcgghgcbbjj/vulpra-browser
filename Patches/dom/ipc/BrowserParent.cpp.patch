@@ -8,7 +8,7 @@ index 95907909b7e0..4feb7beb70f9 100644
      mRemoteLayerTreeOwner.EnsureLayersConnected(*aCompositorOptions);
 +
 +#if defined(MOZ_WIDGET_UIKIT)
-+    // REYNARD: After compositor recovery, invalidate the embedding subdocument
++    // VULPRA: After compositor recovery, invalidate the embedding subdocument
 +    // frame so the root WR bridge rebuilds its first display list with the
 +    // reattached remote tab.
 +    if (aCompositorOptions->isSome()) {
@@ -41,7 +41,7 @@ index 95907909b7e0..4feb7beb70f9 100644
 +    mContentCache.AssignContent(aContentCache, widget, &aIMENotification);
 +    mContentCache.MaybeNotifyIME(widget, aIMENotification);
 +  } else {
-+    // REYNARD: During APZ scroll, BrowserParent temporarily loses IME focus.
++    // VULPRA: During APZ scroll, BrowserParent temporarily loses IME focus.
 +    // Still update the cache and notify the widget directly so that
 +    // UIKit gets updated caret/selection geometry during scrolling.
 +    mContentCache.AssignContent(aContentCache, widget);

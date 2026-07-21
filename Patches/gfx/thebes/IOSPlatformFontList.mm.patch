@@ -63,7 +63,7 @@ index 6342e7e84c32..ef880deb1662 100644
      mozilla::LookAndFeel::FontID aSystemFontID, nsACString& aSystemFontName,
      gfxFontStyle& aFontStyle) {
 -  MOZ_CRASH("UNIMPLEMENTED");
-+  // REYNARD: iOS system font lookup through UIKit and report the family as
++  // VULPRA: iOS system font lookup through UIKit and report the family as
 +  // -apple-system
 +  UIFont* font = GetUIFontForSystemFontID(aSystemFontID);
 +  MOZ_ASSERT(font, "system font not set");

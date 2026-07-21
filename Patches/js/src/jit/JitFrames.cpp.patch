@@ -18,7 +18,7 @@ index 3653af3a21f4..63d2a1898107 100644
        MOZ_ASSERT(stub->toCacheIRStub()->makesGCCalls());
 -      stub->toCacheIRStub()->trace(trc);
 +
-+      // REYNARD: Keep the active CacheIR failure chain alive while a stub frame
++      // VULPRA: Keep the active CacheIR failure chain alive while a stub frame
 +      // is on the stack so guard-failure tail jumps cannot resume into stubs
 +      // that were unlinked or reclaimed during a GC triggered by this stub.
 +      for (ICStub* activeStub = stub; activeStub && !activeStub->isFallback();
@@ -34,7 +34,7 @@ index 3653af3a21f4..63d2a1898107 100644
        MOZ_ASSERT(stub->toCacheIRStub()->makesGCCalls());
 -      stub->toCacheIRStub()->traceWeak(trc);
 +
-+      // REYNARD: Mirror ICEntry::traceWeak for the live on-stack chain so the
++      // VULPRA: Mirror ICEntry::traceWeak for the live on-stack chain so the
 +      // current stub does not tail-jump through next_ pointers to stubs that
 +      // weak tracing just detached from the entry.
 +      ICCacheIRStub* activeStub = stub->toCacheIRStub();
@@ -54,7 +54,7 @@ index 3653af3a21f4..63d2a1898107 100644
    IonICCallFrameLayout* layout = (IonICCallFrameLayout*)frame.fp();
    TraceRoot(trc, layout->stubCode(), "ion-ic-call-code");
  
-+  // REYNARD: Keep the live Ion CacheIR chain strongly traced while a VM call
++  // VULPRA: Keep the live Ion CacheIR chain strongly traced while a VM call
 +  // is on the stack so failure-path nextCodeRaw_ jumps can't resume into stubs
 +  // that were detached or collected during the call.
 +  if (IonICStub* activeStub = layout->stub()) {

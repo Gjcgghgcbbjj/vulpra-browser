@@ -6,7 +6,7 @@ index cfdb81cc03e4..346734a7abe8 100644
    void OnMemoryPressure(layers::MemoryPressureReason aWhy) override;
  
    void PerformHapticFeedback(mozilla::HapticFeedbackType aType) override;
-+  // REYNARD: Called by APZCCallbackHelper when scroll position changes while an
++  // VULPRA: Called by APZCCallbackHelper when scroll position changes while an
 +  // editable element is focused. Adjusts the cached rects by the scroll
 +  // delta and sends the updated cache to the parent process.
 +  void AdjustIMECacheForScroll(const CSSPoint& aNewScrollOffset);

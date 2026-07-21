@@ -82,7 +82,7 @@ index e195b48ca75b..c8af414e3504 100644
      const dismissPrompt = () => prompt.dismiss();
 -    // Some controls don't have UA widget (bug 888320)
 +
-+    // REYNARD: If the input has a UA widget (dateTimeBoxElement), notify it that the
++    // VULPRA: If the input has a UA widget (dateTimeBoxElement), notify it that the
 +    // picker is open. Otherwise (called from click before UA widget renders,
 +    // or for types without UA widgets) use a blur listener instead.
      {

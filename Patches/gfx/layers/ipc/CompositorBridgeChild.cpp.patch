@@ -25,7 +25,7 @@ index 1ceab334989c..12bf62ee1623 100644
      gfxCriticalNote << "CompositorBridgeChild receives IPC close with "
                         "reason=AbnormalShutdown";
 +
-+    // REYNARD: In content processes, propagate abnormal compositor shutdown
++    // VULPRA: In content processes, propagate abnormal compositor shutdown
 +    // along with the current GPU process token so parent can recover.
 +    if (mProcessToken && XRE_IsContentProcess()) {
 +      if (dom::ContentChild* contentChild = dom::ContentChild::GetSingleton();

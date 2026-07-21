@@ -59,7 +59,7 @@ index 8188ba444345..4a2a2867775d 100644
    inst1->SetInstructionBits((uint32_t)distance);
    inst2->SetInstructionBits((uint32_t)(distance >> 32));
 +
-+  // REYNARD: Far-jump literals are patched at runtime for wasm tiering.
++  // VULPRA: Far-jump literals are patched at runtime for wasm tiering.
 +  // Commit the writable-alias updates back to the executable view on iOS.
 +  FinalizeExecutablePatch(executableInst1, 2 * vixl::kInstructionSize);
  }
@@ -108,7 +108,7 @@ index 8188ba444345..4a2a2867775d 100644
 +  vixl::Register rd = vixl::XRegister(executable->Rd());
    adr(cur, rd, off);
 +
-+  // REYNARD: This runtime ADR rewrite must be made visible to the RX alias on iOS.
++  // VULPRA: This runtime ADR rewrite must be made visible to the RX alias on iOS.
 +  FinalizeExecutablePatch(executable, vixl::kInstructionSize);
  }
  

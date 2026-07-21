@@ -227,7 +227,7 @@ index a6edb082d7f0..c68364dec344 100644
 -    [self sendMouseEvent:eMouseMove point:lp widget:mGeckoChild];
 -    [self sendMouseEvent:eMouseDown point:lp widget:mGeckoChild];
 -    [self sendMouseEvent:eMouseUp point:lp widget:mGeckoChild];
-+    // REYNARD: UIKit text interactions already handle taps that are placing or
++    // VULPRA: UIKit text interactions already handle taps that are placing or
 +    // adjusting the caret. Replaying the same tap as a Gecko click resets the
 +    // selection after UIKit has positioned it.
 +    if (mEditable.mTextInteractionInProgress) {
@@ -236,7 +236,7 @@ index a6edb082d7f0..c68364dec344 100644
 +
 +    BOOL wasFirstResponder = [self isFirstResponder];
 +
-+    // REYNARD: Save the caret offset before sending events to Gecko so we can
++    // VULPRA: Save the caret offset before sending events to Gecko so we can
 +    // detect whether the caret actually moved once Gecko responds.
 +    NSRange preSel = [self selectedRange];
 +    NSUInteger preOffset = (wasFirstResponder &&
@@ -244,7 +244,7 @@ index a6edb082d7f0..c68364dec344 100644
 +                               ? preSel.location
 +                               : NSNotFound;
 +
-+    // REYNARD: When re-tapping an already-focused editable field with a
++    // VULPRA: When re-tapping an already-focused editable field with a
 +    // collapsed caret, arm the pending caret-menu flag. Gecko processes mouse
 +    // events asynchronously, so we resolve the flag later:
 +    //   - If NOTIFY_IME_OF_POSITION_CHANGE arrives (caret moved),
@@ -287,7 +287,7 @@ index a6edb082d7f0..c68364dec344 100644
 -  ALOG("[ChildView[%p] touchesBegan", self);
 +  [super touchesBegan:touches withEvent:event];
 +
-+  // REYNARD: Dismiss the caret callout on any touch-down so that scrolling or
++  // VULPRA: Dismiss the caret callout on any touch-down so that scrolling or
 +  // tap-to-reposition hides it immediately. Also cancel any pending
 +  // caret-menu resolution.
 +  if (mEditable.mCaretMenuActive) {
@@ -346,7 +346,7 @@ index a6edb082d7f0..c68364dec344 100644
 +    return;
 +  }
 +
-+  // REYNARD: Ensure a detached ChildView does not keep stale responder state
++  // VULPRA: Ensure a detached ChildView does not keep stale responder state
 +  // while we mirror activation on ChildView attach/detach transitions.
 +  if (![self window] && [self isFirstResponder]) {
 +    [self resignFirstResponder];
@@ -503,7 +503,7 @@ index a6edb082d7f0..c68364dec344 100644
  }
  
 +void nsWindow::CloseNativeLayerRemoteParent(bool aWaitUntilClosed) {
-+  // REYNARD: Drop the remote actor's layer-root reference before we destroy
++  // VULPRA: Drop the remote actor's layer-root reference before we destroy
 +  // the UIKit view so the CA root cannot outlive its backing layer tree.
 +  RefPtr<NativeLayerRootRemoteMacParent> actor =
 +      std::move(mNativeLayerRootRemoteMacParent);
@@ -542,7 +542,7 @@ index a6edb082d7f0..c68364dec344 100644
 +}
 +
 +void nsWindow::DestroyNativeLayerRoot() {
-+  // REYNARD: Release the retained CA root while the ChildView still owns a
++  // VULPRA: Release the retained CA root while the ChildView still owns a
 +  // valid backing layer, so the root destructor does not run after UIKit
 +  // tears that layer tree down.
 +  if (!mNativeLayerRoot) {
@@ -596,7 +596,7 @@ index a6edb082d7f0..c68364dec344 100644
    if (aState != mVisible) {
      mNativeView.hidden = aState ? NO : YES;
 +
-+    // REYNARD: UIKit key-window notifications only fire for the app window, so
++    // VULPRA: UIKit key-window notifications only fire for the app window, so
 +    // tab swaps between ChildViews can miss WindowActivated/WindowDeactivated.
 +    // Mirror activation from visibility transitions to keep FocusManager's
 +    // active top-level window aligned with the selected Gecko session.
@@ -614,7 +614,7 @@ index a6edb082d7f0..c68364dec344 100644
  }
  
 +void nsWindow::NotifyWindowActivationState(bool aActive) {
-+  // REYNARD: Keep both listener paths aligned so focus ownership tracks the
++  // VULPRA: Keep both listener paths aligned so focus ownership tracks the
 +  // currently attached/visible ChildView across tab switches and process swaps.
 +  if (aActive) {
 +    if (mWidgetListener) {
@@ -710,7 +710,7 @@ index a6edb082d7f0..c68364dec344 100644
 +         focusFromPointerInput);
 +
 +    if (aAction.mFocusChange == InputContextAction::LOST_FOCUS) {
-+      // REYNARD: Preserve first responder across keyboard-driven editable
++      // VULPRA: Preserve first responder across keyboard-driven editable
 +      // handoffs (e.g. OTP auto-advance) to keep the software keyboard stable.
 +      if (!focusFromKeyboardInput) {
 +        [mNativeView resignFirstResponder];
@@ -729,7 +729,7 @@ index a6edb082d7f0..c68364dec344 100644
 +    return;
 +  }
 +
-+  // REYNARD: Prevent page-load autofocus from opening the software keyboard
++  // VULPRA: Prevent page-load autofocus from opening the software keyboard
 +  // unless focus is clearly user-driven.
 +  const bool shouldBecomeFirstResponder =
 +      hadFirstResponder || aAction.UserMightRequestOpenVKB() ||

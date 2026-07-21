@@ -16,7 +16,7 @@ index 7a21b0db13ea..8617a591600c 100644
    // in the constructor. The macOS-specific aInitData contains an
    // Endpoint, so it *must* use move semantics.
 +
-+  // REYNARD: Let iOS use this compositor init data as well.
++  // VULPRA: Let iOS use this compositor init data as well.
    auto* widget = static_cast<widget::CompositorWidgetParent*>(actor);
    widget->Init(std::move(aInitData));
    return IPC_OK();

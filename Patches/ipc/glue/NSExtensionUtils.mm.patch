@@ -70,7 +70,7 @@ index 000000000000..42402cb7308d
 +  [super dealloc];
 +}
 +
-+// REYNARD: Somehow the child must actively send an initial XPC call to trigget
++// VULPRA: Somehow the child must actively send an initial XPC call to trigget
 +// host listener acceptance. So the ping method here is called so that the
 +// parent can receive and retain the NSXPC connection.
 +- (void)ping {
@@ -107,7 +107,7 @@ index 000000000000..42402cb7308d
 +  static dispatch_queue_t queue;
 +  static dispatch_once_t onceToken;
 +  dispatch_once(&onceToken, ^{
-+    queue = dispatch_queue_create("me.minh-ton.Reynard.ExtensionLaunchQueue",
++    queue = dispatch_queue_create("com.vulpra.browser.extension-launch",
 +                                  DISPATCH_QUEUE_SERIAL);
 +  });
 +  return queue;
@@ -140,7 +140,7 @@ index 000000000000..42402cb7308d
 +
 +  NSURL* preferredExtensionURL = nil;
 +  for (NSURL* itemURL in appExtensions) {
-+    if ([[itemURL lastPathComponent] isEqualToString:@"Reynard Helper.appex"]) {
++    if ([[itemURL lastPathComponent] isEqualToString:@"Vulpra Helper.appex"]) {
 +      preferredExtensionURL = itemURL;
 +      break;
 +    }
@@ -164,7 +164,7 @@ index 000000000000..42402cb7308d
 +
 +static NSExtension* _Nullable CreateNSExtension(
 +    NSString* identifier, NSError* _Nullable* _Nullable error) {
-+  // REYNARD: Probe private NSExtension constructors at runtime so we can
++  // VULPRA: Probe private NSExtension constructors at runtime so we can
 +  // support API shape differences across OS versions.
 +  Class extensionClass = NSClassFromString(@"NSExtension");
 +  if (!extensionClass) {
@@ -250,7 +250,7 @@ index 000000000000..42402cb7308d
 +  void (^completion)(NSError* _Nullable) = [aCompletion copy];
 +
 +  if (mStarted) {
-+    completion([NSError errorWithDomain:@"ReynardExtension"
++    completion([NSError errorWithDomain:@"VulpraExtension"
 +                                   code:100
 +                               userInfo:@{
 +                                 NSLocalizedDescriptionKey :
@@ -261,7 +261,7 @@ index 000000000000..42402cb7308d
 +  }
 +  mStarted = true;
 +
-+  // REYNARD: Run launch bootstrap on a dedicated serial queue so callback and
++  // VULPRA: Run launch bootstrap on a dedicated serial queue so callback and
 +  // timeout delivery never depend on the app main thread while Gecko performs
 +  // synchronous launch waits.
 +  dispatch_async(ExtensionLaunchQueue(), ^{
@@ -279,7 +279,7 @@ index 000000000000..42402cb7308d
 +
 +    if (mInvalidated) {
 +      completeOnce([NSError
-+          errorWithDomain:@"ReynardExtension"
++          errorWithDomain:@"VulpraExtension"
 +                     code:101
 +                 userInfo:@{
 +                   NSLocalizedDescriptionKey :
@@ -316,7 +316,7 @@ index 000000000000..42402cb7308d
 +          xpc_connection_cancel(process->mLibXPCConnection);
 +        }
 +        completeOnce([NSError
-+            errorWithDomain:@"ReynardExtension"
++            errorWithDomain:@"VulpraExtension"
 +                       code:108
 +                   userInfo:@{
 +                     NSLocalizedDescriptionKey :
@@ -334,7 +334,7 @@ index 000000000000..42402cb7308d
 +
 +      if (!process->mLibXPCConnection) {
 +        completeOnce([NSError
-+            errorWithDomain:@"ReynardExtension"
++            errorWithDomain:@"VulpraExtension"
 +                       code:102
 +                   userInfo:@{
 +                     NSLocalizedDescriptionKey :
@@ -350,7 +350,7 @@ index 000000000000..42402cb7308d
 +    NSString* extensionIdentifier = GetExtensionIdentifier();
 +    if (!extensionIdentifier) {
 +      completeOnce([NSError
-+          errorWithDomain:@"ReynardExtension"
++          errorWithDomain:@"VulpraExtension"
 +                     code:103
 +                 userInfo:@{
 +                   NSLocalizedDescriptionKey :
@@ -364,7 +364,7 @@ index 000000000000..42402cb7308d
 +        [CreateNSExtension(extensionIdentifier, &extensionError) retain];
 +    if (!mExtension) {
 +      completeOnce([NSError
-+          errorWithDomain:@"ReynardExtension"
++          errorWithDomain:@"VulpraExtension"
 +                     code:104
 +                 userInfo:@{
 +                   NSLocalizedDescriptionKey : @"Failed to create NSExtension",
@@ -377,7 +377,7 @@ index 000000000000..42402cb7308d
 +            respondsToSelector:@selector(setRequestInterruptionBlock:)]) {
 +      [mExtension setRequestInterruptionBlock:^(NSUUID* requestIdentifier) {
 +        completeOnce([NSError
-+            errorWithDomain:@"ReynardExtension"
++            errorWithDomain:@"VulpraExtension"
 +                       code:105
 +                   userInfo:@{
 +                     NSLocalizedDescriptionKey :
@@ -389,12 +389,12 @@ index 000000000000..42402cb7308d
 +    NSExtensionItem* input = [[[NSExtensionItem alloc] init] autorelease];
 +    NSMutableDictionary* userInfo = [NSMutableDictionary dictionary];
 +    [userInfo setObject:[mListener endpoint]
-+                 forKey:@"ReynardXPCListenerEndpoint"];
++                 forKey:@"VulpraXPCListenerEndpoint"];
 +    [input setUserInfo:userInfo];
 +
 +    mRequestIdentifier = [BeginExtensionRequest(mExtension, @[ input ]) retain];
 +    if (!mRequestIdentifier) {
-+      completeOnce([NSError errorWithDomain:@"ReynardExtension"
++      completeOnce([NSError errorWithDomain:@"VulpraExtension"
 +                                       code:107
 +                                   userInfo:@{
 +                                     NSLocalizedDescriptionKey :
@@ -411,7 +411,7 @@ index 000000000000..42402cb7308d
 +          }
 +
 +          completed = true;
-+          completion([NSError errorWithDomain:@"ReynardExtension"
++          completion([NSError errorWithDomain:@"VulpraExtension"
 +                                         code:106
 +                                     userInfo:@{
 +                                       NSLocalizedDescriptionKey :
@@ -495,7 +495,7 @@ index 000000000000..42402cb7308d
 +void NSExtensionProcess::StartProcess(
 +    const std::function<void(Result<NSExtensionProcess, LaunchError>&&)>&
 +        aCompletion) {
-+  // REYNARD: Launch child process via NSExtension and bridge its
++  // VULPRA: Launch child process via NSExtension and bridge its
 +  // NSXPCConnection to libxpc for Gecko child bootstrap.
 +  auto ownedCompletion = std::make_shared<
 +      std::function<void(Result<NSExtensionProcess, LaunchError>&&)>>(

@@ -15,7 +15,7 @@ index 86202aed4d95..6253dd4c5830 100644
      return NS_ERROR_FAILURE;
    }
 +
-+  // REYNARD: Record the scroll offset at cache time so AdjustIMECacheForScroll
++  // VULPRA: Record the scroll offset at cache time so AdjustIMECacheForScroll
 +  // can compute the correct delta later.
 +  if (nsIWidgetListener* l = mWidgetListener) {
 +    if (PresShell* ps = l->GetPresShell()) {
@@ -47,7 +47,7 @@ index 86202aed4d95..6253dd4c5830 100644
 +                                -NSToIntRound(delta.y * scale));
 +  mContentCache.OffsetAllRectsBy(devDelta);
 +
-+  // REYNARD: Always send position change notification during scroll so the
++  // VULPRA: Always send position change notification during scroll so the
 +  // parent fires selectionGeometryChanged and UIKit updates caret/selection
 +  // display.
 +  widget::IMENotification notification(widget::NOTIFY_IME_OF_POSITION_CHANGE);

@@ -7,7 +7,7 @@ index 09cc159cad78..d0bae2468b3e 100644
      charmap = new gfxCharacterMap(0);
      mHasCmapTable = false;
 +    if (!mIsDataUserFont) {
-+      // REYNARD: if cmap access is unavailable on iOS system fonts, force
++      // VULPRA: if cmap access is unavailable on iOS system fonts, force
 +      // CoreText shaping for this face instead of HarfBuzz table-driven
 +      // shaping.
 +      mRequiresAAT = true;
@@ -67,7 +67,7 @@ index 09cc159cad78..d0bae2468b3e 100644
    fe->mStyleRange = mStyleRange;
    fe->mStretchRange = mStretchRange;
    fe->mFixedPitch = mFixedPitch;
-+  // REYNARD: Preserve the retained CoreText descriptor when cloning a system
++  // VULPRA: Preserve the retained CoreText descriptor when cloning a system
 +  // font entry so descriptor-based recreation stays available.
 +  if (mFontDesc) {
 +    fe->mFontDesc = static_cast<CTFontDescriptorRef>(::CFRetain(mFontDesc));
@@ -189,7 +189,7 @@ index 09cc159cad78..d0bae2468b3e 100644
 -        .EnumGet(static_cast<glean::fontlist::BadFallbackFontLabel>(
 -            cantUseFallbackFont))
 -        .Add();
-+  // REYNARD: when generic fallback fails for emoji codepoints on iOS,
++  // VULPRA: when generic fallback fails for emoji codepoints on iOS,
 +  // explicitly probe AppleColorEmoji and use it if CoreText confirms support.
 +  if (!fontEntry) {
 +    AutoCFTypeRef<CTFontRef> emojiBase(

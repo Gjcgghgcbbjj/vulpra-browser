@@ -16,7 +16,7 @@ index c115e169282b..602376c5bf41 100644
  
 +void IonCacheIRCompiler::pushStubAndStubCodePointer() {
 +  MOZ_ASSERT(currentStub_);
-+  // REYNARD: Only IonICCallFrameLayout carries the active IonICStub*.
++  // VULPRA: Only IonICCallFrameLayout carries the active IonICStub*.
 +  // OOL exit-frame layouts still expect a single JitCode* marker word.
 +  masm.Push(ImmPtr(currentStub_));
 +  pushStubCodePointer();

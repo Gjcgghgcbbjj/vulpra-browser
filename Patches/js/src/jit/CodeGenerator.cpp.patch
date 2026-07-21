@@ -7,7 +7,7 @@ index a1c01409e9f7..ad36eeedae45 100644
    pushArg(temp2);
    pushArg(temp1);
 -  pushArg(obj);
-+  // REYNARD: emitMegamorphicCacheLookup can clobber |obj| on miss/getter
++  // VULPRA: emitMegamorphicCacheLookup can clobber |obj| on miss/getter
 +  // paths. Pass the preserved receiver to VM fallback.
 +  pushArg(temp3);
  
@@ -18,7 +18,7 @@ index a1c01409e9f7..ad36eeedae45 100644
    pushArg(temp2);
    pushArg(idVal);
 +#ifndef JS_CODEGEN_X86
-+  // REYNARD: Same as visitMegamorphicLoadSlotPermissive above.
++  // VULPRA: Same as visitMegamorphicLoadSlotPermissive above.
 +  pushArg(temp3);
 +#else
    pushArg(obj);

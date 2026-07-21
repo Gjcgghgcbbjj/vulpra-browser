@@ -2,3 +2,11 @@ engine/release.txt	Vendor/firefox-release.txt
 patches	Patches
 tools/development	Tools/Gecko
 browser/Scripts/AddGecko.sh	Tools/Build/AddGecko.sh
+browser/GeckoView	Extensions/GeckoView
+browser/Helper/Entitlements/Reynard-Helper.entitlements	Extensions/Helper/Entitlements/Vulpra-Helper.entitlements
+browser/Helper/Entitlements/Reynard-Helper.private.entitlements	Extensions/Helper/Entitlements/Vulpra-Helper.private.entitlements
+browser/Helper/ExtensionBridge.h	Extensions/Helper/ExtensionBridge.h
+browser/Helper/ExtensionBridge.mm	Extensions/Helper/ExtensionBridge.mm
+browser/Helper/Helper.swift	Extensions/Helper/Helper.swift
+browser/Helper/Info.plist	Extensions/Helper/Info.plist
+browser/Helper/main.m	Extensions/Helper/main.m
