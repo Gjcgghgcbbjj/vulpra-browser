@@ -25,3 +25,11 @@ No evidence has been recorded yet.
 - Source: docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md
 - Summary: Approved ten-task inline Phase 1A plan defines fresh Xcode graph, runtime owners, JIT contract, artifact/package producers, portable gate, baseline closeout, and explicit Phase 1B deferral.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task1-xcode-graph
+- Type: portable-verification
+- Source: Tests/RuntimeShell/test-xcode-graph.py; Vulpra.xcodeproj/project.pbxproj; Configuration/*.xcconfig; Vulpra.xcscheme
+- Summary: Portable graph contract passed: exactly four targets, app dependencies and embeds, ordered artifact/copy phases, objectVersion 77 synchronized groups, 24-character IDs, five xcconfigs, iOS 15 arm64 settings, one XML-valid shared scheme, no signing identity, active identity pass; pbxproj 259 lines and all Task 1 files below 800.
+- Verifier: root

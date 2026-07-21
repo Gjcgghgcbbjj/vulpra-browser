@@ -2,10 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume in the feature/vulpra-runtime-shell worktree, verify clean plan commit, then follow Task 1 exactly without importing old project files.",
+  "resumeInstruction": "Resume on feature/vulpra-runtime-shell after the Task 1 commit; start Task 2 with its RED product-contract test and do not add runtime shell behavior yet.",
   "knownPartialWork": [
-    "Approved runtime-shell design committed and user-confirmed.",
-    "Ten-task Phase 1A implementation plan written and self-reviewed."
+    "Approved runtime-shell design and ten-task implementation plan.",
+    "Task 1 fresh Xcode graph and configuration owners pass portable RED/GREEN verification."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -13,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "A portable graph test does not prove Xcode accepts synchronized-group semantics."
+    "XML and portable graph checks do not prove xcodebuild compilation or synchronized-group target membership on macOS."
   ]
 }

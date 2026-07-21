@@ -24,3 +24,4 @@
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/resume-state-hint.json | 2026-07-22-vulpra-runtime-shell resume state hint |
 | 2026-07-22 | plan | docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md | Vulpra Runtime Shell Phase 1A Implementation Plan |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-phase1a-implementation-plan.json | 2026-07-22-vulpra-runtime-shell evidence phase1a-implementation-plan |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task1-xcode-graph.json | 2026-07-22-vulpra-runtime-shell evidence task1-xcode-graph |

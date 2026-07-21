@@ -49,3 +49,27 @@
 - New risk signals:
 - Hand-authored objectVersion 77 synchronized groups require later validation by current Xcode.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Execute Task 2: add app metadata, entitlement profiles, and pure URL routing.
+- Active slice: Task 2 product identity and URL input contracts
+- Completed todos:
+- Approved runtime-shell design and ten-task implementation plan.
+- Task 1 fresh Xcode graph and configuration owners pass portable RED/GREEN verification.
+- Evidence refs:
+- Tests/RuntimeShell/test-xcode-graph.py
+- Vulpra.xcodeproj/project.pbxproj
+- Configuration/Base.xcconfig
+- Vulpra.xcodeproj/xcshareddata/xcschemes/Vulpra.xcscheme
+- Blocked on: Current Xcode semantic acceptance remains Phase 1B needs-verification; no Phase 1A blocker.
+- Next step: Commit Task 1, then write the failing product-contract test before creating App/Info.plist, entitlements, and RuntimeURLRouter.swift.
+
+## DriftCheckDraft
+
+- Scope status: Task 1 added only the fresh project/configuration owners and structural test; no browser UI, data, or old client code entered.
+- Compatibility status: iOS 15.0, arm64, iPhone/iPad, TrollStore-first future entitlements, generated .build/dist roots, and no signing team remain explicit.
+- Retirement status: The old Xcode project remains absent; synchronized groups and xcconfigs are the sole new graph/settings owners.
+- New risk signals:
+- The hand-authored objectVersion 77 graph still requires current-Xcode validation in Phase 1B.
+- Advisory decision: continue

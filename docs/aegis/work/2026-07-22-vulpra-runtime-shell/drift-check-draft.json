@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
   ],
-  "scopeStatus": "Planning remains limited to Phase 1A runtime shell and producer contracts; tabs, data, final UI, and release claims remain excluded.",
-  "compatStatus": "iOS 15.0, arm64, TrollStore-first, no old identity/data/Xcode fallback, and Mac evidence deferral remain intact.",
-  "retirementStatus": "Old client/project/JIT UI/release owners remain absent; RuntimeShellViewController remains an explicitly temporary smoke owner.",
+  "scopeStatus": "Task 1 added only the fresh project/configuration owners and structural test; no browser UI, data, or old client code entered.",
+  "compatStatus": "iOS 15.0, arm64, iPhone/iPad, TrollStore-first future entitlements, generated .build/dist roots, and no signing team remain explicit.",
+  "retirementStatus": "The old Xcode project remains absent; synchronized groups and xcconfigs are the sole new graph/settings owners.",
   "newRiskSignals": [
-    "Hand-authored objectVersion 77 synchronized groups require later validation by current Xcode."
+    "The hand-authored objectVersion 77 graph still requires current-Xcode validation in Phase 1B."
   ],
   "decision": "continue"
 }

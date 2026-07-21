@@ -1,0 +1,8 @@
+#include "Base.xcconfig"
+PRODUCT_NAME = Vulpra
+PRODUCT_BUNDLE_IDENTIFIER = com.vulpra.browser
+INFOPLIST_FILE = App/Info.plist
+CODE_SIGN_ENTITLEMENTS = App/Entitlements/Vulpra.entitlements
+SWIFT_OBJC_BRIDGING_HEADER = App/Bridging/Vulpra-Bridging-Header.h
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/Frameworks @executable_path/Frameworks/GeckoView.framework
+OTHER_LDFLAGS = $(inherited) -ObjC $(VULPRA_GECKO_DIST)/bin/XUL -lmozglue -lnss3 -lfreebl3 -lsoftokn3 -llgpllibs -lmozavcodec -lmozavutil -lgkcodecs -lmozinference $(VULPRA_IDEVICE_ARCHIVE)
