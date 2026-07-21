@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/aegis/baseline/2026-07-21-initial-baseline.md",
+    "docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md",
+    "docs/provenance/substrate-boundary.md",
+    "docs/aegis/policies/efficiency-complexity-governance.md"
+  ],
+  "whyRelevant": "These documents fix the five-root substrate boundary, new-owner direction, iOS 15+, TrollStore-first, no migration/fallback, complexity budgets, and Phase 1 authorization.",
+  "missingAuthority": [
+    "No Mac/Xcode producer, signing identity, compiled Gecko artifact, or physical-device evidence is available in the current environment."
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-22-vulpra-runtime-shell",
+  "requiredBaselineRefs": [
+    "docs/aegis/baseline/2026-07-21-initial-baseline.md",
+    "docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md",
+    "docs/provenance/substrate-boundary.md",
+    "docs/aegis/policies/efficiency-complexity-governance.md"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [],
+  "citedInPlanRefs": [],
+  "missingRefs": [
+    "docs/aegis/baseline/2026-07-21-initial-baseline.md",
+    "docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md",
+    "docs/provenance/substrate-boundary.md",
+    "docs/aegis/policies/efficiency-complexity-governance.md"
+  ],
+  "decision": "needs-baseline-readback"
+}

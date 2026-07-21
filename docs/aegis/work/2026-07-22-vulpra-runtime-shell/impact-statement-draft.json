@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "XcodeGraph",
+    "AppRuntime",
+    "GeckoView",
+    "Helper",
+    "JIT",
+    "Packaging"
+  ],
+  "owners": [
+    "Vulpra.xcodeproj owns target membership; Configuration owns build settings; App/Runtime owns launch and smoke-session orchestration; RuntimeJITCoordinator owns child JIT reporting; Tools/Runtime and Tools/Release own generated artifacts and packaging."
+  ],
+  "invariants": [
+    "No inherited client/UI/store/resource/Xcode/data owner enters the repository; Gecko child processes are always released from the JIT readiness wait with an explicit success/failure report."
+  ],
+  "compatBoundary": "Deployment target 15.0; arm64 device-first; TrollStore/private entitlements are packaging-specific; no old identity or data compatibility; public portable checks must not claim Mac completion.",
+  "nonGoals": [
+    "Final address bar, tab UI, persistence, settings, downloads, add-ons UI, release signing, performance acceptance, or public distribution."
+  ]
+}

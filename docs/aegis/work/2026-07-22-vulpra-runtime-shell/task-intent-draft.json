@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Create a fresh iOS 15+ UIKit Xcode graph and minimal Vulpra runtime shell around the verified GeckoView, Helper, and low-level JIT substrate, with reproducible Mac producer steps for the first unsigned IPA.",
+  "goal": "Deliver Phase 1A source, project, ownership, and portable evidence without importing the Reynard client; leave Xcode compilation and IPA production as an explicit Phase 1B Mac gate.",
+  "successEvidence": [
+    "A committed Vulpra.xcodeproj with Vulpra/GeckoView/Vulpra Helper/OpenIn targets, new runtime-shell owners, Vulpra identities, iOS 15.0 settings, deterministic artifact/packaging contracts, passing portable graph tests, and no excluded client dependency."
+  ],
+  "stopCondition": "Done when Phase 1A source/project/contracts pass portable gates; needs-verification when only Mac/Xcode/IPA/device evidence remains; blocked if imported substrate requires excluded client code; scope-exceeded if tabs/data/final browser UI enter the slice.",
+  "nonGoals": [
+    "Final address bar, tab UI, persistence, settings, downloads, add-ons UI, release signing, performance acceptance, or public distribution."
+  ],
+  "scope": "Design, plan, and implement vulpra-runtime-shell Phase 1A plus Mac producer/gate scripts only.",
+  "changeKinds": [
+    "architecture"
+  ],
+  "riskHints": [
+    "Linux cannot run xcodebuild; pbxproj target membership, generated Gecko headers, idevice archive linkage, private entitlements, and child-process JIT handshake require careful owner and evidence separation."
+  ]
+}
