@@ -33,3 +33,11 @@ No evidence has been recorded yet.
 - Source: Tests/RuntimeShell/test-xcode-graph.py; Vulpra.xcodeproj/project.pbxproj; Configuration/*.xcconfig; Vulpra.xcscheme
 - Summary: Portable graph contract passed: exactly four targets, app dependencies and embeds, ordered artifact/copy phases, objectVersion 77 synchronized groups, 24-character IDs, five xcconfigs, iOS 15 arm64 settings, one XML-valid shared scheme, no signing identity, active identity pass; pbxproj 259 lines and all Task 1 files below 800.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task2-product-contracts
+- Type: portable-verification
+- Source: Tests/RuntimeShell/test-product-contracts.py; App/Info.plist; App/Entitlements; App/RuntimeURLRouter.swift; Extensions/Helper/Entitlements; docs/provenance/import-manifest.tsv
+- Summary: Product-contract RED/GREEN passed: four bundle IDs, one vulpra URL scheme, one UIKit scene, launch dictionary, iPhone/iPad arm64 iOS 15 contract, exact minimal standard/private app entitlements, corrected Helper identity with get-task-allow removed, pure http/https and vulpra://open URL router. All plists, active identity, import boundary, graph, manifest, and diff checks pass; router is 43 lines.
+- Verifier: root

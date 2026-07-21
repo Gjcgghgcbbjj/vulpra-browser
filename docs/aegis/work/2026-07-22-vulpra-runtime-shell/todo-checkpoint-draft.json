@@ -1,19 +1,19 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Execute Task 2: add app metadata, entitlement profiles, and pure URL routing.",
+  "currentTodo": "Execute Task 3: implement the minimal UIKit Gecko runtime shell.",
   "completedTodos": [
-    "Approved runtime-shell design and ten-task implementation plan.",
-    "Task 1 fresh Xcode graph and configuration owners pass portable RED/GREEN verification."
+    "Task 1 fresh Xcode graph and configuration owners.",
+    "Task 2 product metadata, entitlement profiles, Helper entitlement retirement, and pure URL router pass portable verification."
   ],
-  "activeSlice": "Task 2 product identity and URL input contracts",
+  "activeSlice": "Task 3 one-session UIKit Gecko smoke owner",
   "evidenceRefs": [
-    "Tests/RuntimeShell/test-xcode-graph.py",
-    "Vulpra.xcodeproj/project.pbxproj",
-    "Configuration/Base.xcconfig",
-    "Vulpra.xcodeproj/xcshareddata/xcschemes/Vulpra.xcscheme"
+    "Tests/RuntimeShell/test-product-contracts.py",
+    "App/Info.plist",
+    "App/RuntimeURLRouter.swift",
+    "docs/provenance/import-manifest.tsv"
   ],
-  "blockedOn": "Current Xcode semantic acceptance remains Phase 1B needs-verification; no Phase 1A blocker.",
-  "nextStep": "Commit Task 1, then write the failing product-contract test before creating App/Info.plist, entitlements, and RuntimeURLRouter.swift.",
+  "blockedOn": "Swift/UIKit/Gecko compilation remains Phase 1B needs-verification; source-contract work can continue.",
+  "nextStep": "Commit Task 2, then write the failing runtime-shell test before adding main, app delegate, scene delegate, and one-session view controller.",
   "updatedAt": "2026-07-22"
 }

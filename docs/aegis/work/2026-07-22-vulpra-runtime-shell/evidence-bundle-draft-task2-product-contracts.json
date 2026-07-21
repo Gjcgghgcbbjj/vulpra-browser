@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task2-product-contracts",
+  "type": "portable-verification",
+  "source": "Tests/RuntimeShell/test-product-contracts.py; App/Info.plist; App/Entitlements; App/RuntimeURLRouter.swift; Extensions/Helper/Entitlements; docs/provenance/import-manifest.tsv",
+  "summary": "Product-contract RED/GREEN passed: four bundle IDs, one vulpra URL scheme, one UIKit scene, launch dictionary, iPhone/iPad arm64 iOS 15 contract, exact minimal standard/private app entitlements, corrected Helper identity with get-task-allow removed, pure http/https and vulpra://open URL router. All plists, active identity, import boundary, graph, manifest, and diff checks pass; router is 43 lines.",
+  "verifier": "root"
+}

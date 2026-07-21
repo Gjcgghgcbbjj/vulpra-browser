@@ -73,3 +73,27 @@
 - New risk signals:
 - The hand-authored objectVersion 77 graph still requires current-Xcode validation in Phase 1B.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Execute Task 3: implement the minimal UIKit Gecko runtime shell.
+- Active slice: Task 3 one-session UIKit Gecko smoke owner
+- Completed todos:
+- Task 1 fresh Xcode graph and configuration owners.
+- Task 2 product metadata, entitlement profiles, Helper entitlement retirement, and pure URL router pass portable verification.
+- Evidence refs:
+- Tests/RuntimeShell/test-product-contracts.py
+- App/Info.plist
+- App/RuntimeURLRouter.swift
+- docs/provenance/import-manifest.tsv
+- Blocked on: Swift/UIKit/Gecko compilation remains Phase 1B needs-verification; source-contract work can continue.
+- Next step: Commit Task 2, then write the failing runtime-shell test before adding main, app delegate, scene delegate, and one-session view controller.
+
+## DriftCheckDraft
+
+- Scope status: Task 2 added identity/input contracts only; no Gecko session, tabs, persistence, settings, or final browser UI.
+- Compatibility status: Exact Vulpra identities, iOS 15 families, one URL scheme, minimal private permissions, and no old identity/data fallback remain intact.
+- Retirement status: get-task-allow and uncertain web-browser/persona/storage permissions are absent; URL routing has one canonical pure owner.
+- New risk signals:
+- Private entitlement acceptance remains device/signing evidence for Phase 1B.
+- Advisory decision: continue

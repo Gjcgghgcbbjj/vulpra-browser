@@ -2,10 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume on feature/vulpra-runtime-shell after the Task 1 commit; start Task 2 with its RED product-contract test and do not add runtime shell behavior yet.",
+  "resumeInstruction": "Resume after the Task 2 commit and begin Task 3 with RED; keep RuntimeShellViewController smoke-only and under 250 lines.",
   "knownPartialWork": [
-    "Approved runtime-shell design and ten-task implementation plan.",
-    "Task 1 fresh Xcode graph and configuration owners pass portable RED/GREEN verification."
+    "Task 1 fresh Xcode graph and configuration owners.",
+    "Task 2 product metadata, entitlement profiles, Helper entitlement retirement, and pure URL router pass portable verification."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -13,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "XML and portable graph checks do not prove xcodebuild compilation or synchronized-group target membership on macOS."
+    "plistlib and source-contract checks do not prove entitlement installation or UIKit/Gecko runtime behavior."
   ]
 }
