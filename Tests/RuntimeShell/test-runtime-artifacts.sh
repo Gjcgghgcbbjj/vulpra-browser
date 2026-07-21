@@ -35,6 +35,7 @@ for token in 'FORMAT_VERSION="3"' VULPRA_XCODE_BUILD VULPRA_SDK_BUILD IOSBootstr
 done
 
 add_gecko="$ROOT/Tools/Build/AddGecko.sh"
+[ -x "$add_gecko" ] || fail "AddGecko must be executable for the Xcode build phase"
 grep -Fq 'Tools/Runtime/verify-runtime-artifacts.sh' "$add_gecko" ||
 	fail "AddGecko does not require verified runtime artifacts"
 grep -Fq '${SRCROOT}/Vendor/firefox/toolkit/mozapps/extensions/default-theme' "$add_gecko" ||
