@@ -154,8 +154,8 @@ PY
 [ "$(git -C "$ROOT" ls-files -s -- Vendor/idevice)" = "$(printf '160000 %s 0\tVendor/idevice' "$IDEVICE_SHA")" ] ||
 	fail "idevice gitlink mismatch"
 
-if git -C "$ROOT" ls-files | grep -Eq '(^|/)browser/Reynard/Client/|\.xcodeproj/|(^|/)Resources/'; then
-	fail "legacy client, Xcode project, or product resource leaked into Task 3"
+if git -C "$ROOT" ls-files | grep -Eq '(^|/)browser/Reynard/Client/|(^|/)Reynard\.xcodeproj/|(^|/)Resources/'; then
+	fail "legacy client, source Xcode project, or product resource leaked into the substrate"
 fi
 
 if grep -R -n -E \

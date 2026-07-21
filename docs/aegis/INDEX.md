@@ -26,3 +26,5 @@
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-phase1a-implementation-plan.json | 2026-07-22-vulpra-runtime-shell evidence phase1a-implementation-plan |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task1-xcode-graph.json | 2026-07-22-vulpra-runtime-shell evidence task1-xcode-graph |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task2-product-contracts.json | 2026-07-22-vulpra-runtime-shell evidence task2-product-contracts |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task3-runtime-shell.json | 2026-07-22-vulpra-runtime-shell evidence task3-runtime-shell |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task3-owner-amendment.json | 2026-07-22-vulpra-runtime-shell evidence task3-owner-amendment |

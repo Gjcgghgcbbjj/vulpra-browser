@@ -41,3 +41,19 @@ No evidence has been recorded yet.
 - Source: Tests/RuntimeShell/test-product-contracts.py; App/Info.plist; App/Entitlements; App/RuntimeURLRouter.swift; Extensions/Helper/Entitlements; docs/provenance/import-manifest.tsv
 - Summary: Product-contract RED/GREEN passed: four bundle IDs, one vulpra URL scheme, one UIKit scene, launch dictionary, iPhone/iPad arm64 iOS 15 contract, exact minimal standard/private app entitlements, corrected Helper identity with get-task-allow removed, pure http/https and vulpra://open URL router. All plists, active identity, import boundary, graph, manifest, and diff checks pass; router is 43 lines.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task3-runtime-shell
+- Type: portable-verification
+- Source: Tests/RuntimeShell/test-runtime-shell.py; App/main.swift; App/SceneDelegate.swift; App/RuntimeShellViewController.swift; Extensions/GeckoView/Session/GeckoSession.swift
+- Summary: One-session runtime-shell RED/GREEN passed: JIT startup precedes GeckoRuntime.main, static scene manifest uses one SceneDelegate/window/root, validated incoming URLs reach one GeckoSession, engineView is edge-constrained, deterministic smoke URL loads, active/focused lifecycle updates, teardown closes the session, and missing engine view remains observable for one plain failure label. Owner lines: main 6, SceneDelegate 48, shell 95, router 43.
+- Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task3-owner-amendment
+- Type: architecture-amendment
+- Source: Patches/widget/uikit/nsAppShell.mm.patch; docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md; docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md
+- Summary: Direct substrate evidence shows UIApplicationMain hardcodes Gecko AppShellDelegate. Design and plan were amended to keep it as the sole application delegate and let Info.plist instantiate SceneDelegate, avoiding dead AppDelegate code. GeckoSession fatal handling was narrowed so the App failure owner can execute. Legacy-project regression guard now rejects only the retired source graph, not Vulpra.xcodeproj.
+- Verifier: root

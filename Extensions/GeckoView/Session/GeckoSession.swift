@@ -195,10 +195,9 @@ public class GeckoSession {
             ],
             isPrivateMode
         )
-        guard let engineView = window?.view() else {
-            fatalError("GeckoView window has no view")
+        if let engineView = window?.view() {
+            autofillHandler.attach(to: engineView)
         }
-        autofillHandler.attach(to: engineView)
     }
 
     public func isOpen() -> Bool { window != nil }

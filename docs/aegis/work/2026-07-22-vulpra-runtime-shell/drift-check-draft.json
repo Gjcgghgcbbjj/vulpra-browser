@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
   ],
-  "scopeStatus": "Task 2 added identity/input contracts only; no Gecko session, tabs, persistence, settings, or final browser UI.",
-  "compatStatus": "Exact Vulpra identities, iOS 15 families, one URL scheme, minimal private permissions, and no old identity/data fallback remain intact.",
-  "retirementStatus": "get-task-allow and uncertain web-browser/persona/storage permissions are absent; URL routing has one canonical pure owner.",
+  "scopeStatus": "Task 3 remains one-session smoke integration; no tab, data, settings, downloads, prompt UI, or final chrome owner was added.",
+  "compatStatus": "Static scene manifest composes with Gecko AppShellDelegate; iOS 15 identities and URL contract remain unchanged; missing view degrades visibly without renderer fallback.",
+  "retirementStatus": "The planned dead AppDelegate owner is retired before creation; GeckoSession fatal path is retired in favor of the canonical App failure owner; old source project remains rejected.",
   "newRiskSignals": [
-    "Private entitlement acceptance remains device/signing evidence for Phase 1B."
+    "Static scene-manifest behavior and the adjusted GeckoSession path still require Xcode/device evidence in Phase 1B."
   ],
   "decision": "continue"
 }

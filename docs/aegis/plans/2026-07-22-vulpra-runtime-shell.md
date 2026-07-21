@@ -167,22 +167,29 @@ to the smoke URL without a second parser/fallback.
 
 ## Task 3: Implement the minimal UIKit Gecko runtime shell
 
-**Files:** create `App/main.swift`, `App/AppDelegate.swift`,
-`App/SceneDelegate.swift`, `App/RuntimeShellViewController.swift`, and
-`Tests/RuntimeShell/test-runtime-shell.py`.
+**Files:** create `App/main.swift`, `App/SceneDelegate.swift`,
+`App/RuntimeShellViewController.swift`, and
+`Tests/RuntimeShell/test-runtime-shell.py`; modify
+`Extensions/GeckoView/Session/GeckoSession.swift` so a missing engine view is
+reported to the App owner instead of terminating inside the substrate, and
+modify `Tests/Bootstrap/test-gecko-substrate.sh` so its legacy-project guard
+rejects the retired source project rather than the intentional Vulpra graph.
 
 **Why:** prove one Gecko session can be owned without reviving browser UI,
 tabs, stores, or migration.
 
 **Impact/Compatibility:** smoke-only owner; explicitly retired by the future
-browser UI plan. No final chrome or state persistence.
+browser UI plan. No final chrome or state persistence. Gecko's existing
+`AppShellDelegate` remains the sole application delegate; the checked-in scene
+manifest creates `SceneDelegate`, so no dead second delegate is added.
 
-- [ ] **Write the failing runtime-shell test.** Require the four files and assert
-  `main.swift` calls JIT start before `GeckoRuntime.main`; AppDelegate contains
-  only launch/scene configuration; SceneDelegate owns one window/root and routes
+- [ ] **Write the failing runtime-shell test.** Require the three files and assert
+  `main.swift` calls JIT start before `GeckoRuntime.main`; SceneDelegate owns one window/root and routes
   incoming URLs; the view controller owns one `GeckoSession`, opens once,
   embeds `engineView` with constraints, loads `https://example.com/`, toggles
-  active/focused state, and closes on teardown. Reject tokens for tabs, stores,
+  active/focused state, and closes on teardown. Require `GeckoSession.open()`
+  to leave a missing engine view observable rather than call `fatalError`.
+  Reject tokens for tabs, stores,
   preferences, migration, address bar, bookmarks, downloads, or WebKit.
 - [ ] **Verify RED.** Run the test; expect missing `App/main.swift`.
 - [ ] **Implement minimal source.** `main.swift` imports Foundation, UIKit, and
@@ -192,7 +199,7 @@ browser UI plan. No final chrome or state persistence.
   renderer.
 - [ ] **Verify GREEN.** Run runtime-shell, product-contract, graph, plist, active
   identity, and diff checks. Measure each owner; none may exceed 250 lines.
-- [ ] **Commit.** `git add App Tests/RuntimeShell && git commit -m "feat: add minimal Gecko runtime shell"`.
+- [ ] **Commit.** `git add App Extensions/GeckoView/Session/GeckoSession.swift Tests/RuntimeShell && git commit -m "feat: add minimal Gecko runtime shell"`.
 
 ## Task 4: Add the exactly-once JIT readiness owner and bridge cleanup
 

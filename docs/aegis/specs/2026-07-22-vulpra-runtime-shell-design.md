@@ -1,7 +1,7 @@
 # Vulpra Runtime Shell Design
 
 Date: `2026-07-22`
-Status: `approved-for-planning`
+Status: `approved-for-implementation`
 ArchitectureReviewRequired: `yes`
 TDD Route: `light`
 
@@ -85,7 +85,6 @@ No old runtime identity fallback is allowed.
 Create new Vulpra-authored application owners under `App/`:
 
 - `main.swift`: starts JIT orchestration, then enters `GeckoRuntime.main`.
-- `AppDelegate.swift`: supplies scene configuration only.
 - `SceneDelegate.swift`: owns the window, root runtime shell, lifecycle
   activation, and incoming URL routing.
 - `RuntimeShellViewController.swift`: owns one smoke-test Gecko session and its
@@ -97,6 +96,11 @@ Create new Vulpra-authored application owners under `App/`:
 
 These owners must not import or recreate old application managers, settings,
 diagnostics, migration, tab, persistence, or browser-interface classes.
+
+The Gecko substrate calls `UIApplicationMain` with its canonical
+`AppShellDelegate`, which owns engine-level application lifecycle delivery.
+`App/Info.plist` therefore owns the static scene configuration that instantiates
+`SceneDelegate`; Vulpra must not add an unused second application delegate.
 
 ### R5. Runtime shell behavior
 
@@ -296,7 +300,8 @@ archives enter any synchronized source group.
 CommandLine
   -> RuntimeJITCoordinator.start
   -> GeckoRuntime.main
-     -> UIApplication / SceneDelegate
+     -> UIApplication / Gecko AppShellDelegate
+        -> Info.plist scene manifest / SceneDelegate
         -> RuntimeURLRouter
         -> RuntimeShellViewController
            -> GeckoSession.open
@@ -483,7 +488,7 @@ start merely because Phase 1A portable checks pass.
   zero new generator dependency, explicit evidence boundaries.
 - Historical assumptions deleted: old pbxproj, deployment target 16, hard-coded
   team, old settings/UI/diagnostics, generated archive inside source roots.
-- Smallest sufficient path: native four-target graph, xcconfigs, six small app
-  owners, one JIT coordinator, and deterministic producer scripts.
+- Smallest sufficient path: native four-target graph, xcconfigs, five small app
+  owners, and deterministic producer scripts.
 - Escalation signal: dependency on excluded client code or missing substrate
   contract that cannot be repaired at its real producer/owner.

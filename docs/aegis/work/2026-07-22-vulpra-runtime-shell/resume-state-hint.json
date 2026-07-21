@@ -2,10 +2,11 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume after the Task 2 commit and begin Task 3 with RED; keep RuntimeShellViewController smoke-only and under 250 lines.",
+  "resumeInstruction": "Resume after Task 3 commit; implement Task 4 only, preserve the 4.5-second exactly-once contract, and delete TSUtils import rather than adding a shim.",
   "knownPartialWork": [
     "Task 1 fresh Xcode graph and configuration owners.",
-    "Task 2 product metadata, entitlement profiles, Helper entitlement retirement, and pure URL router pass portable verification."
+    "Task 2 product metadata, entitlement profiles, and URL router.",
+    "Task 3 minimal one-session UIKit Gecko runtime shell, canonical missing-engine handling, and AppDelegate owner correction."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -13,6 +14,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "plistlib and source-contract checks do not prove entitlement installation or UIKit/Gecko runtime behavior."
+    "Portable source checks do not prove UIApplication scene creation, Gecko engine view availability, or Swift/Gecko compilation on current Xcode."
   ]
 }

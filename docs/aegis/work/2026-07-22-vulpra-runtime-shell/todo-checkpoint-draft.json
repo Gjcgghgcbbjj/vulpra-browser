@@ -1,19 +1,20 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Execute Task 3: implement the minimal UIKit Gecko runtime shell.",
+  "currentTodo": "Execute Task 4: add the exactly-once JIT readiness owner and bridge cleanup.",
   "completedTodos": [
     "Task 1 fresh Xcode graph and configuration owners.",
-    "Task 2 product metadata, entitlement profiles, Helper entitlement retirement, and pure URL router pass portable verification."
+    "Task 2 product metadata, entitlement profiles, and URL router.",
+    "Task 3 minimal one-session UIKit Gecko runtime shell, canonical missing-engine handling, and AppDelegate owner correction."
   ],
-  "activeSlice": "Task 3 one-session UIKit Gecko smoke owner",
+  "activeSlice": "Task 4 exactly-once child JIT readiness orchestration",
   "evidenceRefs": [
-    "Tests/RuntimeShell/test-product-contracts.py",
-    "App/Info.plist",
-    "App/RuntimeURLRouter.swift",
-    "docs/provenance/import-manifest.tsv"
+    "Tests/RuntimeShell/test-runtime-shell.py",
+    "App/RuntimeShellViewController.swift",
+    "Extensions/GeckoView/Session/GeckoSession.swift",
+    "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
   ],
-  "blockedOn": "Swift/UIKit/Gecko compilation remains Phase 1B needs-verification; source-contract work can continue.",
-  "nextStep": "Commit Task 2, then write the failing runtime-shell test before adding main, app delegate, scene delegate, and one-session view controller.",
+  "blockedOn": "RuntimeJITCoordinator and bridging header are not implemented yet; Mac compilation remains deferred.",
+  "nextStep": "Commit Task 3, then write the failing JIT orchestration/header-closure test before creating RuntimeJITCoordinator and the bridging header.",
   "updatedAt": "2026-07-22"
 }

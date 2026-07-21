@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task3-runtime-shell",
+  "type": "portable-verification",
+  "source": "Tests/RuntimeShell/test-runtime-shell.py; App/main.swift; App/SceneDelegate.swift; App/RuntimeShellViewController.swift; Extensions/GeckoView/Session/GeckoSession.swift",
+  "summary": "One-session runtime-shell RED/GREEN passed: JIT startup precedes GeckoRuntime.main, static scene manifest uses one SceneDelegate/window/root, validated incoming URLs reach one GeckoSession, engineView is edge-constrained, deterministic smoke URL loads, active/focused lifecycle updates, teardown closes the session, and missing engine view remains observable for one plain failure label. Owner lines: main 6, SceneDelegate 48, shell 95, router 43.",
+  "verifier": "root"
+}

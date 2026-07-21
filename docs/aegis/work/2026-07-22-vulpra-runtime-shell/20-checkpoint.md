@@ -97,3 +97,28 @@
 - New risk signals:
 - Private entitlement acceptance remains device/signing evidence for Phase 1B.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Execute Task 4: add the exactly-once JIT readiness owner and bridge cleanup.
+- Active slice: Task 4 exactly-once child JIT readiness orchestration
+- Completed todos:
+- Task 1 fresh Xcode graph and configuration owners.
+- Task 2 product metadata, entitlement profiles, and URL router.
+- Task 3 minimal one-session UIKit Gecko runtime shell, canonical missing-engine handling, and AppDelegate owner correction.
+- Evidence refs:
+- Tests/RuntimeShell/test-runtime-shell.py
+- App/RuntimeShellViewController.swift
+- Extensions/GeckoView/Session/GeckoSession.swift
+- docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md
+- Blocked on: RuntimeJITCoordinator and bridging header are not implemented yet; Mac compilation remains deferred.
+- Next step: Commit Task 3, then write the failing JIT orchestration/header-closure test before creating RuntimeJITCoordinator and the bridging header.
+
+## DriftCheckDraft
+
+- Scope status: Task 3 remains one-session smoke integration; no tab, data, settings, downloads, prompt UI, or final chrome owner was added.
+- Compatibility status: Static scene manifest composes with Gecko AppShellDelegate; iOS 15 identities and URL contract remain unchanged; missing view degrades visibly without renderer fallback.
+- Retirement status: The planned dead AppDelegate owner is retired before creation; GeckoSession fatal path is retired in favor of the canonical App failure owner; old source project remains rejected.
+- New risk signals:
+- Static scene-manifest behavior and the adjusted GeckoSession path still require Xcode/device evidence in Phase 1B.
+- Advisory decision: continue
