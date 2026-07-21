@@ -71,3 +71,14 @@ Verification: all portable suites, syntax/plist/project checks, no dependencies/
 ## Mac/device evidence boundary
 
 GitHub execution requires a valid token and remote. Physical iOS 15.8/16.7 installation, JIT, performance, animation, and package verification cannot be claimed from Linux. Workflows and exact commands will be complete; external execution remains blocked until credentials and runner/device access exist.
+
+## Completion status
+
+- Tasks 1-12: completed in source and portable contracts.
+- Runtime workflow `29856427149`: successful.
+- IPA/TIPA workflow `29877342036`: successful.
+- Downloaded package checksums and ZIP integrity: verified.
+- Complexity budget: satisfied; 35 App Swift files, largest owner 270 lines,
+  zero new package dependencies.
+- Remaining boundary: physical iOS 15.8/16.7 behavior, JIT, and performance
+  evidence only.

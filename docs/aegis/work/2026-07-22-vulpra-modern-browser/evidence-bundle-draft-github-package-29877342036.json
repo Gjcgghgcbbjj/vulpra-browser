@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "github-package-29877342036",
+  "type": "github-workflow",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/29877342036",
+  "summary": "Xcode archive, IPA/TIPA creation, package upload, and log upload succeeded.",
+  "verifier": "GitHub Actions conclusion success and artifact 8513539079."
+}

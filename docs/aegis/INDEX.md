@@ -45,3 +45,17 @@
 | 2026-07-22 | work | docs/aegis/work/2026-07-22-vulpra-modern-browser/20-checkpoint.md | Vulpra Modern Browser checkpoint |
 | 2026-07-22 | work | docs/aegis/work/2026-07-22-vulpra-modern-browser/90-evidence.md | Vulpra Modern Browser evidence |
 | 2026-07-22 | work | docs/aegis/work/2026-07-22-vulpra-modern-browser/99-reflection.md | Vulpra Modern Browser reflection |
+| 2026-07-22 | adr | docs/aegis/adr/ADR-0003-modern-browser-ownership-and-github-distribution.md | ADR-0003 - Modern Browser Ownership and GitHub Distribution Boundary |
+| 2026-07-22 | baseline | docs/aegis/baseline/2026-07-22-modern-browser-package-baseline.md | Vulpra Modern Browser Package Baseline |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/evidence-bundle-draft-github-runtime-29856427149.json | 2026-07-22-vulpra-modern-browser evidence github-runtime-29856427149 |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/evidence-bundle-draft-github-package-29877342036.json | 2026-07-22-vulpra-modern-browser evidence github-package-29877342036 |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/evidence-bundle-draft-desktop-package-integrity.json | 2026-07-22-vulpra-modern-browser evidence desktop-package-integrity |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/task-intent-draft.json | Vulpra Modern Browser task intent draft |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/baseline-read-set-hint.json | Vulpra Modern Browser baseline read-set hint |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/baseline-usage-draft.json | Vulpra Modern Browser baseline usage draft |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/impact-statement-draft.json | Vulpra Modern Browser impact statement draft |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/todo-checkpoint-draft.json | Vulpra Modern Browser todo checkpoint draft |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/resume-state-hint.json | Vulpra Modern Browser resume state hint |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/drift-check-draft.json | Vulpra Modern Browser drift check draft |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/gate-input-pack.json | 2026-07-22-vulpra-modern-browser gate input pack |
+| 2026-07-22 | work | docs/aegis/work/2026-07-22-vulpra-modern-browser/proof-bundle.md | 2026-07-22-vulpra-modern-browser proof bundle |

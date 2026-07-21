@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/aegis/specs/2026-07-22-vulpra-modern-browser-product-design.md",
+    "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md",
+    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md",
+    "docs/aegis/policies/efficiency-complexity-governance.md"
+  ],
+  "whyRelevant": "These documents define the approved client scope, runtime owner boundary, iOS 15 TrollStore-first compatibility, retirement of the smoke shell, and complexity limits.",
+  "missingAuthority": [
+    "No physical iOS device acceptance or public distribution authority is available."
+  ]
+}

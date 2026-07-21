@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-22-vulpra-modern-browser",
+  "taskIntentRef": "docs/aegis/work/2026-07-22-vulpra-modern-browser/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/aegis/baseline/2026-07-22-modern-browser-package-baseline.md"
+  ],
+  "scopeStatus": "Approved Phases 2A-2D are complete; Phase 3 remains excluded.",
+  "compatStatus": "iOS 15.0 arm64 iPhone/iPad and TrollStore-first boundaries are retained.",
+  "retirementStatus": "Runtime shell, duplicate/fallback owners, and in-package Gecko rebuild remain retired.",
+  "newRiskSignals": [
+    "Physical-device launch, JIT, feature behavior, and performance remain unverified."
+  ],
+  "decision": "needs-verification"
+}
