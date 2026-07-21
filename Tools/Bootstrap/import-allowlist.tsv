@@ -10,3 +10,17 @@ browser/Helper/ExtensionBridge.mm	Extensions/Helper/ExtensionBridge.mm
 browser/Helper/Helper.swift	Extensions/Helper/Helper.swift
 browser/Helper/Info.plist	Extensions/Helper/Info.plist
 browser/Helper/main.m	Extensions/Helper/main.m
+browser/Reynard/JIT/JITEnabler.h	Modules/VulpraRuntime/JIT/JITEnabler.h
+browser/Reynard/JIT/JITEnabler.m	Modules/VulpraRuntime/JIT/JITEnabler.m
+browser/Reynard/JIT/JITErrors.h	Modules/VulpraRuntime/JIT/JITErrors.h
+browser/Reynard/JIT/JITErrors.m	Modules/VulpraRuntime/JIT/JITErrors.m
+browser/Reynard/JIT/RPPairing/DDIManager.swift	Modules/VulpraRuntime/JIT/RPPairing/DDIManager.swift
+browser/Reynard/JIT/RPPairing/IdeviceFFI.h	Modules/VulpraRuntime/JIT/RPPairing/IdeviceFFI.h
+browser/Reynard/JIT/RPPairing/JITSupport.h	Modules/VulpraRuntime/JIT/RPPairing/JITSupport.h
+browser/Reynard/JIT/RPPairing/JITSupport.m	Modules/VulpraRuntime/JIT/RPPairing/JITSupport.m
+browser/Reynard/JIT/RPPairing/JITSupport.m	Modules/VulpraRuntime/JIT/RPPairing/JITEndpointMonitor.m
+browser/Reynard/JIT/RPPairing/JITUtils.h	Modules/VulpraRuntime/JIT/RPPairing/JITUtils.h
+browser/Reynard/JIT/RPPairing/JITUtils.m	Modules/VulpraRuntime/JIT/RPPairing/JITUtils.m
+browser/Reynard/JIT/Unsandboxed	Modules/VulpraRuntime/JIT/Unsandboxed
+browser/Reynard/Shared/Utils.h	Modules/VulpraRuntime/Native/Utils.h
+browser/Reynard/Shared/Utils.m	Modules/VulpraRuntime/Native/Utils.m
