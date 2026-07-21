@@ -2,10 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume after Task 4 commit; implement only public NSExtensionContext.open with one completion gate and no private host-opening path.",
+  "resumeInstruction": "Resume after Task 5 commit and start Task 6 with RED fixtures; do not build artifacts on Linux or write generated output under Modules.",
   "knownPartialWork": [
-    "Tasks 1-3 fresh graph, product contracts, and minimal one-session runtime shell.",
-    "Task 4 exactly-once JIT readiness coordinator, minimal bridge, public ExtensionBridge header, and TSUtils retirement."
+    "Tasks 1-4 graph, product/runtime, and exactly-once JIT contracts.",
+    "Task 5 new one-path OpenIn share extension passes portable verification."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -13,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Source checks cannot prove Objective-C Swift importer signatures, attachment timing, generated Gecko headers, or device JIT success."
+    "Portable extension source checks do not prove NSExtensionContext.open succeeds on iOS 15.8."
   ]
 }

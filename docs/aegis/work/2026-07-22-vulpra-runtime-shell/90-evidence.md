@@ -65,3 +65,11 @@ No evidence has been recorded yet.
 - Source: Tests/RuntimeShell/test-jit-orchestration.py; App/RuntimeJITCoordinator.swift; App/Bridging/Vulpra-Bridging-Header.h; Extensions/GeckoView/View/GeckoView.h
 - Summary: Exactly-once JIT orchestration RED/GREEN passed: one attach queue, one state queue, positive PID validation, normalized tab-only attach, 4.5-second deadline, pending/completed duplicate suppression, atomic pending removal before one report, false non-tab/deadline/failure/teardown reporting, late completion suppression, hasTXMSupport false, observer removal, detach, 142-line owner, minimal bridge closure, and direct TSUtils import retirement.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: task5-open-in
+- Type: portable-verification
+- Source: Tests/RuntimeShell/test-open-in.py; Extensions/OpenIn/Info.plist; Extensions/OpenIn/OpenInViewController.swift
+- Summary: OpenIn RED/GREEN passed: exactly one web-URL activation rule, Vulpra principal/error identities, UTType URL extraction, URLComponents-encoded vulpra://open query, one NSExtensionContext.open call, one MainActor completion gate, one complete and one cancel path, no private workspace/responder API, and a 104-line owner.
+- Verifier: root

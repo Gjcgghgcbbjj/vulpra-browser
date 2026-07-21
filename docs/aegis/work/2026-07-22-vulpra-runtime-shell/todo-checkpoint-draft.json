@@ -1,19 +1,18 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Execute Task 5: add the new OpenIn extension owner.",
+  "currentTodo": "Execute Task 6: govern Gecko and idevice artifact production.",
   "completedTodos": [
-    "Tasks 1-3 fresh graph, product contracts, and minimal one-session runtime shell.",
-    "Task 4 exactly-once JIT readiness coordinator, minimal bridge, public ExtensionBridge header, and TSUtils retirement."
+    "Tasks 1-4 graph, product/runtime, and exactly-once JIT contracts.",
+    "Task 5 new one-path OpenIn share extension passes portable verification."
   ],
-  "activeSlice": "Task 5 one-path OpenIn URL delivery extension",
+  "activeSlice": "Task 6 deterministic macOS runtime substrate producers and artifact v3",
   "evidenceRefs": [
-    "Tests/RuntimeShell/test-jit-orchestration.py",
-    "App/RuntimeJITCoordinator.swift",
-    "App/Bridging/Vulpra-Bridging-Header.h",
-    "docs/provenance/import-manifest.tsv"
+    "Tests/RuntimeShell/test-open-in.py",
+    "Extensions/OpenIn/Info.plist",
+    "Extensions/OpenIn/OpenInViewController.swift"
   ],
-  "blockedOn": "JIT attachment and C/Swift bridge compilation remain Phase 1B needs-verification; no portable blocker.",
-  "nextStep": "Commit Task 4, then write the failing OpenIn contract test before creating its plist and one-path NSExtensionContext.open implementation.",
+  "blockedOn": "Physical-device host opening remains Phase 1B needs-verification; producer contract work can continue on Linux.",
+  "nextStep": "Commit Task 5, then write failing runtime-artifact tests for iOS 15, .build idevice output, format v3 Xcode/SDK fingerprints, and needs-macos behavior.",
   "updatedAt": "2026-07-22"
 }

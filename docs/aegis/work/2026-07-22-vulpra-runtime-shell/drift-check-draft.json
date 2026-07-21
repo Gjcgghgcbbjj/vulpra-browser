@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
   ],
-  "scopeStatus": "Task 4 added only child readiness orchestration and bridge cleanup; no JIT settings, failure UI, retry policy, or diagnostics owner.",
-  "compatStatus": "Every accepted positive PID receives at most one explicit status; tab-only attachment and hasTXMSupport false preserve the approved iOS 15/TrollStore boundary.",
-  "retirementStatus": "TSUtils import is deleted with no shim; old JITController/UI/prefs paths remain absent; one finish function owns all reports.",
+  "scopeStatus": "Task 5 added only URL handoff; no browser UI, persistence, alternate opener, or old extension source.",
+  "compatStatus": "One shared http/https URL maps to the existing vulpra://open router contract; public API remains the sole path.",
+  "retirementStatus": "Old OpenIn implementation and all private/responder fallbacks remain absent; device failure is still the only amendment trigger.",
   "newRiskSignals": [
-    "Swift/C header and timing behavior require current Xcode plus physical-device evidence."
+    "Host-opening success is device-only evidence and remains explicitly open."
   ],
   "decision": "continue"
 }

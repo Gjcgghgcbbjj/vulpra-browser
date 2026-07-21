@@ -146,3 +146,26 @@
 - New risk signals:
 - Swift/C header and timing behavior require current Xcode plus physical-device evidence.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: Execute Task 6: govern Gecko and idevice artifact production.
+- Active slice: Task 6 deterministic macOS runtime substrate producers and artifact v3
+- Completed todos:
+- Tasks 1-4 graph, product/runtime, and exactly-once JIT contracts.
+- Task 5 new one-path OpenIn share extension passes portable verification.
+- Evidence refs:
+- Tests/RuntimeShell/test-open-in.py
+- Extensions/OpenIn/Info.plist
+- Extensions/OpenIn/OpenInViewController.swift
+- Blocked on: Physical-device host opening remains Phase 1B needs-verification; producer contract work can continue on Linux.
+- Next step: Commit Task 5, then write failing runtime-artifact tests for iOS 15, .build idevice output, format v3 Xcode/SDK fingerprints, and needs-macos behavior.
+
+## DriftCheckDraft
+
+- Scope status: Task 5 added only URL handoff; no browser UI, persistence, alternate opener, or old extension source.
+- Compatibility status: One shared http/https URL maps to the existing vulpra://open router contract; public API remains the sole path.
+- Retirement status: Old OpenIn implementation and all private/responder fallbacks remain absent; device failure is still the only amendment trigger.
+- New risk signals:
+- Host-opening success is device-only evidence and remains explicitly open.
+- Advisory decision: continue
