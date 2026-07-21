@@ -1,0 +1,7 @@
+.DS_Store
+.build/
+DerivedData/
+dist/
+Vendor/firefox/obj-*/
+Vendor/idevice/target/
+Modules/VulpraRuntime/JIT/RPPairing/libidevice_ffi.a
