@@ -1,0 +1,4 @@
+engine/release.txt	Vendor/firefox-release.txt
+patches	Patches
+tools/development	Tools/Gecko
+browser/Scripts/AddGecko.sh	Tools/Build/AddGecko.sh
