@@ -1,17 +1,17 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
-  "currentTodo": "Obtain user approval of the committed Phase 1A written design, then transition to implementation planning.",
+  "currentTodo": "Execute Task 1: create and verify the fresh Xcode graph and configuration owners.",
   "completedTodos": [
-    "Explored the verified baseline, source Xcode graph, Gecko/JIT/Helper contracts, artifact state, and Linux host capability.",
-    "User selected no-current-Mac Phase 1A/Phase 1B evidence split and approved the fresh native Xcode project approach.",
-    "Written design specification completed and self-reviewed."
+    "Approved runtime-shell design committed and user-confirmed.",
+    "Ten-task Phase 1A implementation plan written and self-reviewed."
   ],
-  "activeSlice": "Written design review gate",
+  "activeSlice": "Task 1 Xcode graph RED/GREEN implementation",
   "evidenceRefs": [
-    "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
+    "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md",
+    "docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md"
   ],
-  "blockedOn": "User written-spec review is required before implementation planning.",
-  "nextStep": "Commit the design/work records and ask the user to approve or request changes.",
+  "blockedOn": "Mac/Xcode compilation evidence remains deferred to Phase 1B and does not block portable Task 1.",
+  "nextStep": "Commit the approved plan, write the failing Xcode graph test, verify RED, then implement the minimal graph under the 800-line budget.",
   "updatedAt": "2026-07-22"
 }

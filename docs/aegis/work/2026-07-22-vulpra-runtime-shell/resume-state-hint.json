@@ -2,11 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json",
-  "resumeInstruction": "Resume at the written-spec review gate; do not write the implementation plan or runtime code until the user approves the committed design.",
+  "resumeInstruction": "Resume in the feature/vulpra-runtime-shell worktree, verify clean plan commit, then follow Task 1 exactly without importing old project files.",
   "knownPartialWork": [
-    "Explored the verified baseline, source Xcode graph, Gecko/JIT/Helper contracts, artifact state, and Linux host capability.",
-    "User selected no-current-Mac Phase 1A/Phase 1B evidence split and approved the fresh native Xcode project approach.",
-    "Written design specification completed and self-reviewed."
+    "Approved runtime-shell design committed and user-confirmed.",
+    "Ten-task Phase 1A implementation plan written and self-reviewed."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/10-intent.md",
@@ -14,6 +13,6 @@
     "docs/aegis/work/2026-07-22-vulpra-runtime-shell/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Conceptual approach approval is not a substitute for the required review of the persisted design details."
+    "A portable graph test does not prove Xcode accepts synchronized-group semantics."
   ]
 }

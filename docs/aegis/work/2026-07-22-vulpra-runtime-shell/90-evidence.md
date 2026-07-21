@@ -17,3 +17,11 @@ No evidence has been recorded yet.
 - Source: docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md
 - Summary: Self-review passed placeholder, internal consistency, scope, ambiguity, owner, falsifier, compatibility, retirement, ADR-signal, line-pressure, and Aegis workspace checks; written user review remains pending.
 - Verifier: root
+
+## EvidenceBundleDraft
+
+- Artifact key: phase1a-implementation-plan
+- Type: implementation-plan
+- Source: docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md
+- Summary: Approved ten-task inline Phase 1A plan defines fresh Xcode graph, runtime owners, JIT contract, artifact/package producers, portable gate, baseline closeout, and explicit Phase 1B deferral.
+- Verifier: root

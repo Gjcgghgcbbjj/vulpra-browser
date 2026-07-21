@@ -58,3 +58,25 @@
 - Final address bar, tab UI, persistence, settings, downloads, add-ons UI, release signing, performance acceptance, or public distribution.
 
 These records are Method Pack drafts / hints, not authoritative runtime decisions.
+
+## BaselineUsageDraft
+
+- Required baseline refs:
+- docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md
+- docs/aegis/baseline/2026-07-21-initial-baseline.md
+- docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md
+- docs/provenance/substrate-boundary.md
+- docs/aegis/policies/efficiency-complexity-governance.md
+- Delivered context refs:
+- none
+- Acknowledged before plan:
+- docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md
+- docs/aegis/baseline/2026-07-21-initial-baseline.md
+- docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md
+- docs/provenance/substrate-boundary.md
+- docs/aegis/policies/efficiency-complexity-governance.md
+- Cited in plan:
+- docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md
+- Missing refs:
+- none
+- Advisory decision: continue

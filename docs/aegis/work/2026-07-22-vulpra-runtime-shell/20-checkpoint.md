@@ -27,3 +27,25 @@
 - New risk signals:
 - The compact synchronized-group pbxproj design depends on modern Xcode semantic validation that cannot run on Linux.
 - Advisory decision: pause-for-user
+
+## Checkpoint Update
+
+- Current todo: Execute Task 1: create and verify the fresh Xcode graph and configuration owners.
+- Active slice: Task 1 Xcode graph RED/GREEN implementation
+- Completed todos:
+- Approved runtime-shell design committed and user-confirmed.
+- Ten-task Phase 1A implementation plan written and self-reviewed.
+- Evidence refs:
+- docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md
+- docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md
+- Blocked on: Mac/Xcode compilation evidence remains deferred to Phase 1B and does not block portable Task 1.
+- Next step: Commit the approved plan, write the failing Xcode graph test, verify RED, then implement the minimal graph under the 800-line budget.
+
+## DriftCheckDraft
+
+- Scope status: Planning remains limited to Phase 1A runtime shell and producer contracts; tabs, data, final UI, and release claims remain excluded.
+- Compatibility status: iOS 15.0, arm64, TrollStore-first, no old identity/data/Xcode fallback, and Mac evidence deferral remain intact.
+- Retirement status: Old client/project/JIT UI/release owners remain absent; RuntimeShellViewController remains an explicitly temporary smoke owner.
+- New risk signals:
+- Hand-authored objectVersion 77 synchronized groups require later validation by current Xcode.
+- Advisory decision: continue

@@ -1,7 +1,7 @@
 # Vulpra Runtime Shell Design
 
 Date: `2026-07-22`
-Status: `written-review-pending`
+Status: `approved-for-planning`
 ArchitectureReviewRequired: `yes`
 TDD Route: `light`
 

@@ -3,14 +3,13 @@
   "taskId": "2026-07-22-vulpra-runtime-shell",
   "taskIntentRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/task-intent-draft.json",
   "baselineRefs": [
-    "docs/aegis/baseline/2026-07-21-initial-baseline.md",
-    "docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md"
+    "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md"
   ],
-  "scopeStatus": "Design remains limited to runtime shell Phase 1A and Mac producer contracts; tabs/data/final browser UI/features remain excluded.",
-  "compatStatus": "iOS 15.0, TrollStore-first, exact Vulpra identities, no old client/data/Xcode fallback, and explicit Mac needs-verification boundary are preserved.",
-  "retirementStatus": "Old project/client/JIT controller/release scripts remain retired by non-copy; the runtime smoke shell has a named future retirement owner.",
+  "scopeStatus": "Planning remains limited to Phase 1A runtime shell and producer contracts; tabs, data, final UI, and release claims remain excluded.",
+  "compatStatus": "iOS 15.0, arm64, TrollStore-first, no old identity/data/Xcode fallback, and Mac evidence deferral remain intact.",
+  "retirementStatus": "Old client/project/JIT UI/release owners remain absent; RuntimeShellViewController remains an explicitly temporary smoke owner.",
   "newRiskSignals": [
-    "The compact synchronized-group pbxproj design depends on modern Xcode semantic validation that cannot run on Linux."
+    "Hand-authored objectVersion 77 synchronized groups require later validation by current Xcode."
   ],
-  "decision": "pause-for-user"
+  "decision": "continue"
 }

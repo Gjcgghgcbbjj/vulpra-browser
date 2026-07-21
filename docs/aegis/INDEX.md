@@ -22,3 +22,5 @@
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-phase1a-design-spec.json | 2026-07-22-vulpra-runtime-shell evidence phase1a-design-spec |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-phase1a-design-self-review.json | 2026-07-22-vulpra-runtime-shell evidence phase1a-design-self-review |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/resume-state-hint.json | 2026-07-22-vulpra-runtime-shell resume state hint |
+| 2026-07-22 | plan | docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md | Vulpra Runtime Shell Phase 1A Implementation Plan |
+| 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-phase1a-implementation-plan.json | 2026-07-22-vulpra-runtime-shell evidence phase1a-implementation-plan |
