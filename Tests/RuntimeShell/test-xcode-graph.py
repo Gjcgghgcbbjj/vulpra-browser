@@ -159,12 +159,22 @@ def main() -> None:
     require("$(VULPRA_GECKO_DIST)/bin/XUL" in app_config, "app does not link Gecko XUL")
     require("$(VULPRA_IDEVICE_ARCHIVE)" in app_config, "app does not link idevice archive")
     require(
+        "HEADER_SEARCH_PATHS = $(SRCROOT)/Modules/VulpraRuntime/JIT" in app_config
+        and "$(VULPRA_GECKO_DIST)/include" not in app_config,
+        "app header search must prefer the embedded GeckoView module",
+    )
+    require(
         "SWIFT_OBJC_BRIDGING_HEADER" not in config_text["GeckoView"],
         "framework target must expose Objective-C through its module, not a bridging header",
     )
     require(
         "SWIFT_OBJC_BRIDGING_HEADER" not in config_text["Helper"],
         "helper must consume the GeckoView module instead of the app bridging header",
+    )
+    require(
+        "HEADER_SEARCH_PATHS =" in config_text["Helper"]
+        and "$(VULPRA_GECKO_DIST)/include" not in config_text["Helper"],
+        "helper header search must not shadow embedded GeckoView headers",
     )
     require(
         "SWIFT_OBJC_INTERFACE_HEADER_NAME = VulpraGeckoView-Swift.h" in config_text["GeckoView"],

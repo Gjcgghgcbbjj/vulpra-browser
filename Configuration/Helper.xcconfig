@@ -5,5 +5,6 @@ INFOPLIST_FILE = Extensions/Helper/Info.plist
 CODE_SIGN_ENTITLEMENTS = Extensions/Helper/Entitlements/Vulpra-Helper.entitlements
 APPLICATION_EXTENSION_API_ONLY = YES
 SKIP_INSTALL = YES
+HEADER_SEARCH_PATHS =
 LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/../../Frameworks @loader_path/../../Frameworks @executable_path/../../Frameworks/GeckoView.framework @loader_path/../../Frameworks/GeckoView.framework
 OTHER_LDFLAGS = $(inherited) $(VULPRA_GECKO_DIST)/bin/XUL -lmozglue -lnss3 -lfreebl3 -lsoftokn3 -llgpllibs -lmozavcodec -lmozavutil -lgkcodecs -lmozinference -Wl,-u,_NSExtensionMain
