@@ -48,6 +48,10 @@ The exact regular-file mapping is owned by
 license, attribution, and falsifier boundary is owned by
 `docs/provenance/substrate-boundary.md`.
 
+The durable reason for choosing a fresh repository, audited dependency
+direction, new Vulpra owners, and no old-client/data compatibility is recorded
+in `docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md`.
+
 ## Architecture / Runtime Boundary Baseline
 
 Verified imported responsibility groups are:

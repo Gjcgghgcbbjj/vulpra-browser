@@ -7,3 +7,4 @@
 | 2026-07-21 | plan | docs/aegis/plans/2026-07-21-vulpra-repository-bootstrap.md | Vulpra Repository Bootstrap and Substrate Extraction Implementation Plan |
 | 2026-07-21 | policy | docs/aegis/policies/efficiency-complexity-governance.md | Vulpra Efficiency and Complexity Governance |
 | 2026-07-21 | provenance | docs/provenance/substrate-boundary.md | Vulpra Phase 0 Substrate Boundary |
+| 2026-07-21 | adr | docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md | ADR-0001 - Phase 0 Substrate Ownership Boundary |
