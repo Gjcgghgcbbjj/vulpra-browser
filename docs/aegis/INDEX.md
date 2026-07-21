@@ -40,3 +40,4 @@
 | 2026-07-22 | work | docs/aegis/work/2026-07-22-vulpra-runtime-shell/proof-bundle.md | 2026-07-22-vulpra-runtime-shell proof bundle |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-runtime-shell/evidence-bundle-draft-task10-final-portable-closeout.json | 2026-07-22-vulpra-runtime-shell evidence task10-final-portable-closeout |
 | 2026-07-22 | spec | docs/aegis/specs/2026-07-22-vulpra-modern-browser-product-design.md | Vulpra Modern Browser Product Design |
+| 2026-07-22 | plan | docs/aegis/plans/2026-07-22-vulpra-modern-browser-phases-2a-2d.md | Vulpra Modern Browser Phases 2A-2D Implementation Plan |
