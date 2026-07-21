@@ -3,7 +3,7 @@ import UIKit
 final class SettingsViewController: UITableViewController {
     private enum Row: CaseIterable {
         case searchEngine, remoteSuggestions, darkAppearance, desktopMode,
-             pageZoom, trackingProtection, httpsOnly, historyRetention, addons, permissions
+             pageZoom, trackingProtection, httpsOnly, historyRetention, privacyData, addons, permissions
     }
 
     init() { super.init(style: .insetGrouped) }
@@ -34,6 +34,7 @@ final class SettingsViewController: UITableViewController {
         case .trackingProtection: content.text = "Tracking Protection"; content.secondaryText = settings.trackingProtection.rawValue.capitalized
         case .httpsOnly: configureSwitch(cell, title: "HTTPS-Only", isOn: settings.httpsOnly, action: #selector(toggleHTTPS(_:)), content: &content)
         case .historyRetention: content.text = "History Retention"; content.secondaryText = "\(settings.historyRetentionDays) days"
+        case .privacyData: content.text = "Clear Browsing Data"; content.image = UIImage(systemName: "trash")
         case .addons: content.text = "Extensions"; content.image = UIImage(systemName: "puzzlepiece.extension")
         case .permissions: content.text = "Site Permissions"; content.image = UIImage(systemName: "hand.raised")
         }
@@ -49,6 +50,7 @@ final class SettingsViewController: UITableViewController {
         case .pageZoom: choose(title: "Page Zoom", values: [75, 90, 100, 110, 125, 150], label: { "\($0)%" }) { zoom in BrowserSettingsStore.shared.update { $0.pageZoom = zoom } }
         case .trackingProtection: choose(title: "Tracking Protection", values: TrackingProtectionLevel.allCases, label: { $0.rawValue.capitalized }) { level in BrowserSettingsStore.shared.update { $0.trackingProtection = level } }
         case .historyRetention: choose(title: "History Retention", values: [7, 30, 90, 365], label: { "\($0) days" }) { days in BrowserSettingsStore.shared.update { $0.historyRetentionDays = days } }
+        case .privacyData: navigationController?.pushViewController(PrivacyDataViewController(), animated: true)
         case .addons: navigationController?.pushViewController(AddonManagementViewController(), animated: true)
         case .permissions: navigationController?.pushViewController(SitePermissionsViewController(), animated: true)
         default: break

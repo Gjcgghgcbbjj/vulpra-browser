@@ -12,6 +12,10 @@ protocol StartPageViewControllerDelegate: AnyObject {
 final class StartPageViewController: UIViewController, UITextFieldDelegate {
     weak var delegate: StartPageViewControllerDelegate?
     private let searchField = UITextField()
+    private let quickStack = UIStackView()
+    private var quickURLs: [URL] = []
+
+    override func viewWillAppear(_ animated: Bool) { super.viewWillAppear(animated); reloadQuickSites() }
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -44,7 +48,9 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         actionStack.axis = .horizontal
         actionStack.distribution = .fillEqually
         actionStack.spacing = 8
-        let stack = UIStackView(arrangedSubviews: [title, searchField, actionStack])
+        quickStack.axis = .vertical
+        quickStack.spacing = 6
+        let stack = UIStackView(arrangedSubviews: [title, searchField, quickStack, actionStack])
         stack.axis = .vertical
         stack.spacing = 24
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -71,6 +77,45 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         delegate?.startPage(self, open: textField.text ?? "")
         textField.resignFirstResponder()
         return true
+    }
+
+
+    private func reloadQuickSites() {
+        quickStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        let settings = BrowserSettingsStore.shared.value
+        var pairs: [(String, URL)] = []
+        if settings.showFavorites {
+            pairs += BookmarkStore.shared.items.prefix(4).compactMap { item in
+                guard !item.isFolder, let value = item.url, let url = URL(string: value) else { return nil }
+                return (item.title, url)
+            }
+        }
+        if settings.showRecentVisits {
+            pairs += HistoryStore.shared.visits.prefix(4).compactMap { visit in
+                URL(string: visit.url).map { (visit.title, $0) }
+            }
+        }
+        var seen = Set<String>()
+        let unique = pairs.filter { seen.insert($0.1.absoluteString).inserted }.prefix(6)
+        quickURLs = unique.map { $0.1 }
+        unique.enumerated().forEach { index, item in
+            var configuration = UIButton.Configuration.gray()
+            configuration.title = item.0
+            configuration.subtitle = item.1.host
+            configuration.image = UIImage(systemName: "globe")
+            configuration.imagePadding = 10
+            configuration.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
+            let button = UIButton(configuration: configuration)
+            button.contentHorizontalAlignment = .leading
+            button.tag = index
+            button.addTarget(self, action: #selector(openQuickSite(_:)), for: .touchUpInside)
+            quickStack.addArrangedSubview(button)
+        }
+    }
+
+    @objc private func openQuickSite(_ sender: UIButton) {
+        guard quickURLs.indices.contains(sender.tag) else { return }
+        delegate?.startPage(self, open: quickURLs[sender.tag].absoluteString)
     }
 
     @objc private func privateTab() { delegate?.startPageDidRequestPrivateTab(self) }

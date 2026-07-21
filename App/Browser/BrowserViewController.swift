@@ -13,6 +13,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private let contentContainer = UIView()
     private let chrome = BrowserChromeView()
     private let startPage = StartPageViewController()
+    private let suggestionsView = OmniboxSuggestionsView()
     private var attachedEngineView: UIView?
     private var privacyCover: UIVisualEffectView?
     private var recordedURLs: [UUID: String] = [:]
@@ -52,6 +53,8 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         showSelectedTab()
     }
 
+    func closePrivateTabs() { tabManager.closePrivateTabs() }
+
     func setActive(_ active: Bool) {
         isSceneActive = active
         tabManager.selectedTab?.setActive(active)
@@ -70,6 +73,9 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         pageTools.delegate = self
         chrome.delegate = self
         startPage.delegate = self
+        suggestionsView.onSelect = { [weak self] suggestion in
+            guard let self else { return }; self.browserChrome(self.chrome, submitted: suggestion.value)
+        }
     }
 
     private func configureLayout() {
@@ -77,6 +83,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         chrome.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(contentContainer)
         view.addSubview(chrome)
+        view.insertSubview(suggestionsView, belowSubview: chrome)
         NSLayoutConstraint.activate([
             contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -85,6 +92,11 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             chrome.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 10),
             chrome.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
             chrome.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -6),
+            suggestionsView.leadingAnchor.constraint(equalTo: chrome.leadingAnchor),
+            suggestionsView.trailingAnchor.constraint(equalTo: chrome.trailingAnchor),
+            suggestionsView.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -8),
+            suggestionsView.heightAnchor.constraint(lessThanOrEqualToConstant: 320),
+            suggestionsView.heightAnchor.constraint(equalToConstant: 290),
         ])
         let backEdge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgeNavigation(_:)))
         backEdge.edges = .left
@@ -158,8 +170,12 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     }
 
     func browserChrome(_ chrome: BrowserChromeView, submitted text: String) {
+        suggestionsView.update([])
         guard let url = OmniboxResolver.resolve(text, settings: BrowserSettingsStore.shared.value) else { return }
         open(url)
+    }
+    func browserChrome(_ chrome: BrowserChromeView, textDidChange text: String) {
+        suggestionsView.update(OmniboxSuggestionProvider.suggestions(for: text, tabs: tabManager.tabs))
     }
     func browserChromeDidRequestBack(_ chrome: BrowserChromeView) { tabManager.selectedTab?.goBack() }
     func browserChromeDidRequestForward(_ chrome: BrowserChromeView) { tabManager.selectedTab?.goForward() }

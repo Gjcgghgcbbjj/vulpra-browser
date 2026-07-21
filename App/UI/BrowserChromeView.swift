@@ -8,6 +8,7 @@ protocol BrowserChromeViewDelegate: AnyObject {
     func browserChromeDidRequestShare(_ chrome: BrowserChromeView)
     func browserChromeDidRequestTabs(_ chrome: BrowserChromeView)
     func browserChrome(_ chrome: BrowserChromeView, requestedAdjacentTab offset: Int)
+    func browserChrome(_ chrome: BrowserChromeView, textDidChange text: String)
 }
 
 final class BrowserChromeView: UIView, UITextFieldDelegate {
@@ -82,6 +83,7 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         addressField.returnKeyType = .go
         addressField.clearButtonMode = .whileEditing
         addressField.delegate = self
+        addressField.addTarget(self, action: #selector(addressChanged), for: .editingChanged)
         addressField.translatesAutoresizingMaskIntoConstraints = false
         addressBackground.contentView.addSubview(lockView)
         addressBackground.contentView.addSubview(addressField)
@@ -145,6 +147,7 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         else { UIView.animate(withDuration: 0.28, delay: 0, usingSpringWithDamping: 0.82, initialSpringVelocity: 0.25, options: [.beginFromCurrentState], animations: changes) }
     }
 
+    @objc private func addressChanged() { delegate?.browserChrome(self, textDidChange: addressField.text ?? "") }
     @objc private func back() { delegate?.browserChromeDidRequestBack(self) }
     @objc private func forward() { delegate?.browserChromeDidRequestForward(self) }
     @objc private func reload() { delegate?.browserChromeDidRequestReloadOrStop(self) }
