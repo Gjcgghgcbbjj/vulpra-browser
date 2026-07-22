@@ -1,0 +1,46 @@
+name: Build Vulpra native diagnostic IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode_version:
+        required: true
+        default: Xcode_26.4.1.app
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 120
+    env:
+      XCODE_APP: ${{ inputs.xcode_version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch "/Applications/$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+      - name: Build native diagnostic archive
+        run: |
+          set -euo pipefail
+          xcodebuild archive -project Vulpra.xcodeproj -scheme Vulpra \
+            -configuration Release -sdk iphoneos \
+            -archivePath dist/VulpraDiagnostic.xcarchive \
+            SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) VULPRA_DIAGNOSTIC' \
+            CODE_SIGNING_ALLOWED=NO | tee diagnostic-build.log
+      - name: Package diagnostic IPA
+        run: |
+          mkdir -p dist/diagnostic/Payload
+          cp -R dist/VulpraDiagnostic.xcarchive/Products/Applications/Vulpra.app dist/diagnostic/Payload/
+          cd dist/diagnostic
+          zip -qry ../Vulpra-Diagnostic.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-native-diagnostic-${{ github.run_id }}
+          path: |
+            dist/Vulpra-Diagnostic.ipa
+            diagnostic-build.log
+          retention-days: 14

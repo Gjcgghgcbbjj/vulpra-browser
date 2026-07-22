@@ -2,6 +2,12 @@ import Foundation
 import GeckoView
 import UIKit
 
+#if VULPRA_DIAGNOSTIC
+let diagnosticWindow = UIWindow(frame: UIScreen.main.bounds)
+diagnosticWindow.rootViewController = UIViewController()
+diagnosticWindow.backgroundColor = .systemBackground
+diagnosticWindow.makeKeyAndVisible()
+#else
 func vulpraStartupMarker(_ value: String) {
     let url = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("vulpra-startup.log")
@@ -20,3 +26,4 @@ vulpraStartupMarker("jit-started")
 defer { RuntimeJITCoordinator.shared.stop() }
 vulpraStartupMarker("gecko-main-enter")
 GeckoRuntime.main(argc: CommandLine.argc, argv: CommandLine.unsafeArgv)
+#endif
