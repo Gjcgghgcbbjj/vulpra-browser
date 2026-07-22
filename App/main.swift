@@ -7,6 +7,12 @@ let diagnosticWindow = UIWindow(frame: UIScreen.main.bounds)
 diagnosticWindow.rootViewController = UIViewController()
 diagnosticWindow.backgroundColor = .systemBackground
 diagnosticWindow.makeKeyAndVisible()
+#elseif VULPRA_GECKO_LOAD_DIAGNOSTIC
+let diagnosticWindow = UIWindow(frame: UIScreen.main.bounds)
+diagnosticWindow.rootViewController = UIViewController()
+diagnosticWindow.backgroundColor = .systemBackground
+diagnosticWindow.makeKeyAndVisible()
+_ = GeckoRuntime.version
 #else
 func vulpraStartupMarker(_ value: String) {
     let url = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]

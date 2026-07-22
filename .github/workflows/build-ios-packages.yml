@@ -8,6 +8,11 @@ on:
         required: true
         default: Xcode_26.4.1.app
         type: string
+      diagnostic_mode:
+        description: Optional Swift diagnostic compilation condition
+        required: false
+        default: ''
+        type: string
 
 permissions:
   actions: read
@@ -25,6 +30,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       XCODE_APP: ${{ inputs.xcode_version }}
+      VULPRA_SWIFT_FLAGS: ${{ inputs.diagnostic_mode }}
 
     steps:
       - name: Checkout Vulpra source
