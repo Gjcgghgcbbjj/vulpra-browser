@@ -40,7 +40,8 @@ public class GeckoView: UIView {
         }
 
         if engineView.superview != nil {
-            fatalError("attempt to assign GeckoSession to multiple GeckoView instances")
+            NSLog("GeckoView: session view is already attached")
+            return
         }
 
         engineView.translatesAutoresizingMaskIntoConstraints = false

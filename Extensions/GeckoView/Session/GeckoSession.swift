@@ -153,7 +153,7 @@ public class GeckoSession {
 
     public func open(windowId: String? = nil) {
         if isOpen() {
-            fatalError("cannot open a GeckoSession twice")
+            return
         }
 
         id = windowId ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")

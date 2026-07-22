@@ -23,7 +23,7 @@ enum SearchEngine: String, Codable, CaseIterable {
         case .brave: template = "https://search.brave.com/search?q="
         case .bing: template = "https://www.bing.com/search?q="
         }
-        return URL(string: template + escaped)!
+        return URL(string: template + escaped) ?? URL(string: "about:blank")!
     }
 }
 
