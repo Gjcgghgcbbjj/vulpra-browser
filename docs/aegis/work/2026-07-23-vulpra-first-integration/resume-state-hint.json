@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-23-vulpra-first-integration",
+  "lastCheckpointRef": "docs/aegis/work/2026-07-23-vulpra-first-integration/todo-checkpoint-draft.json",
+  "resumeInstruction": "resume in /root/.config/aegis/worktrees/vulpra-browser/vulpra-first-integration on feature/vulpra-first-integration without resetting the worktree",
+  "knownPartialWork": [
+    "restored /root/reynard-browser to a clean read-only reference",
+    "created the isolated feature/vulpra-first-integration worktree",
+    "established Vulpra product ownership and substrate provenance gates",
+    "imported only Vulpra-owned product roots and 14 audited substrate deltas",
+    "repaired the fresh Xcode graph, startup, embedding, signing, and package contracts",
+    "added the Vulpra icon and bounded high-frequency view, persistence, session, and thumbnail paths",
+    "passed the fresh full portable pre-push gate",
+    "created ADR-0002 and the Vulpra-first portable baseline"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/10-intent.md",
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/20-checkpoint.md",
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "GitHub compilation, package integrity, or physical-device launch has passed before fresh evidence exists"
+  ]
+}

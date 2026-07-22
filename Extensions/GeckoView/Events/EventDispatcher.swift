@@ -113,7 +113,9 @@ public class GeckoEventDispatcherWrapper: NSObject, SwiftEventDispatcher {
     }
 
     public func dispatch(toSwift type: String!, message: Any!, callback: EventCallback?) {
-        let message = message as! [String: Any?]?
+        guard let message = message as? [String: Any?]? else {
+            return
+        }
         if let registeredListeners = listeners[type] {
             for listener in registeredListeners {
                 listener.handleMessage(type: type, message: message, callback: callback)

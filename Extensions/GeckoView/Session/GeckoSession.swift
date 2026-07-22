@@ -44,6 +44,7 @@ public class GeckoSession {
                 "userAgentMode": settings.websiteMode.userAgentMode,
                 "viewportMode": settings.websiteMode.viewportMode,
                 "pageZoom": settings.pageZoom.scale,
+                "useTrackingProtection": settings.trackingProtection,
             ])
     }
 
@@ -152,7 +153,7 @@ public class GeckoSession {
 
     public func open(windowId: String? = nil) {
         if isOpen() {
-            fatalError("cannot open a GeckoSession twice")
+            return
         }
 
         id = windowId ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
@@ -163,7 +164,7 @@ public class GeckoSession {
         let settings: [String: Any?] = [
             "chromeUri": nil,
             "screenId": 0,
-            "useTrackingProtection": false,
+            "useTrackingProtection": sessionSettings.trackingProtection,
             "userAgentMode": sessionSettings.websiteMode.userAgentMode,
             "userAgentOverride": sessionSettings.websiteMode.userAgentOverride,
             "viewportMode": sessionSettings.websiteMode.viewportMode,
@@ -195,10 +196,9 @@ public class GeckoSession {
             ],
             isPrivateMode
         )
-        guard let engineView = window?.view() else {
-            fatalError("GeckoView window has no view")
+        if let engineView = window?.view() {
+            autofillHandler.attach(to: engineView)
         }
-        autofillHandler.attach(to: engineView)
     }
 
     public func isOpen() -> Bool { window != nil }

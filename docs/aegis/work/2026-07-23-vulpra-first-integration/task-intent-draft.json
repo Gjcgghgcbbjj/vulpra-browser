@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Vulpra is the independent product and borrows only the usable GeckoView, Helper, JIT, and proven startup/build substrate contracts.",
+  "goal": "Build and verify the Vulpra-first client and deliver fresh IPA/TIPA packages without copying the Reynard product.",
+  "successEvidence": [
+    "portable ownership/runtime/browser gates pass",
+    "fresh GitHub Xcode package build succeeds",
+    "downloaded packages pass unpacked identity and checksum checks"
+  ],
+  "stopCondition": "Done after package verification and desktop delivery; needs-verification for physical-device launch; blocked only on repeated external impasse.",
+  "nonGoals": [
+    "copying Reynard Client, Resources, stores, or Xcode project",
+    "old-data compatibility",
+    "claiming physical-device success without user evidence"
+  ],
+  "scope": "Vulpra product import, substrate deltas, fresh Xcode graph, release workflow, verification, and Windows desktop test package.",
+  "changeKinds": [
+    "architecture",
+    "product integration",
+    "runtime contract",
+    "release workflow"
+  ],
+  "riskHints": [
+    "source ownership drift",
+    "Xcode-only compiler/API failures",
+    "stale runtime artifact identity",
+    "device-only startup failure"
+  ]
+}

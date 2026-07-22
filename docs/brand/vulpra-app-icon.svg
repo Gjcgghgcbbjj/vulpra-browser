@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071426"/>
+      <stop offset="0.55" stop-color="#14264a"/>
+      <stop offset="1" stop-color="#1d1746"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd06a"/>
+      <stop offset="0.48" stop-color="#ff724c"/>
+      <stop offset="1" stop-color="#e8427a"/>
+    </linearGradient>
+    <radialGradient id="glowA" cx="75%" cy="22%" r="55%">
+      <stop offset="0" stop-color="#4bdcff" stop-opacity=".28"/>
+      <stop offset="1" stop-color="#4bdcff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowB" cx="24%" cy="82%" r="58%">
+      <stop offset="0" stop-color="#8d5cff" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#8d5cff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glowA)"/>
+  <rect width="1024" height="1024" fill="url(#glowB)"/>
+  <path d="M245 220 390 300 535 770 470 835 340 590Z" fill="url(#mark)"/>
+  <path d="M779 220 634 300 489 770 554 835 684 590Z" fill="url(#mark)"/>
+  <path d="m307 284 76 43 111 357-44-55-90-276Z" fill="#fff2be" opacity=".38"/>
+  <path d="m717 284-76 43-111 357 44-55 90-276Z" fill="#fff2be" opacity=".38"/>
+  <path d="m376 420 80 25-48 43Z" fill="#0a1930" opacity=".88"/>
+  <path d="m648 420-80 25 48 43Z" fill="#0a1930" opacity=".88"/>
+</svg>

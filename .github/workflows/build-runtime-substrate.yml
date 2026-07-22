@@ -1,0 +1,181 @@
+name: Build Vulpra Runtime Substrate
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode_version:
+        description: Xcode application installed on the runner
+        required: true
+        default: Xcode_26.4.1.app
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vulpra-runtime-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Gecko and idevice for iOS arm64
+    runs-on: macos-26
+    timeout-minutes: 360
+    env:
+      RUST_BACKTRACE: "1"
+      SCCACHE_DIR: ${{ github.workspace }}/.cache/sccache
+      XCODE_APP: ${{ inputs.xcode_version }}
+
+    steps:
+      - name: Checkout Vulpra source
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Select Xcode and reclaim disk space
+        shell: bash
+        run: |
+          set -euo pipefail
+          selected="/Applications/${XCODE_APP}"
+          test -d "$selected"
+          sudo xcode-select --switch "$selected/Contents/Developer"
+          for candidate in /Applications/Xcode*.app; do
+            if [[ "$candidate" != "$selected" ]]; then
+              sudo rm -rf "$candidate"
+            fi
+          done
+          sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes/* || true
+          {
+            sw_vers
+            xcodebuild -version
+            xcrun --sdk iphoneos --show-sdk-version
+            xcrun --sdk iphoneos --show-sdk-build-version
+            df -h /
+          } | tee build-environment.log
+
+      - name: Resolve runtime identity
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          export VULPRA_XCODE_BUILD="$(xcodebuild -version | awk '/Build version/ {print $3}')"
+          export VULPRA_SDK_BUILD="$(xcrun --sdk iphoneos --show-sdk-build-version)"
+          gecko_key="$(./Tools/Gecko/gecko-artifact.sh key "$XCODE_APP")"
+          # runtime-substrate-key covers Firefox, idevice, Patches, scripts, Xcode and SDK.
+          name="$(./Tools/Runtime/runtime-substrate-key.sh "$XCODE_APP")"
+          {
+            echo "name=$name"
+            echo "gecko_key=$gecko_key"
+            echo "xcode_build=$VULPRA_XCODE_BUILD"
+            echo "sdk_build=$VULPRA_SDK_BUILD"
+          } >> "$GITHUB_OUTPUT"
+          printf 'runtime=%s\n' "$name" | tee runtime-identity.log
+
+      - name: Restore exact runtime artifact cache
+        id: runtime-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            dist/gecko-runtime-v3.tar.gz
+            .build/idevice/aarch64-apple-ios/release/libidevice_ffi.a
+          key: ${{ steps.runtime.outputs.name }}
+
+      - name: Restore and verify cached runtime
+        if: steps.runtime-cache.outputs.cache-hit == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export VULPRA_XCODE_BUILD="${{ steps.runtime.outputs.xcode_build }}"
+          export VULPRA_SDK_BUILD="${{ steps.runtime.outputs.sdk_build }}"
+          ./Tools/Gecko/gecko-artifact.sh restore dist/gecko-runtime-v3.tar.gz "$XCODE_APP"
+          ./Tools/Runtime/verify-runtime-artifacts.sh
+
+      - name: Install runtime build dependencies
+        if: steps.runtime-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          brew install nasm yasm ccache
+          rustup target add aarch64-apple-ios
+          python3 --version
+          rustc --version
+          cargo --version
+
+      - name: Fetch pinned runtime sources
+        if: steps.runtime-cache.outputs.cache-hit != 'true'
+        shell: zsh {0}
+        run: |
+          set -euo pipefail
+          ./Tools/Gecko/update-gecko.sh 2>&1 | tee update-gecko.log
+          git submodule update --init --depth 1 Vendor/idevice
+
+      - name: Bootstrap Gecko toolchains
+        if: steps.runtime-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd Vendor/firefox
+          env -u MOZ_AUTOMATION \
+            MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
+            ./mach --no-interactive bootstrap --application-choice browser \
+            2>&1 | tee ../../gecko-bootstrap.log
+
+      - name: Build and verify runtime substrate
+        if: steps.runtime-cache.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          export VULPRA_XCODE_BUILD="${{ steps.runtime.outputs.xcode_build }}"
+          export VULPRA_SDK_BUILD="${{ steps.runtime.outputs.sdk_build }}"
+          env -u MOZ_AUTOMATION \
+            MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
+            IPHONEOS_SDK_DIR="$(xcrun --sdk iphoneos --show-sdk-path)" \
+            ./Tools/Runtime/build-runtime-substrate.sh \
+            2>&1 | tee build-runtime-substrate.log
+
+      - name: Save exact runtime artifact cache
+        if: steps.runtime-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            dist/gecko-runtime-v3.tar.gz
+            .build/idevice/aarch64-apple-ios/release/libidevice_ffi.a
+          key: ${{ steps.runtime.outputs.name }}
+
+      - name: Create runtime checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Tools/Runtime/verify-runtime-artifacts.sh
+          mkdir -p dist/runtime-substrate
+          cp dist/gecko-runtime-v3.tar.gz dist/runtime-substrate/
+          cp .build/idevice/aarch64-apple-ios/release/libidevice_ffi.a dist/runtime-substrate/
+          cp dist/gecko-artifact-manifest.txt dist/runtime-substrate/
+          {
+            printf 'runtime=%s\n' '${{ steps.runtime.outputs.name }}'
+            printf 'gecko=%s\n' '${{ steps.runtime.outputs.gecko_key }}'
+            printf 'xcode_build=%s\n' '${{ steps.runtime.outputs.xcode_build }}'
+            printf 'sdk_build=%s\n' '${{ steps.runtime.outputs.sdk_build }}'
+          } > dist/runtime-substrate/runtime-manifest.txt
+          (cd dist/runtime-substrate && shasum -a 256 \
+            gecko-runtime-v3.tar.gz libidevice_ffi.a \
+            gecko-artifact-manifest.txt runtime-manifest.txt > SHA256SUMS)
+
+      - name: Upload reusable runtime substrate
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.runtime.outputs.name }}
+          path: dist/runtime-substrate/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
+
+      - name: Upload runtime build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-runtime-logs-${{ github.run_id }}
+          path: "*.log"
+          if-no-files-found: warn
+          retention-days: 14

@@ -1,0 +1,118 @@
+name: Build Vulpra IPA and TIPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode_version:
+        description: Xcode application installed on the runner
+        required: true
+        default: Xcode_26.4.1.app
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: vulpra-packages-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build Vulpra installable packages
+    runs-on: macos-26
+    timeout-minutes: 180
+    env:
+      GH_TOKEN: ${{ github.token }}
+      XCODE_APP: ${{ inputs.xcode_version }}
+
+    steps:
+      - name: Checkout Vulpra source
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Select Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          selected="/Applications/${XCODE_APP}"
+          test -d "$selected"
+          sudo xcode-select --switch "$selected/Contents/Developer"
+          xcodebuild -version | tee build-environment.log
+          xcrun --sdk iphoneos --show-sdk-build-version | tee -a build-environment.log
+
+      - name: Resolve matching runtime identity
+        id: runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="$(./Tools/Runtime/runtime-substrate-key.sh "$XCODE_APP")"
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "runtime=$name" | tee runtime-identity.log
+
+      - name: Download and restore runtime substrate
+        shell: bash
+        run: |
+          set -euo pipefail
+          name='${{ steps.runtime.outputs.name }}'
+          artifact_id="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false) | [.created_at, .id, .name] | @tsv' \
+            | awk -F $'\t' -v name="$name" '$3 == name {print}' | LC_ALL=C sort -r | sed -n '1p' | cut -f 2)"
+          test -n "$artifact_id" || { echo "::error::Missing runtime artifact $name"; exit 1; }
+          stage="$(mktemp -d)"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$stage/artifact.zip"
+          unzip -q "$stage/artifact.zip" -d "$stage/payload"
+          cd "$stage/payload"
+          shasum -a 256 -c SHA256SUMS
+          cd "$GITHUB_WORKSPACE"
+          export VULPRA_XCODE_BUILD="$(xcodebuild -version | awk '/Build version/ {print $3}')"
+          export VULPRA_SDK_BUILD="$(xcrun --sdk iphoneos --show-sdk-build-version)"
+          ./Tools/Gecko/gecko-artifact.sh restore "$stage/payload/gecko-runtime-v3.tar.gz" "$XCODE_APP"
+          mkdir -p .build/idevice/aarch64-apple-ios/release
+          cp "$stage/payload/libidevice_ffi.a" .build/idevice/aarch64-apple-ios/release/
+          ./Tools/Runtime/verify-runtime-artifacts.sh
+
+      - name: Install packaging dependency
+        shell: bash
+        run: brew install ldid
+
+      - name: Validate Xcode graph
+        shell: bash
+        run: xcodebuild -list -project Vulpra.xcodeproj 2>&1 | tee xcode-project-list.log
+
+      - name: Build application archive
+        shell: bash
+        run: ./Tools/Release/build-app.sh 2>&1 | tee build-app.log
+
+      - name: Create IPA and TrollStore TIPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Tools/Release/create-ipa.sh 2>&1 | tee create-ipa.log
+          test -s dist/Vulpra.ipa
+          test -s dist/Vulpra-TrollStore.tipa
+          test -s dist/SHA256SUMS
+
+      - name: Upload installable packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-ios-test-${{ github.run_id }}
+          path: |
+            dist/Vulpra.ipa
+            dist/Vulpra-TrollStore.tipa
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload package build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-package-logs-${{ github.run_id }}
+          path: |
+            *.log
+            dist/Vulpra.xcarchive/Info.plist
+          if-no-files-found: warn
+          retention-days: 14

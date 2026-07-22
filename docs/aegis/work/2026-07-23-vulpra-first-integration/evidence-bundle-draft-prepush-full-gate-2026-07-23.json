@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "prepush-full-gate-2026-07-23",
+  "type": "command-output",
+  "source": "full Bootstrap, Ownership, RuntimeShell, Browser, shell syntax, Python byte-compile, workflow YAML, plist, git diff, and legacy-path regression probe",
+  "summary": "Fresh pre-push gate passed after narrowing a stale Phase 0 check to reject only legacy Reynard product paths; all Vulpra product ownership gates remain active.",
+  "verifier": "root Codex session, fresh command exit 0"
+}

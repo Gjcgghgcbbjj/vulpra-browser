@@ -51,6 +51,8 @@ for command in \
     './Tests/Bootstrap/test-gecko-substrate.sh' \
     './Tests/Bootstrap/test-active-identity.sh' \
     './Tests/Bootstrap/test-jit-substrate.sh' \
+    './Tests/RuntimeShell/run-portable.sh' \
+    './Tests/Browser/run-portable.sh' \
     './Tools/Gecko/test-gecko-artifact.sh' \
     "find Tools Tests -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n" \
     'git diff --check'

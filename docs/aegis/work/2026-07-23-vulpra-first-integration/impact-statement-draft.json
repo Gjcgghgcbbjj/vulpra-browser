@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "App/UI/features",
+    "Xcode target graph",
+    "Gecko/Helper/JIT integration",
+    "GitHub package producer"
+  ],
+  "owners": [
+    "Vulpra product roots",
+    "provenance-tracked substrate roots"
+  ],
+  "invariants": [
+    "Vulpra owns every product concern",
+    "Reynard is not a build input",
+    "runtime identity must match exactly",
+    "generated artifacts remain untracked"
+  ],
+  "compatBoundary": "iOS 15.0+, arm64, iPhone/iPad, four Vulpra bundle identities, TrollStore-first packaging.",
+  "nonGoals": [
+    "old client/data/resource compatibility",
+    "new third-party product dependencies",
+    "public release clearance"
+  ]
+}

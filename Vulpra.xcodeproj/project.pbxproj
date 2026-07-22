@@ -1,0 +1,263 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* GeckoView.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A30000000000000000000002 /* GeckoView.framework */; };
+		A10000000000000000000002 /* GeckoView.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = A30000000000000000000002 /* GeckoView.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A10000000000000000000003 /* Vulpra Helper.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A30000000000000000000003 /* Vulpra Helper.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A10000000000000000000004 /* OpenIn.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A30000000000000000000004 /* OpenIn.appex */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		A10000000000000000000005 /* GeckoView.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A30000000000000000000002 /* GeckoView.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A20000000000000000000001 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = AF0000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = AB0000000000000000000002; remoteInfo = GeckoView; };
+		A20000000000000000000002 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = AF0000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = AB0000000000000000000003; remoteInfo = "Vulpra Helper"; };
+		A20000000000000000000003 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = AF0000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = AB0000000000000000000004; remoteInfo = OpenIn; };
+		A20000000000000000000004 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = AF0000000000000000000001 /* Project object */; proxyType = 1; remoteGlobalIDString = AB0000000000000000000002; remoteInfo = GeckoView; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A40000000000000000000001 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (A10000000000000000000002 /* GeckoView.framework in Embed Frameworks */, );
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A40000000000000000000002 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A10000000000000000000003 /* Vulpra Helper.appex in Embed App Extensions */,
+				A10000000000000000000004 /* OpenIn.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A30000000000000000000001 /* Vulpra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vulpra.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A30000000000000000000002 /* GeckoView.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = GeckoView.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A30000000000000000000003 /* Vulpra Helper.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Vulpra Helper.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		A30000000000000000000004 /* OpenIn.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = OpenIn.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A30000000000000000000005 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Base.xcconfig; sourceTree = "<group>"; };
+		A30000000000000000000006 /* App.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/App.xcconfig; sourceTree = "<group>"; };
+		A30000000000000000000007 /* GeckoView.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/GeckoView.xcconfig; sourceTree = "<group>"; };
+		A30000000000000000000008 /* Helper.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/Helper.xcconfig; sourceTree = "<group>"; };
+		A30000000000000000000009 /* OpenIn.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Configuration/OpenIn.xcconfig; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A50000000000000000000001 /* App exclusions */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Info.plist, Entitlements/Vulpra.entitlements, Entitlements/Vulpra.private.entitlements, Bridging/Vulpra-Bridging-Header.h, ); target = AB0000000000000000000001 /* Vulpra */; };
+		A50000000000000000000002 /* Runtime exclusions */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (VulpraRuntime/JIT/Unsandboxed/ptrace_jit.c, VulpraRuntime/JIT/Unsandboxed/ptrace_jit.entitlements, ); target = AB0000000000000000000001 /* Vulpra */; };
+		A50000000000000000000003 /* GeckoView exclusions */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Info.plist, ); publicHeaders = (View/GeckoView.h, Runtime/GeckoRuntimeBridge.h, ); target = AB0000000000000000000002 /* GeckoView */; };
+		A50000000000000000000004 /* Helper exclusions for GeckoView */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Helper.swift, Info.plist, main.m, Entitlements/Vulpra-Helper.entitlements, Entitlements/Vulpra-Helper.private.entitlements, ); publicHeaders = (ExtensionBridge.h, ); target = AB0000000000000000000002 /* GeckoView */; };
+		A50000000000000000000005 /* Helper metadata exclusions */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Info.plist, Entitlements/Vulpra-Helper.entitlements, Entitlements/Vulpra-Helper.private.entitlements, ); target = AB0000000000000000000003 /* Vulpra Helper */; };
+		A50000000000000000000006 /* OpenIn exclusions */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (Info.plist, ); target = AB0000000000000000000004 /* OpenIn */; };
+		A50000000000000000000007 /* Native Shared headers */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (); publicHeaders = (Utils.h, ); target = AB0000000000000000000002 /* GeckoView */; };
+		A50000000000000000000008 /* Gecko Runtime headers */ = {isa = PBXFileSystemSynchronizedBuildFileExceptionSet; membershipExceptions = (); publicHeaders = (GeckoViewRuntimeSupport.h, GeckoViewSwiftSupport.h, IOSBootstrap.h, ); target = AB0000000000000000000002 /* GeckoView */; };
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A60000000000000000000001 /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000001 /* App exclusions */, ); path = App; sourceTree = "<group>"; };
+		A60000000000000000000002 /* Modules */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000002 /* Runtime exclusions */, ); path = Modules; sourceTree = "<group>"; };
+		A60000000000000000000003 /* GeckoView */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000003 /* GeckoView exclusions */, ); path = Extensions/GeckoView; sourceTree = "<group>"; };
+		A60000000000000000000004 /* Helper */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000004 /* Helper exclusions for GeckoView */, A50000000000000000000005 /* Helper metadata exclusions */, ); path = Extensions/Helper; sourceTree = "<group>"; };
+		A60000000000000000000005 /* OpenIn */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000006 /* OpenIn exclusions */, ); path = Extensions/OpenIn; sourceTree = "<group>"; };
+		A60000000000000000000006 /* Native Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000007 /* Native Shared headers */, ); path = Modules/VulpraRuntime/Native; sourceTree = "<group>"; };
+		A60000000000000000000007 /* Gecko Runtime Headers */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A50000000000000000000008 /* Gecko Runtime headers */, ); path = Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A70000000000000000000001 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001 /* GeckoView.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		A70000000000000000000002 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A70000000000000000000003 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000005 /* GeckoView.framework in Frameworks */, ); runOnlyForDeploymentPostprocessing = 0; };
+		A70000000000000000000004 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A80000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				A60000000000000000000001 /* App */,
+				A60000000000000000000002 /* Modules */,
+				A60000000000000000000003 /* GeckoView */,
+				A60000000000000000000004 /* Helper */,
+				A60000000000000000000005 /* OpenIn */,
+				A60000000000000000000006 /* Native Shared */,
+				A60000000000000000000007 /* Gecko Runtime Headers */,
+				A80000000000000000000003 /* Configuration */,
+				A80000000000000000000002 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A80000000000000000000002 /* Products */ = {isa = PBXGroup; children = (A30000000000000000000001 /* Vulpra.app */, A30000000000000000000002 /* GeckoView.framework */, A30000000000000000000003 /* Vulpra Helper.appex */, A30000000000000000000004 /* OpenIn.appex */, ); name = Products; sourceTree = "<group>"; };
+		A80000000000000000000003 /* Configuration */ = {isa = PBXGroup; children = (A30000000000000000000005 /* Base.xcconfig */, A30000000000000000000006 /* App.xcconfig */, A30000000000000000000007 /* GeckoView.xcconfig */, A30000000000000000000008 /* Helper.xcconfig */, A30000000000000000000009 /* OpenIn.xcconfig */, ); name = Configuration; sourceTree = "<group>"; };
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		A90000000000000000000001 /* Headers */ = {isa = PBXHeadersBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		AB0000000000000000000001 /* Vulpra */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AE0000000000000000000002 /* Build configuration list for PBXNativeTarget "Vulpra" */;
+			buildPhases = (AC0000000000000000000001 /* Verify Runtime Artifacts */, AA0000000000000000000001 /* Sources */, A70000000000000000000001 /* Frameworks */, AD0000000000000000000001 /* Resources */, A40000000000000000000001 /* Embed Frameworks */, A40000000000000000000002 /* Embed App Extensions */, AC0000000000000000000002 /* Copy Gecko Payload */, );
+			buildRules = ();
+			dependencies = (B00000000000000000000001 /* PBXTargetDependency */, B00000000000000000000002 /* PBXTargetDependency */, B00000000000000000000003 /* PBXTargetDependency */, );
+			fileSystemSynchronizedGroups = (A60000000000000000000001 /* App */, A60000000000000000000002 /* Modules */, );
+			name = Vulpra;
+			packageProductDependencies = ();
+			productName = Vulpra;
+			productReference = A30000000000000000000001 /* Vulpra.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AB0000000000000000000002 /* GeckoView */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AE0000000000000000000003 /* Build configuration list for PBXNativeTarget "GeckoView" */;
+			buildPhases = (AA0000000000000000000002 /* Sources */, A70000000000000000000002 /* Frameworks */, A90000000000000000000001 /* Headers */, AD0000000000000000000002 /* Resources */, );
+			buildRules = ();
+			dependencies = ();
+			fileSystemSynchronizedGroups = (A60000000000000000000003 /* GeckoView */, A60000000000000000000004 /* Helper */, A60000000000000000000006 /* Native Shared */, A60000000000000000000007 /* Gecko Runtime Headers */, );
+			name = GeckoView;
+			packageProductDependencies = ();
+			productName = GeckoView;
+			productReference = A30000000000000000000002 /* GeckoView.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		AB0000000000000000000003 /* Vulpra Helper */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AE0000000000000000000004 /* Build configuration list for PBXNativeTarget "Vulpra Helper" */;
+			buildPhases = (AA0000000000000000000003 /* Sources */, A70000000000000000000003 /* Frameworks */, AD0000000000000000000003 /* Resources */, );
+			buildRules = ();
+			dependencies = (B00000000000000000000004 /* PBXTargetDependency */, );
+			fileSystemSynchronizedGroups = (A60000000000000000000004 /* Helper */, );
+			name = "Vulpra Helper";
+			packageProductDependencies = ();
+			productName = "Vulpra Helper";
+			productReference = A30000000000000000000003 /* Vulpra Helper.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		AB0000000000000000000004 /* OpenIn */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AE0000000000000000000005 /* Build configuration list for PBXNativeTarget "OpenIn" */;
+			buildPhases = (AA0000000000000000000004 /* Sources */, A70000000000000000000004 /* Frameworks */, AD0000000000000000000004 /* Resources */, );
+			buildRules = ();
+			dependencies = ();
+			fileSystemSynchronizedGroups = (A60000000000000000000005 /* OpenIn */, );
+			name = OpenIn;
+			packageProductDependencies = ();
+			productName = OpenIn;
+			productReference = A30000000000000000000004 /* OpenIn.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AF0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					AB0000000000000000000001 = {CreatedOnToolsVersion = 26.0; };
+					AB0000000000000000000002 = {CreatedOnToolsVersion = 26.0; };
+					AB0000000000000000000003 = {CreatedOnToolsVersion = 26.0; };
+					AB0000000000000000000004 = {CreatedOnToolsVersion = 26.0; };
+				};
+			};
+			buildConfigurationList = AE0000000000000000000001 /* Build configuration list for PBXProject "Vulpra" */;
+			compatibilityVersion = "Xcode 16.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base, );
+			mainGroup = A80000000000000000000001;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A80000000000000000000002 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (AB0000000000000000000001 /* Vulpra */, AB0000000000000000000002 /* GeckoView */, AB0000000000000000000003 /* Vulpra Helper */, AB0000000000000000000004 /* OpenIn */, );
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AD0000000000000000000001 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AD0000000000000000000002 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AD0000000000000000000003 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AD0000000000000000000004 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AC0000000000000000000001 /* Verify Runtime Artifacts */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ("$(VULPRA_IDEVICE_ARCHIVE)", "$(VULPRA_GECKO_DIST)/bin/XUL", );
+			name = "Verify Runtime Artifacts";
+			outputPaths = ();
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"$SRCROOT/Tools/Runtime/verify-runtime-artifacts.sh\"\n";
+		};
+		AC0000000000000000000002 /* Copy Gecko Payload */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			inputPaths = ("$(VULPRA_GECKO_DIST)/bin/XUL", );
+			name = "Copy Gecko Payload";
+			outputPaths = ("$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Frameworks/XUL", );
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "GECKO_DIST=\"$VULPRA_GECKO_DIST\" \"$SRCROOT/Tools/Build/AddGecko.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA0000000000000000000001 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AA0000000000000000000002 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AA0000000000000000000003 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AA0000000000000000000004 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B00000000000000000000001 /* PBXTargetDependency */ = {isa = PBXTargetDependency; name = GeckoView; target = AB0000000000000000000002 /* GeckoView */; targetProxy = A20000000000000000000001 /* PBXContainerItemProxy */; };
+		B00000000000000000000002 /* PBXTargetDependency */ = {isa = PBXTargetDependency; name = "Vulpra Helper"; target = AB0000000000000000000003 /* Vulpra Helper */; targetProxy = A20000000000000000000002 /* PBXContainerItemProxy */; };
+		B00000000000000000000003 /* PBXTargetDependency */ = {isa = PBXTargetDependency; name = OpenIn; target = AB0000000000000000000004 /* OpenIn */; targetProxy = A20000000000000000000003 /* PBXContainerItemProxy */; };
+		B00000000000000000000004 /* PBXTargetDependency */ = {isa = PBXTargetDependency; name = GeckoView; target = AB0000000000000000000002 /* GeckoView */; targetProxy = A20000000000000000000004 /* PBXContainerItemProxy */; };
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		C00000000000000000000001 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000005 /* Base.xcconfig */; buildSettings = {COPY_PHASE_STRIP = NO; DEBUG_INFORMATION_FORMAT = dwarf; ENABLE_TESTABILITY = YES; GCC_OPTIMIZATION_LEVEL = 0; SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)"; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; }; name = Debug; };
+		C00000000000000000000002 /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000005 /* Base.xcconfig */; buildSettings = {COPY_PHASE_STRIP = YES; DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym"; ENABLE_NS_ASSERTIONS = NO; SWIFT_COMPILATION_MODE = wholemodule; SWIFT_OPTIMIZATION_LEVEL = "-O"; VALIDATE_PRODUCT = YES; }; name = Release; };
+		C00000000000000000000003 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000006 /* App.xcconfig */; buildSettings = {}; name = Debug; };
+		C00000000000000000000004 /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000006 /* App.xcconfig */; buildSettings = {}; name = Release; };
+		C00000000000000000000005 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000007 /* GeckoView.xcconfig */; buildSettings = {}; name = Debug; };
+		C00000000000000000000006 /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000007 /* GeckoView.xcconfig */; buildSettings = {}; name = Release; };
+		C00000000000000000000007 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000008 /* Helper.xcconfig */; buildSettings = {}; name = Debug; };
+		C00000000000000000000008 /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000008 /* Helper.xcconfig */; buildSettings = {}; name = Release; };
+		C00000000000000000000009 /* Debug */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000009 /* OpenIn.xcconfig */; buildSettings = {}; name = Debug; };
+		C0000000000000000000000A /* Release */ = {isa = XCBuildConfiguration; baseConfigurationReference = A30000000000000000000009 /* OpenIn.xcconfig */; buildSettings = {}; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AE0000000000000000000001 /* Build configuration list for PBXProject "Vulpra" */ = {isa = XCConfigurationList; buildConfigurations = (C00000000000000000000001 /* Debug */, C00000000000000000000002 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		AE0000000000000000000002 /* Build configuration list for PBXNativeTarget "Vulpra" */ = {isa = XCConfigurationList; buildConfigurations = (C00000000000000000000003 /* Debug */, C00000000000000000000004 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		AE0000000000000000000003 /* Build configuration list for PBXNativeTarget "GeckoView" */ = {isa = XCConfigurationList; buildConfigurations = (C00000000000000000000005 /* Debug */, C00000000000000000000006 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		AE0000000000000000000004 /* Build configuration list for PBXNativeTarget "Vulpra Helper" */ = {isa = XCConfigurationList; buildConfigurations = (C00000000000000000000007 /* Debug */, C00000000000000000000008 /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		AE0000000000000000000005 /* Build configuration list for PBXNativeTarget "OpenIn" */ = {isa = XCConfigurationList; buildConfigurations = (C00000000000000000000009 /* Debug */, C0000000000000000000000A /* Release */, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+	};
+	rootObject = AF0000000000000000000001 /* Project object */;
+}

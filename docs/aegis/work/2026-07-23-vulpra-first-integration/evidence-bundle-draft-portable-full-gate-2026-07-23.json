@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "portable-full-gate-2026-07-23",
+  "type": "command-output",
+  "source": "full Bootstrap, Ownership, RuntimeShell, Browser, shell syntax, Python byte-compile, and git diff gate",
+  "summary": "All portable gates passed; zsh-only producer parsing was explicitly skipped because zsh is unavailable on Linux.",
+  "verifier": "root Codex session, fresh command exit 0"
+}
