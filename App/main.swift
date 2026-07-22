@@ -27,8 +27,10 @@ func vulpraStartupMarker(_ value: String) {
 }
 
 vulpraStartupMarker("main-enter")
+#if !VULPRA_DISABLE_STARTUP_JIT
 RuntimeJITCoordinator.shared.start()
 vulpraStartupMarker("jit-started")
+#endif
 defer { RuntimeJITCoordinator.shared.stop() }
 vulpraStartupMarker("gecko-main-enter")
 GeckoRuntime.main(argc: CommandLine.argc, argv: CommandLine.unsafeArgv)
