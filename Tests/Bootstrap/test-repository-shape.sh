@@ -44,6 +44,10 @@ grep -Fq '| provenance | docs/provenance/substrate-boundary.md |' \
 }
 
 workflow="$root/.github/workflows/bootstrap-core.yml"
+grep -Fq 'fetch-depth: 0' "$workflow" || {
+    echo 'bootstrap workflow must fetch history for pinned substrate baseline verification' >&2
+    exit 1
+}
 for command in \
     './Tests/Bootstrap/test-repository-shape.sh' \
     './Tests/Bootstrap/test-repository-shape-nested-parent.sh' \
