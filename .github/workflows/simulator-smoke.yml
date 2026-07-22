@@ -1,0 +1,55 @@
+name: Vulpra Simulator Phase B smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulator:
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native simulator shell
+        run: |
+          set -euo pipefail
+          cat >/tmp/VulpraSimulator.swift <<'EOF'
+          import UIKit
+          final class AppDelegate: UIResponder, UIApplicationDelegate {
+              var window: UIWindow?
+              func application(_ app: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+                  let w = UIWindow(frame: UIScreen.main.bounds)
+                  let label = UILabel(frame: w.bounds)
+                  label.text = "Vulpra Simulator Shell"
+                  label.textAlignment = .center
+                  w.rootViewController = UIViewController()
+                  w.rootViewController?.view.addSubview(label)
+                  label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+                  w.makeKeyAndVisible(); window = w
+                  return true
+              }
+          }
+          UIApplicationMain(CommandLine.argc, CommandLine.unsafeArgv, nil, NSStringFromClass(AppDelegate.self))
+          EOF
+          mkdir -p VulpraSimulator.app
+          xcrun --sdk iphonesimulator swiftc -target arm64-apple-ios15.0-simulator -O /tmp/VulpraSimulator.swift -o VulpraSimulator.app/VulpraSimulator -framework UIKit
+          cat >VulpraSimulator.app/Info.plist <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleExecutable</key><string>VulpraSimulator</string><key>CFBundleIdentifier</key><string>com.vulpra.simulator</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleVersion</key><string>1</string><key>CFBundleShortVersionString</key><string>1.0</string></dict></plist>
+          EOF
+      - name: Run simulator smoke test
+        run: |
+          set -euo pipefail
+          device="$(xcrun simctl create VulpraSmoke 'iPhone 15' | tail -n 1)"
+          trap 'xcrun simctl shutdown "$device" >/dev/null 2>&1 || true; xcrun simctl delete "$device" >/dev/null 2>&1 || true' EXIT
+          xcrun simctl boot "$device"
+          open -a Simulator
+          xcrun simctl install "$device" VulpraSimulator.app
+          xcrun simctl launch "$device" com.vulpra.simulator
+          sleep 5
+          xcrun simctl io "$device" screenshot simulator-smoke.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-simulator-smoke-${{ github.run_id }}
+          path: simulator-smoke.png
