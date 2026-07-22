@@ -100,9 +100,14 @@ def main() -> None:
         "application-identifier": "com.vulpra.browser",
         "com.apple.developer.kernel.extended-virtual-addressing": True,
         "com.apple.developer.kernel.increased-memory-limit": True,
+        "get-task-allow": True,
         "com.apple.private.memorystatus": True,
         "platform-application": True,
+        "com.apple.private.persona-mgmt": True,
         "com.apple.private.security.no-sandbox": True,
+        "com.apple.private.security.storage.AppDataContainers": True,
+        "com.apple.private.security.storage.MobileDocuments": True,
+        "com.apple.developer.web-browser": True,
         "com.apple.security.iokit-user-client-class": [
             "IOSurfaceRootUserClient",
             "AGXDeviceUserClient",
@@ -122,6 +127,7 @@ def main() -> None:
     require(helper_standard == {}, "standard Helper entitlements must be empty")
     helper_private = load_plist("Extensions/Helper/Entitlements/Vulpra-Helper.private.entitlements")
     require(helper_private.get("application-identifier") == "com.vulpra.browser.helper", "wrong private Helper identity")
+    require(helper_private.get("get-task-allow") is True, "private Helper must permit TrollStore JIT attachment")
 
     entitlement_files = [
         ROOT / "App/Entitlements/Vulpra.entitlements",
@@ -129,16 +135,8 @@ def main() -> None:
         ROOT / "Extensions/Helper/Entitlements/Vulpra-Helper.entitlements",
         ROOT / "Extensions/Helper/Entitlements/Vulpra-Helper.private.entitlements",
     ]
-    forbidden_keys = (
-        "get-task-allow",
-        "com.apple.developer.web-browser",
-        "com.apple.private.persona-mgmt",
-        "com.apple.private.security.storage.AppDataContainers",
-        "com.apple.private.security.storage.MobileDocuments",
-    )
     entitlement_text = "\n".join(path.read_text(encoding="utf-8") for path in entitlement_files)
-    for key in forbidden_keys:
-        require(key not in entitlement_text, f"forbidden entitlement remains: {key}")
+    require("com.apple.private.security.no-sandbox" in entitlement_text, "TrollStore app entitlement is missing")
 
     router_path = ROOT / "App" / "RuntimeURLRouter.swift"
     require(router_path.is_file(), "missing App/RuntimeURLRouter.swift")

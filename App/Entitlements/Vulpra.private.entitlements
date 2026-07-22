@@ -8,11 +8,21 @@
 	<true/>
 	<key>com.apple.developer.kernel.increased-memory-limit</key>
 	<true/>
+	<key>get-task-allow</key>
+	<true/>
 	<key>com.apple.private.memorystatus</key>
 	<true/>
 	<key>platform-application</key>
 	<true/>
+	<key>com.apple.private.persona-mgmt</key>
+	<true/>
 	<key>com.apple.private.security.no-sandbox</key>
+	<true/>
+	<key>com.apple.private.security.storage.AppDataContainers</key>
+	<true/>
+	<key>com.apple.private.security.storage.MobileDocuments</key>
+	<true/>
+	<key>com.apple.developer.web-browser</key>
 	<true/>
 	<key>com.apple.security.iokit-user-client-class</key>
 	<array>
