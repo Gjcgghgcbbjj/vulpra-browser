@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "package-verification-29961256526",
+  "type": "artifact-verification",
+  "source": ".build/deliveries/29961256526/package-verification.json and GitHub artifact 8546130042",
+  "summary": "Artifact zip and both packages passed checksum and zip integrity checks; four bundle IDs, iOS 15.0, arm64, Gecko/XUL/dylibs, Helper/OpenIn, executable modes, 15 signed Mach-O targets, ptrace_jit, and private entitlements were verified.",
+  "verifier": "local deterministic package inspection, exit 0"
+}

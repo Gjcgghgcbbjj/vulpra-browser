@@ -21,3 +21,10 @@
 | 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/resume-state-hint.json | 2026-07-23-vulpra-first-integration resume state hint |
 | 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/baseline-usage-draft.json | 2026-07-23-vulpra-first-integration baseline usage draft |
 | 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-prepush-full-gate-2026-07-23.json | 2026-07-23-vulpra-first-integration evidence prepush-full-gate-2026-07-23 |
+| 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-github-runs-5f49f3c-2026-07-23.json | 2026-07-23-vulpra-first-integration evidence github-runs-5f49f3c-2026-07-23 |
+| 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json | 2026-07-23-vulpra-first-integration evidence package-verification-29961256526 |
+| 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29961256526.json | 2026-07-23-vulpra-first-integration evidence windows-desktop-delivery-29961256526 |
+| 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/gate-input-pack.json | 2026-07-23-vulpra-first-integration gate input pack |
+| 2026-07-23 | work | docs/aegis/work/2026-07-23-vulpra-first-integration/proof-bundle.md | 2026-07-23-vulpra-first-integration proof bundle |
+| 2026-07-23 | work | docs/aegis/work/2026-07-23-vulpra-first-integration/99-reflection.md | Vulpra-First Integration reflection |
+| 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-final-local-closeout-gate-2026-07-23.json | 2026-07-23-vulpra-first-integration evidence final-local-closeout-gate-2026-07-23 |

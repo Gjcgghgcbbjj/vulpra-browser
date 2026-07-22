@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/baseline/2026-07-23-vulpra-first-portable-baseline.md"
   ],
-  "scopeStatus": "Vulpra remains the sole product owner; only the stale Phase 0 test scope was narrowed to the exact legacy Reynard paths it owns.",
-  "compatStatus": "iOS 15, arm64, and all four Vulpra identities remain unchanged.",
-  "retirementStatus": "Reynard product owners and broad false-positive bootstrap rule remain retired; no fallback or duplicate owner added.",
+  "scopeStatus": "All planned integration, package, verification, and desktop-delivery work is complete inside the Vulpra-first boundary.",
+  "compatStatus": "GitHub and local package evidence verify iOS 15.0 arm64 configuration and all four Vulpra identities; device runtime remains unobserved.",
+  "retirementStatus": "Reynard product ownership, diagnostic startup branches, fake simulator smoke ownership, the broad Phase 0 false-positive rule, and shallow Bootstrap checkout are retired.",
   "newRiskSignals": [
-    "GitHub Xcode/package evidence and physical-device launch remain open."
+    "Physical-device launch and performance remain needs-user-verification; no package-engineering blocker remains."
   ],
-  "decision": "continue"
+  "decision": "needs-verification"
 }

@@ -154,11 +154,11 @@ python3 Tests/Ownership/test-product-boundary.py
 bash -n Tests/Ownership/run-portable.sh
 ```
 
-- [ ] Write the ownership test before product import.
-- [ ] Run it and confirm RED because the product roots are not present yet.
-- [ ] Add the boundary document and substrate-delta schema.
-- [ ] Re-run after Task 2 and confirm GREEN.
-- [ ] Commit the independently reviewable ownership slice.
+- [x] Write the ownership test before product import.
+- [x] Run it and confirm RED because the product roots are not present yet.
+- [x] Add the boundary document and substrate-delta schema.
+- [x] Re-run after Task 2 and confirm GREEN.
+- [x] Commit the independently reviewable ownership slice.
 
 ## Task 2: Import Only Vulpra-Owned Product Files
 
@@ -192,11 +192,11 @@ Tests/Browser/run-portable.sh
 rg -n -i 'Reynard|com\.minh-ton|BrowserCore|StabilityCore' App Configuration Extensions/OpenIn Vulpra.xcodeproj Tools/Runtime Tools/Release
 ```
 
-- [ ] Keep the ownership gate RED before transfer.
-- [ ] Copy only the enumerated Vulpra-owned roots.
-- [ ] Change `AtomicJSONStore` from `final class` to `struct`.
-- [ ] Replace diagnostic startup branches with the minimal JIT then Gecko main.
-- [ ] Run product gates GREEN and commit.
+- [x] Keep the ownership gate RED before transfer.
+- [x] Copy only the enumerated Vulpra-owned roots.
+- [x] Change `AtomicJSONStore` from `final class` to `struct`.
+- [x] Replace diagnostic startup branches with the minimal JIT then Gecko main.
+- [x] Run product gates GREEN and commit.
 
 ## Task 3: Integrate Necessary Substrate Deltas Without Product Leakage
 
@@ -231,12 +231,12 @@ changed imported file records its clean-baseline hash, new hash, and reason.
 ./Tools/Gecko/test-gecko-artifact.sh
 ```
 
-- [ ] Add/adjust failing contract assertions for `.build/idevice` and delta
+- [x] Add/adjust failing contract assertions for `.build/idevice` and delta
   coverage.
-- [ ] Confirm RED against the clean substrate.
-- [ ] Apply only the reviewed runtime-branch deltas.
-- [ ] Update target hashes and delta provenance, then confirm GREEN.
-- [ ] Commit the substrate delta slice separately.
+- [x] Confirm RED against the clean substrate.
+- [x] Apply only the reviewed runtime-branch deltas.
+- [x] Update target hashes and delta provenance, then confirm GREEN.
+- [x] Commit the substrate delta slice separately.
 
 ## Task 4: Repair the Fresh Xcode Graph from Verified Runtime Contracts
 
@@ -268,11 +268,11 @@ python3 Tests/RuntimeShell/test-product-contracts.py
 ./Tests/RuntimeShell/test-release-packaging.sh
 ```
 
-- [ ] Expand the graph tests for each verified runtime contract.
-- [ ] Run RED for every missing/mismatched contract.
-- [ ] Apply minimal fresh-project settings, never project-file copying.
-- [ ] Run GREEN and inspect the final graph diff.
-- [ ] Commit the launch/package contract slice.
+- [x] Expand the graph tests for each verified runtime contract.
+- [x] Run RED for every missing/mismatched contract.
+- [x] Apply minimal fresh-project settings, never project-file copying.
+- [x] Run GREEN and inspect the final graph diff.
+- [x] Commit the launch/package contract slice.
 
 ## Task 5: Verify Complexity, Identity, and Portable Integration
 
@@ -302,13 +302,13 @@ find Tools Tests -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 git diff --check
 ```
 
-- [ ] Run the full gate and collect failures.
-- [ ] Classify every failure as ownership, missing owner logic, stale consumer,
+- [x] Run the full gate and collect failures.
+- [x] Classify every failure as ownership, missing owner logic, stale consumer,
   or baseline drift.
-- [ ] Fix at the canonical owner without compatibility fallbacks.
-- [ ] Record source-line, largest-owner, dependency, and generated-output
+- [x] Fix at the canonical owner without compatibility fallbacks.
+- [x] Record source-line, largest-owner, dependency, and generated-output
   measurements.
-- [ ] Commit the verified portable baseline and ADR.
+- [x] Commit the verified portable baseline and ADR.
 
 ## Task 6: Build and Verify GitHub IPA/TIPA Artifacts
 
@@ -336,12 +336,12 @@ gh workflow run build-ios-packages.yml --repo Gjcgghgcbbjj/vulpra-browser --ref 
 gh run watch --repo Gjcgghgcbbjj/vulpra-browser <run-id> --exit-status
 ```
 
-- [ ] Push the verified integration branch.
-- [ ] Dispatch the package workflow using the matching runtime artifact.
-- [ ] Monitor to terminal success or repair a real failure.
-- [ ] Download and unpack the artifact; verify bundle IDs, embedded framework,
+- [x] Push the verified integration branch.
+- [x] Dispatch the package workflow using the matching runtime artifact.
+- [x] Monitor to terminal success or repair a real failure.
+- [x] Download and unpack the artifact; verify bundle IDs, embedded framework,
   Helper/OpenIn extensions, executable files, and checksums.
-- [ ] Record run URL, commit, artifact IDs, sizes, and hashes.
+- [x] Record run URL, commit, artifact IDs, sizes, and hashes.
 
 ## Task 7: Deliver the Windows Desktop Test Package
 
@@ -360,12 +360,26 @@ sha256sum <downloaded-package>
 unzip -t <downloaded-package>
 ```
 
-- [ ] Locate the mounted Windows desktop path.
-- [ ] Stage the new package beside the destination.
-- [ ] Verify checksum and archive integrity.
-- [ ] Atomically replace the prior Vulpra test package.
-- [ ] Report the exact desktop path and retain device launch as
+- [x] Locate the mounted Windows desktop path.
+- [x] Stage the new package beside the destination.
+- [x] Verify checksum and archive integrity.
+- [x] Atomically replace the prior Vulpra test package.
+- [x] Report the exact desktop path and retain device launch as
   `needs-user-verification`.
+
+## Execution Closeout
+
+- Verified package commit:
+  `5f49f3cdd62221b1bc9bb5be149b5c1be4922491`.
+- Bootstrap Core run `29961240711`: `success`.
+- Build Vulpra IPA and TIPA run `29961256526`: `success`.
+- Installable artifact ID: `8546130042`.
+- Package hashes and structural verification:
+  `docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json`.
+- Delivered path:
+  `/mnt/c/Users/niting/Desktop/Vulpra-Fixed-29944288468`.
+- Physical-device installation and launch remain
+  `needs-user-verification`, as required by the plan boundary.
 
 ## Risks and Stop Conditions
 

@@ -1,9 +1,9 @@
 # Vulpra-First Portable Integration Baseline
 
 Date: `2026-07-23`
-Status: `vulpra-first-portable-verified`
+Status: `vulpra-first-package-verified`
 ArchitectureReviewRequired: `yes`
-Current GitHub package gate: `needs-verification`
+Current GitHub package gate: `verified` in run `29961256526`
 Physical-device launch gate: `needs-verification`
 
 ## Product / requirement boundary
@@ -23,6 +23,8 @@ Durable rationale: `docs/aegis/adr/ADR-0002-vulpra-first-product-integration.md`
 ## Snapshot identifiers
 
 - Branch: `feature/vulpra-first-integration`
+- Verified package commit:
+  `5f49f3cdd62221b1bc9bb5be149b5c1be4922491`
 - Clean integration base: `6fbf6ae`
 - Vulpra product source donor: `7955722ce68f63e4f470837947cfdde385458b13`
 - Read-only boot contract reference: Reynard `3dea55d`
@@ -132,13 +134,27 @@ git diff --check
 ```
 
 The four zsh Gecko producer scripts could not be parsed because zsh is absent
-on this host; the portable runners report that skip explicitly. Swift/UIKit,
-Objective-C, linker, asset-catalog, archive, ldid, and device behavior remain
-Mac/device gates.
+on this host; the portable runners report that skip explicitly.
 
-The predecessor Vulpra product commit `7955722` successfully produced IPA/TIPA
-packages in GitHub run `29946679556`. That is useful compiler/API evidence, but
-it is not substituted for a fresh build of this integration branch.
+Fresh remote evidence for the verified package commit:
+
+- Bootstrap Core run `29961240711`: `success`;
+- package run `29961256526`: `success` under Xcode `26.4.1` build `17E202` and
+  iPhoneOS SDK build `23E252`;
+- restored exact runtime artifact name:
+  `vulpra-runtime-substrate-v1-b170cbc0a490f9be2332721fc82540704f677d8f8bb352c6d9bf68ee81cd43fe`;
+- installable artifact ID `8546130042`, archive size `198,414,855` bytes, and
+  archive SHA-256
+  `cdf716ad9eb73f31af0c73587a9a820f65f1d7ecc2b80c67ba371cbc4657622e`;
+- `Vulpra.ipa`: `98,596,207` bytes, SHA-256
+  `7444a53229b06869ea27cf4b38dce5cd4a8463b08f6ea45786b37e1f00b0e779`;
+- `Vulpra-TrollStore.tipa`: `101,857,453` bytes, SHA-256
+  `4ec90a87538cd01cf47f123f805f7ca3ba03cbc648be20cfc9b79babde28cbee`.
+
+Local unpacked verification covered archive integrity, all four bundle IDs,
+iOS `15.0`, arm64 Mach-O identity, executable modes, GeckoView, XUL, nine
+top-level dylibs, Helper, OpenIn, `ptrace_jit`, 15 required ldid-signed Mach-O
+targets, and embedded private entitlements.
 
 ## Complexity and size closure
 
@@ -153,6 +169,11 @@ it is not substituted for a fresh build of this integration branch.
 - Package-manager dependencies added: none.
 - Generated Gecko, archive, IPA, TIPA, framework, or static-library outputs in
   Git: none.
+- The verified TrollStore package is `3,199,653` bytes (`3.05%`) smaller than
+  the replaced desktop package.
+- The unpacked TrollStore app is `304,647,607` bytes: Gecko/runtime payload is
+  `300,091,305` bytes (`98.50%`), while the Vulpra-owned non-engine shell is
+  `4,556,302` bytes (`1.50%`).
 - Raw line-oriented pressure scan also sees newline bytes inside the binary PNG
   icon; the icon is governed as a 126,581-byte resource, not a text owner.
 - The only real maintained text artifact above 800 lines is the retired
@@ -163,10 +184,11 @@ Vulpra client growth.
 
 ## Open evidence and acceptance boundary
 
-- Current integration Xcode compilation: `needs-verification`
-- Asset catalog compilation and generated icon set: `needs-verification`
+- Current integration Xcode compilation: `verified` in run `29961256526`
+- Asset catalog compilation and generated icon set: `verified` in run
+  `29961256526`
 - IPA/TIPA package creation and unpacked-bundle verification:
-  `needs-verification`
+  `verified` from artifact `8546130042`
 - iOS 15.8 and iOS 16.7 installation/launch: `needs-verification`
 - Gecko page loading, Helper/JIT child readiness, OpenIn, extensions, downloads,
   permissions, restoration, and private-data behavior on device:
@@ -178,6 +200,8 @@ Vulpra client growth.
 - public-distribution license/notices clearance: blocked outside this package
   engineering baseline
 
-GitHub package success may close compilation/package-shape evidence only.
+GitHub compilation and package-shape evidence are closed for commit `5f49f3c`.
+The current packages were atomically delivered to
+`/mnt/c/Users/niting/Desktop/Vulpra-Fixed-29944288468` and reverified in place.
 Physical-device success is never inferred and requires user installation
 confirmation.

@@ -1,24 +1,23 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-23-vulpra-first-integration",
-  "currentTodo": "commit and push the verified integration branch, then build and verify IPA/TIPA packages",
+  "currentTodo": "commit and push the evidence closeout, then monitor the final Bootstrap run",
   "completedTodos": [
-    "restored /root/reynard-browser to a clean read-only reference",
-    "created the isolated feature/vulpra-first-integration worktree",
-    "established Vulpra product ownership and substrate provenance gates",
-    "imported only Vulpra-owned product roots and 14 audited substrate deltas",
-    "repaired the fresh Xcode graph, startup, embedding, signing, and package contracts",
-    "added the Vulpra icon and bounded high-frequency view, persistence, session, and thumbnail paths",
-    "passed the fresh full portable pre-push gate",
-    "created ADR-0002 and the Vulpra-first portable baseline"
+    "completed Vulpra-first product integration and complexity governance",
+    "passed local portable, ownership, runtime-shell, browser, workflow, plist, and workspace gates",
+    "passed GitHub Bootstrap Core run 29961240711",
+    "passed GitHub Xcode package run 29961256526 using the exact runtime artifact",
+    "verified IPA/TIPA identity, iOS 15 arm64 structure, engine, extensions, signatures, entitlements, hashes, and archive integrity",
+    "atomically replaced and reverified the Windows desktop packages",
+    "updated the baseline, plan checklist, evidence bundle, proof bundle, and reflection"
   ],
-  "activeSlice": "verified commit, push, and GitHub package build",
+  "activeSlice": "final evidence commit and remote Bootstrap confirmation",
   "evidenceRefs": [
-    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-portable-full-gate-2026-07-23.json",
-    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-prepush-full-gate-2026-07-23.json",
-    "docs/aegis/baseline/2026-07-23-vulpra-first-portable-baseline.md"
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-final-local-closeout-gate-2026-07-23.json",
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json",
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29961256526.json"
   ],
   "blockedOn": null,
-  "nextStep": "commit, push, dispatch build-ios-packages.yml, and monitor to terminal success or a logged repair",
+  "nextStep": "commit and push documentation/evidence closeout, monitor the automatically triggered Bootstrap run to terminal success, then hand off the TrollStore package for physical-device verification",
   "updatedAt": "2026-07-23"
 }

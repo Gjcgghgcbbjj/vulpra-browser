@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "final-local-closeout-gate-2026-07-23",
+  "type": "command-output",
+  "source": "full portable regression suite, shell/Python/YAML/plist validation, Aegis workspace check, git diff check, and maintained-file pressure report",
+  "summary": "Final local closeout gate passed. Product remains 35 Swift files with no owner at 350 lines; the only >=800 text owner is the retired Phase 0 plan, while the PNG line count is a binary scan artifact.",
+  "verifier": "root Codex session, fresh command exit 0"
+}

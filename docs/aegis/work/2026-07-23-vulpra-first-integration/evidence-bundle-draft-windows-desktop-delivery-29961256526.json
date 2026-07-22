@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "windows-desktop-delivery-29961256526",
+  "type": "delivery",
+  "source": "/mnt/c/Users/niting/Desktop/Vulpra-Fixed-29944288468",
+  "summary": "Atomically replaced Vulpra.ipa, Vulpra-TrollStore.tipa, and SHA256SUMS; post-replacement checksum and archive integrity checks passed. BUILD-INFO.txt records run, commit, artifact, iOS, and architecture.",
+  "verifier": "local Windows-mounted desktop verification, exit 0"
+}

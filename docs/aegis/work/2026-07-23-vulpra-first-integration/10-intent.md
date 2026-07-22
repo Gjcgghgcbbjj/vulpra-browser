@@ -70,3 +70,27 @@ are measured separately.
 - fresh GitHub package evidence
 - physical-device launch evidence
 - Advisory decision: continue
+
+## BaselineUsageDraft
+
+- Required baseline refs:
+- docs/aegis/baseline/2026-07-21-initial-baseline.md
+- docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md
+- docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md
+- docs/provenance/substrate-boundary.md
+- docs/aegis/policies/efficiency-complexity-governance.md
+- Delivered context refs:
+- none
+- Acknowledged before plan:
+- docs/aegis/baseline/2026-07-21-initial-baseline.md
+- docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md
+- docs/aegis/specs/2026-07-21-vulpra-core-substrate-repository-design.md
+- docs/provenance/substrate-boundary.md
+- docs/aegis/policies/efficiency-complexity-governance.md
+- Cited in plan:
+- docs/aegis/plans/2026-07-23-vulpra-first-proven-startup-integration.md
+- docs/aegis/baseline/2026-07-23-vulpra-first-portable-baseline.md
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json
+- Missing refs:
+- physical-device launch and performance evidence
+- Advisory decision: needs-verification

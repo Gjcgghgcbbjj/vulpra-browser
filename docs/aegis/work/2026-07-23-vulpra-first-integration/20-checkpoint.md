@@ -76,3 +76,59 @@ Updated: `2026-07-23`
 - New risk signals:
 - GitHub Xcode/package evidence and physical-device launch remain open.
 - Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: close durable evidence, commit and push the package-engineering result, and retain device launch as user verification
+- Active slice: evidence closeout and final branch verification
+- Completed todos:
+- established Vulpra as the sole product owner with audited substrate provenance
+- integrated the Vulpra-owned client, fresh Xcode graph, runtime shell, release packaging, and app icon
+- passed the full portable gate and repaired the stale Phase 0 false-positive rule
+- repaired the Bootstrap shallow-checkout failure at the workflow owner and passed run 29961240711
+- built the exact runtime-backed IPA/TIPA packages successfully in run 29961256526
+- verified package hashes, zip structure, bundle IDs, iOS 15 arm64 compatibility, engine, extensions, signatures, and entitlements
+- atomically replaced the Windows desktop test packages and verified them in place
+- Evidence refs:
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-github-runs-5f49f3c-2026-07-23.json
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29961256526.json
+- Blocked on: none
+- Next step: update the portable baseline and plan status, bundle/check the Aegis workspace, run final gates, commit/push evidence closeout, and monitor the final Bootstrap run
+
+## DriftCheckDraft
+
+- Scope status: Package engineering remains Vulpra-first; no Reynard Client, Resources, Xcode project, stores, or compatibility owner was introduced.
+- Compatibility status: GitHub package evidence verifies iOS 15.0 arm64 configuration and all four Vulpra bundle identities; physical-device behavior remains external.
+- Retirement status: The broad Phase 0 false-positive rule and shallow Bootstrap checkout were retired; no runtime fallback or duplicate product owner was added.
+- New risk signals:
+- Physical-device installation/launch and performance evidence remain needs-user-verification.
+- Advisory decision: continue
+
+## Checkpoint Update
+
+- Current todo: commit and push the evidence closeout, then monitor the final Bootstrap run
+- Active slice: final evidence commit and remote Bootstrap confirmation
+- Completed todos:
+- completed Vulpra-first product integration and complexity governance
+- passed local portable, ownership, runtime-shell, browser, workflow, plist, and workspace gates
+- passed GitHub Bootstrap Core run 29961240711
+- passed GitHub Xcode package run 29961256526 using the exact runtime artifact
+- verified IPA/TIPA identity, iOS 15 arm64 structure, engine, extensions, signatures, entitlements, hashes, and archive integrity
+- atomically replaced and reverified the Windows desktop packages
+- updated the baseline, plan checklist, evidence bundle, proof bundle, and reflection
+- Evidence refs:
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-final-local-closeout-gate-2026-07-23.json
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29961256526.json
+- Blocked on: none
+- Next step: commit and push documentation/evidence closeout, monitor the automatically triggered Bootstrap run to terminal success, then hand off the TrollStore package for physical-device verification
+
+## DriftCheckDraft
+
+- Scope status: All planned integration, package, verification, and desktop-delivery work is complete inside the Vulpra-first boundary.
+- Compatibility status: GitHub and local package evidence verify iOS 15.0 arm64 configuration and all four Vulpra identities; device runtime remains unobserved.
+- Retirement status: Reynard product ownership, diagnostic startup branches, fake simulator smoke ownership, the broad Phase 0 false-positive rule, and shallow Bootstrap checkout are retired.
+- New risk signals:
+- Physical-device launch and performance remain needs-user-verification; no package-engineering blocker remains.
+- Advisory decision: needs-verification
