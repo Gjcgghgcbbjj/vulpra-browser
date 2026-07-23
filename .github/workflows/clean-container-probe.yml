@@ -51,17 +51,29 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p stage entitlements dist
-          ditto -x -k source/Vulpra-TrollStore.tipa stage
+          unzip -q source/Vulpra-TrollStore.tipa -d stage
           app="$PWD/stage/Payload/Vulpra.app"
           helper="$app/PlugIns/Vulpra Helper.appex/Vulpra Helper"
-          test -x "$app/Vulpra"
-          test -x "$helper"
-          test -x "$app/PlugIns/OpenIn.appex/OpenIn"
-          test -x "$app/Frameworks/GeckoView.framework/GeckoView"
+          executables=(
+            "$app/Vulpra"
+            "$helper"
+            "$app/PlugIns/OpenIn.appex/OpenIn"
+            "$app/Frameworks/GeckoView.framework/GeckoView"
+            "$app/ptrace_jit"
+          )
+          for executable in "${executables[@]}"; do
+            test -f "$executable"
+            chmod 755 "$executable"
+          done
 
-          ldid -e "$app/Vulpra" > entitlements/app.plist
-          ldid -e "$helper" > entitlements/helper.plist
-          ldid -e "$app/ptrace_jit" > entitlements/ptrace-jit.plist
+          extract_entitlements() {
+            echo "Extracting entitlements from $1"
+            ldid -e "$1" > "$2"
+            test -s "$2"
+          }
+          extract_entitlements "$app/Vulpra" entitlements/app.plist
+          extract_entitlements "$helper" entitlements/helper.plist
+          extract_entitlements "$app/ptrace_jit" entitlements/ptrace-jit.plist
 
           python3 - "$app" entitlements/app.plist entitlements/helper.plist <<'PY'
           from pathlib import Path
