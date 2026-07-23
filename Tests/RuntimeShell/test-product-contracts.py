@@ -72,8 +72,17 @@ def main() -> None:
         helper_info.get("CFBundleIdentifier") == "$(PRODUCT_BUNDLE_IDENTIFIER)",
         "Helper plist bundle identifier is not build-owned",
     )
+    require(helper_info.get("CFBundleDisplayName") == "Vulpra Helper", "Helper display name is missing")
     require(helper_info.get("CFBundleExecutable") == "$(EXECUTABLE_NAME)", "Helper executable metadata is missing")
     require(helper_info.get("CFBundlePackageType") == "XPC!", "Helper package type is wrong")
+
+    open_in_info = load_plist("Extensions/OpenIn/Info.plist")
+    require(
+        open_in_info.get("CFBundleIdentifier") == "$(PRODUCT_BUNDLE_IDENTIFIER)",
+        "OpenIn plist bundle identifier is not build-owned",
+    )
+    require(open_in_info.get("CFBundleDisplayName") == "Open in Vulpra", "OpenIn display name is missing")
+    require(open_in_info.get("CFBundlePackageType") == "XPC!", "OpenIn package type is wrong")
 
     url_types = info.get("CFBundleURLTypes")
     require(isinstance(url_types, list) and len(url_types) == 1, "expected one URL type")
