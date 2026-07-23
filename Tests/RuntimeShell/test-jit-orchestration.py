@@ -128,8 +128,10 @@ def main() -> None:
         "RuntimeJITCoordinator.shared.stop()" not in production,
         "main.swift must not stop JIT around engine main entry",
     )
-    require("configureUnsandboxedAppDataDirectories()" in entry, "main.swift must configure no-sandbox profile paths")
-    require("MOZ_APP_DATA" in entry, "main.swift must set MOZ_APP_DATA for unsandboxed launch")
+    require("configureUnsandboxedAppDataDirectories()" in entry, "main.swift must keep iOS-13 no-sandbox profile helper")
+    require("MOZ_APP_DATA" in entry, "main.swift must set MOZ_APP_DATA only on the iOS-13 path")
+    require("#unavailable(iOS 14.0)" in entry or "#unavailable(iOS 14" in entry, "MOZ_APP_DATA must be gated to iOS 13 like Reynard")
+    require("updateJetsamControl(getpid())" in entry, "main process jetsam must be raised before Gecko")
     require("usesUnsandboxedPtrace" in source, "coordinator must gate ptrace on no-sandbox entitlement")
     require(
         'finish(pid: pid, enabled: false, reason: "no-unsandboxed-entitlement")' in source,

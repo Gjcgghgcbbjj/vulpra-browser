@@ -30,12 +30,11 @@ func vulpraStartupMarker(_ value: String) {
     }
 }
 
-/// When TrollStore/private no-sandbox is active, point Gecko profile at a writable
-/// cache path (working device baseline). Avoids profile I/O failures after unsandboxing.
+/// iOS 13 + no-sandbox only (exact Reynard gate).
+/// On iOS 14+ TrollStore, Gecko must keep the normal container layout;
+/// forcing MOZ_APP_DATA into Caches there can break MainProcessInit.
+@available(iOS, introduced: 13.0, obsoleted: 14.0)
 private func configureUnsandboxedAppDataDirectories() {
-    guard getEntitlementValue("com.apple.private.security.no-sandbox") else {
-        return
-    }
     guard
         let cachesDirectory = FileManager.default.urls(
             for: .cachesDirectory,
@@ -64,11 +63,24 @@ private func configureUnsandboxedAppDataDirectories() {
     setenv("MOZ_LOCAL_APP_DATA", appDataDirectory.path, 1)
 }
 
-// Production entry: markers → optional profile paths → JIT observer → engine main.
-// Never defer-stop the JIT coordinator around engine main (teardown races with launch).
+/// Raise the jetsam ceiling for the main process before Gecko allocates.
+private func prepareMainProcessMemoryBudget() {
+    updateJetsamControl(getpid())
+}
+
+// Startup order matches the working Reynard client:
+// markers → optional iOS-13 profile paths → JIT observer → Gecko owns the process.
+// Never defer-stop the JIT coordinator around engine main.
 vulpraStartupMarker("main-enter")
-configureUnsandboxedAppDataDirectories()
-vulpraStartupMarker("profile-configured")
+prepareMainProcessMemoryBudget()
+vulpraStartupMarker("jetsam-configured")
+if #unavailable(iOS 14.0),
+   getEntitlementValue("com.apple.private.security.no-sandbox") {
+    configureUnsandboxedAppDataDirectories()
+    vulpraStartupMarker("profile-configured-ios13")
+} else {
+    vulpraStartupMarker("profile-default-container")
+}
 #if !VULPRA_DISABLE_STARTUP_JIT
 RuntimeJITCoordinator.shared.start()
 vulpraStartupMarker("jit-started")
