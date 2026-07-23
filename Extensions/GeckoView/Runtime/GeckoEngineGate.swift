@@ -45,7 +45,7 @@ public enum GeckoEngineGate {
         scheduleBootstrapIfNeeded()
     }
 
-    private public static func armFromStartupIfNeeded() {
+    private static func armFromStartupIfNeeded() {
         lock.lock()
         let needsArm = !armed
         if needsArm {
