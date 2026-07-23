@@ -162,12 +162,12 @@ jobs:
           set +e
           perl -e '$seconds = shift @ARGV; alarm $seconds; exec @ARGV' 60 \
             sudo -n xcrun lldb --batch \
+              --one-line-on-crash "thread backtrace all" \
+              --one-line-on-crash "register read" \
               -o "process attach --pid $pid" \
               -o 'script print("VULPRA_LLDB_ATTACHED", flush=True)' \
               -o "process handle -s true -n true -p false SIGSEGV" \
               -o "continue" \
-              -o "thread backtrace all" \
-              -o "register read" \
               2>&1 | tee simulator-lldb.log
           lldb_status=${PIPESTATUS[0]}
           set -e
