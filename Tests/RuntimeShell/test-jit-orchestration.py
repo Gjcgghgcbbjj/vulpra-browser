@@ -119,9 +119,12 @@ def main() -> None:
     require_header_closure(GECKO_HEADER)
 
     entry = (ROOT / "App" / "main.swift").read_text(encoding="utf-8")
-    require("defer { RuntimeJITCoordinator.shared.stop() }" in entry, "main.swift must tear down JIT orchestration")
+    require(
+        "RuntimeJITCoordinator" not in entry,
+        "device-proven startup must not activate the staged JIT coordinator",
+    )
 
-    print("PASS: exactly-once child JIT orchestration contract")
+    print("PASS: staged child JIT orchestration remains disconnected from startup")
 
 
 if __name__ == "__main__":

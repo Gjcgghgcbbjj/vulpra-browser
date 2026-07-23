@@ -160,10 +160,15 @@ def main() -> None:
         require(re.search(rf"\b{re.escape(forbidden)}\b", router, re.I) is None, f"router contains forbidden behavior: {forbidden}")
 
     startup = read_config("App/main.swift")
-    require("RuntimeJITCoordinator.shared.start()" in startup, "startup does not begin JIT coordination")
-    require("defer { RuntimeJITCoordinator.shared.stop() }" in startup, "startup does not stop JIT coordination")
     require("GeckoRuntime.main(argc: CommandLine.argc, argv: CommandLine.unsafeArgv)" in startup, "startup does not enter Gecko")
-    for forbidden in ("FileManager", "UserDefaults", "UIWindow", "VULPRA_DIAGNOSTIC", "vulpraStartupMarker"):
+    for forbidden in (
+        "RuntimeJITCoordinator",
+        "FileManager",
+        "UserDefaults",
+        "UIWindow",
+        "VULPRA_DIAGNOSTIC",
+        "vulpraStartupMarker",
+    ):
         require(forbidden not in startup, f"startup contains retired diagnostic path: {forbidden}")
 
     atomic_store = read_config("App/Persistence/AtomicJSONStore.swift")

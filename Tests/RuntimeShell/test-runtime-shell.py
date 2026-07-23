@@ -13,6 +13,7 @@ def main():
     require('BrowserViewController(initialURL:' in scene, 'browser root missing')
     require('RuntimeShellViewController' not in scene, 'old root remains referenced')
     entry=(ROOT/'App/main.swift').read_text()
-    require(entry.find('RuntimeJITCoordinator.shared.start()') < entry.find('GeckoRuntime.main'), 'JIT must start before Gecko')
+    require('RuntimeJITCoordinator' not in entry, 'startup JIT path must remain disconnected')
+    require('GeckoRuntime.main' in entry, 'startup must enter Gecko directly')
     print('PASS: runtime shell retired into browser root')
 if __name__ == '__main__': main()
