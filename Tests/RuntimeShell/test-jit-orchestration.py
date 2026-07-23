@@ -119,7 +119,22 @@ def main() -> None:
     require_header_closure(GECKO_HEADER)
 
     entry = (ROOT / "App" / "main.swift").read_text(encoding="utf-8")
-    require("defer { RuntimeJITCoordinator.shared.stop() }" in entry, "main.swift must tear down JIT orchestration")
+    # Production path: start the coordinator before engine main, and never defer-stop
+    # around that entry (teardown races with launch).
+    production = entry
+    if "#else" in entry:
+        production = entry.rsplit("#else", 1)[-1]
+    require(
+        "RuntimeJITCoordinator.shared.stop()" not in production,
+        "main.swift must not stop JIT around engine main entry",
+    )
+    require("configureUnsandboxedAppDataDirectories()" in entry, "main.swift must configure no-sandbox profile paths")
+    require("MOZ_APP_DATA" in entry, "main.swift must set MOZ_APP_DATA for unsandboxed launch")
+    require("usesUnsandboxedPtrace" in source, "coordinator must gate ptrace on no-sandbox entitlement")
+    require(
+        'finish(pid: pid, enabled: false, reason: "no-unsandboxed-entitlement")' in source,
+        "missing no-sandbox skip path for non-TrollStore installs",
+    )
 
     print("PASS: exactly-once child JIT orchestration contract")
 

@@ -1,0 +1,238 @@
+name: Vulpra Real iOS Simulator Launch
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - work/reynard-align
+      - feature/vulpra-first-integration
+    paths:
+      - .github/workflows/simulator-launch.yml
+      - App/**
+      - Tools/Release/**
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  launch:
+    name: Build and launch the real Vulpra client
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      XCODE_APP: Xcode_26.4.1.app
+      DERIVED_DATA: ${{ github.workspace }}/.build/simulator-derived
+
+    steps:
+      - name: Checkout Vulpra source
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Select Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo xcode-select --switch "/Applications/$XCODE_APP/Contents/Developer"
+          xcodebuild -version | tee simulator-environment.log
+          xcrun --sdk iphonesimulator --show-sdk-build-version | tee -a simulator-environment.log
+          xcrun simctl list runtimes | tee -a simulator-environment.log
+
+      - name: Restore latest matching Gecko Simulator runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_row="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false and (.name | startswith("vulpra-gecko-simulator-"))) | [.created_at, .id, .name] | @tsv' \
+            | LC_ALL=C sort -r | sed -n '1p')"
+          artifact_id="$(printf '%s' "$artifact_row" | cut -f 2)"
+          artifact_name="$(printf '%s' "$artifact_row" | cut -f 3)"
+          test -n "$artifact_id"
+          printf 'artifact_id=%s\nartifact_name=%s\n' "$artifact_id" "$artifact_name" | tee simulator-runtime.log
+          stage="$(mktemp -d)"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$stage/artifact.zip"
+          unzip -q "$stage/artifact.zip" -d "$stage/payload"
+          test -s "$stage/payload/gecko-simulator-runtime.tar.gz"
+          mkdir -p Vendor/firefox
+          tar -xzf "$stage/payload/gecko-simulator-runtime.tar.gz" -C Vendor/firefox
+          test -s Vendor/firefox/obj-aarch64-apple-ios-sim/dist/bin/XUL
+
+      - name: Materialize pinned Gecko headers and default theme
+        shell: bash
+        run: |
+          set -euo pipefail
+          firefox_sha="$(git ls-tree HEAD Vendor/firefox | awk '{print $3}')"
+          test -n "$firefox_sha"
+          source_tree="$(mktemp -d)"
+          mkdir -p "$source_tree/toolkit/xre" "$source_tree/widget/uikit"
+          curl --fail --location --retry 4 --silent --show-error \
+            "https://raw.githubusercontent.com/mozilla-firefox/firefox/$firefox_sha/toolkit/xre/IOSBootstrap.h" \
+            --output "$source_tree/toolkit/xre/IOSBootstrap.h"
+          curl --fail --location --retry 4 --silent --show-error \
+            "https://raw.githubusercontent.com/mozilla-firefox/firefox/$firefox_sha/widget/uikit/GeckoViewSwiftSupport.h" \
+            --output "$source_tree/widget/uikit/GeckoViewSwiftSupport.h"
+          patch -d "$source_tree" -p1 < Patches/toolkit/xre/IOSBootstrap.h.patch
+          patch -d "$source_tree" -p1 < Patches/widget/uikit/GeckoViewSwiftSupport.h.patch
+          patch -d "$source_tree" -p1 < Patches/widget/uikit/GeckoViewRuntimeSupport.h.patch
+
+          include=Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView
+          mkdir -p "$include"
+          while read -r source target; do
+            destination="$include/$target"
+            if [ -L "$destination" ]; then
+              unlink "$destination"
+            fi
+            cp "$source_tree/$source" "$destination"
+            test -s "$destination"
+          done <<'EOF'
+          toolkit/xre/IOSBootstrap.h IOSBootstrap.h
+          widget/uikit/GeckoViewSwiftSupport.h GeckoViewSwiftSupport.h
+          widget/uikit/GeckoViewRuntimeSupport.h GeckoViewRuntimeSupport.h
+          EOF
+
+          theme=Vendor/firefox/toolkit/mozapps/extensions/default-theme
+          mkdir -p "$theme"
+          for name in icon.svg manifest.json preview.svg; do
+            curl --fail --location --retry 4 --silent --show-error \
+              "https://raw.githubusercontent.com/mozilla-firefox/firefox/$firefox_sha/toolkit/mozapps/extensions/default-theme/$name" \
+              --output "$theme/$name"
+            test -s "$theme/$name"
+          done
+
+      - name: Build the pinned idevice library for Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 Vendor/idevice
+          ./Tools/Gecko/build-idevice.sh aarch64-apple-ios-sim 2>&1 | tee simulator-idevice.log
+          PLATFORM_NAME=iphonesimulator ./Tools/Runtime/verify-runtime-artifacts.sh | tee simulator-runtime-verification.log
+          PLATFORM_NAME=iphonesimulator ./Tools/Runtime/prepare-runtime-headers.sh | tee simulator-runtime-headers.log
+
+      - name: Build the real Vulpra application for Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          xcodebuild \
+            -project Vulpra.xcodeproj \
+            -scheme Vulpra \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee simulator-build.log
+          test -d "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+
+      - name: Install, launch, and prove process survival
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          runtime="$(xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["runtimes"] if item.get("isAvailable") and item.get("name", "").startswith("iOS")]
+          if not values: raise SystemExit("no available iOS Simulator runtime")
+          print(values[-1]["identifier"])
+          ')"
+          device_type="$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["devicetypes"] if item.get("name", "").startswith("iPhone")]
+          if not values: raise SystemExit("no available iPhone Simulator device type")
+          preferred = [item for item in values if "Pro" in item["name"]]
+          print((preferred or values)[-1]["identifier"])
+          ')"
+          udid="$(xcrun simctl create "Vulpra-CI-$GITHUB_RUN_ID" "$device_type" "$runtime")"
+          cleanup() { xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true; xcrun simctl delete "$udid" >/dev/null 2>&1 || true; }
+          trap cleanup EXIT
+
+          xcrun simctl boot "$udid"
+          xcrun simctl bootstatus "$udid" -b
+          xcrun simctl install "$udid" "$app"
+
+          {
+            sudo -n /usr/sbin/DevToolsSecurity -enable
+            sudo -n xcrun lldb --batch -o "version" -o "quit"
+          } 2>&1 | tee simulator-lldb-warmup.log
+
+          xcrun simctl launch --wait-for-debugger "$udid" com.vulpra.browser 2>&1 | tee simulator-launch.log
+          pid="$(awk -F ': ' '/com\.vulpra\.browser:/ { print $2 }' simulator-launch.log | tail -n 1)"
+          [[ "$pid" =~ ^[0-9]+$ ]]
+
+          set +e
+          sudo -n xcrun lldb --batch \
+            -o "process attach --pid $pid" \
+            -o 'script print("VULPRA_LLDB_ATTACHED", flush=True)' \
+            -o "process handle -s true -n true -p false SIGSEGV" \
+            -o 'script import lldb; lldb.debugger.SetAsync(True)' \
+            -o "continue" \
+            -o 'script
+import lldb, time
+time.sleep(20)
+process = lldb.debugger.GetSelectedTarget().GetProcess()
+state = process.GetState()
+running = state == lldb.eStateRunning
+print(f"VULPRA_LLDB_WAS_RUNNING={int(running)}", flush=True)
+# Prefer interrupt over hard stop so busy Gecko launch is not a false failure.
+if running:
+    process.SendAsyncInterrupt()
+    for _ in range(50):
+        time.sleep(0.1)
+        if process.GetState() != lldb.eStateRunning:
+            break
+' \
+            -o "process detach" \
+            2>&1 | tee simulator-lldb.log
+          lldb_status=${PIPESTATUS[0]}
+          set -e
+
+          sleep 1
+          xcrun simctl io "$udid" screenshot simulator-launch.png
+
+          set +e
+          xcrun simctl terminate "$udid" com.vulpra.browser 2>&1 | tee simulator-terminate.log
+          terminate_status=${PIPESTATUS[0]}
+          set -e
+          xcrun simctl spawn "$udid" log show \
+            --last 3m --style compact --info --debug \
+            --predicate 'process == "Vulpra" OR senderImagePath CONTAINS[c] "Vulpra" OR eventMessage CONTAINS[c] "Vulpra" OR eventMessage CONTAINS[c] "com.vulpra.browser"' \
+            > simulator-system.log 2>&1 || true
+          find "$HOME/Library/Logs/DiagnosticReports" -type f \
+            \( -name 'Vulpra*.crash' -o -name 'Vulpra*.ips' \) -mmin -10 \
+            -exec cp {} . \; 2>/dev/null || true
+          if ! grep -Fq 'VULPRA_LLDB_ATTACHED' simulator-lldb.log; then
+            echo "LLDB never attached to Vulpra (status=$lldb_status)" >&2
+            exit 1
+          fi
+          if grep -Eq 'stop reason = .*SIGSEGV|EXC_BAD_ACCESS' simulator-lldb.log; then
+            echo "Vulpra stopped under LLDB with a segmentation fault" >&2
+            exit 1
+          fi
+          if ! grep -Fq 'VULPRA_LLDB_WAS_RUNNING=1' simulator-lldb.log; then
+            echo "Vulpra was not running at the end of the LLDB survival window" >&2
+            exit 1
+          fi
+          # Survival is authoritative. LLDB halt timeout while still running is not a crash.
+          if grep -Fq 'VULPRA_LLDB_WAS_RUNNING=1' simulator-lldb.log; then
+            echo "Vulpra survived the launch gate (lldb=$lldb_status terminate=$terminate_status)"
+            exit 0
+          fi
+          echo "Vulpra did not survive the LLDB launch gate (lldb=$lldb_status terminate=$terminate_status)" >&2
+          exit 1
+
+      - name: Upload Simulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-simulator-launch-${{ github.run_id }}
+          path: |
+            simulator-*.log
+            simulator-launch.png
+            Vulpra*.crash
+            Vulpra*.ips
+          if-no-files-found: warn
+          retention-days: 14
