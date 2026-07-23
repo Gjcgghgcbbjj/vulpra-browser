@@ -63,6 +63,18 @@ jobs:
           set -euo pipefail
           firefox_sha="$(git ls-tree HEAD Vendor/firefox | awk '{print $3}')"
           test -n "$firefox_sha"
+          source_tree="$(mktemp -d)"
+          mkdir -p "$source_tree/toolkit/xre" "$source_tree/widget/uikit"
+          curl --fail --location --retry 4 --silent --show-error \
+            "https://raw.githubusercontent.com/mozilla-firefox/firefox/$firefox_sha/toolkit/xre/IOSBootstrap.h" \
+            --output "$source_tree/toolkit/xre/IOSBootstrap.h"
+          curl --fail --location --retry 4 --silent --show-error \
+            "https://raw.githubusercontent.com/mozilla-firefox/firefox/$firefox_sha/widget/uikit/GeckoViewSwiftSupport.h" \
+            --output "$source_tree/widget/uikit/GeckoViewSwiftSupport.h"
+          patch -d "$source_tree" -p1 < Patches/toolkit/xre/IOSBootstrap.h.patch
+          patch -d "$source_tree" -p1 < Patches/widget/uikit/GeckoViewSwiftSupport.h.patch
+          patch -d "$source_tree" -p1 < Patches/widget/uikit/GeckoViewRuntimeSupport.h.patch
+
           include=Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView
           mkdir -p "$include"
           while read -r source target; do
@@ -70,13 +82,12 @@ jobs:
             if [ -L "$destination" ]; then
               unlink "$destination"
             fi
-            curl --fail --location --retry 4 --silent --show-error \
-              "https://raw.githubusercontent.com/mozilla-firefox/firefox/$firefox_sha/$source" \
-              --output "$destination"
+            cp "$source_tree/$source" "$destination"
             test -s "$destination"
           done <<'EOF'
           toolkit/xre/IOSBootstrap.h IOSBootstrap.h
           widget/uikit/GeckoViewSwiftSupport.h GeckoViewSwiftSupport.h
+          widget/uikit/GeckoViewRuntimeSupport.h GeckoViewRuntimeSupport.h
           EOF
 
           theme=Vendor/firefox/toolkit/mozapps/extensions/default-theme

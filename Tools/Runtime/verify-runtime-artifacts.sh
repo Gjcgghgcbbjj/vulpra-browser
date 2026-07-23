@@ -31,6 +31,7 @@ require_file() {
 require_file "$GECKO_DIST/bin/XUL"
 require_file "$GECKO_DIST/include/GeckoView/IOSBootstrap.h"
 require_file "$GECKO_DIST/include/GeckoView/GeckoViewSwiftSupport.h"
+require_file "$GECKO_DIST/include/GeckoView/GeckoViewRuntimeSupport.h"
 require_file "$IDEVICE_ARCHIVE"
 
 found_dylib=0

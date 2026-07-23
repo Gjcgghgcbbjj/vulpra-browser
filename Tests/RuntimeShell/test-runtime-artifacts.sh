@@ -71,6 +71,7 @@ printf xul > "$fixture/Vendor/firefox/obj-aarch64-apple-ios/dist/bin/XUL"
 printf dylib > "$fixture/Vendor/firefox/obj-aarch64-apple-ios/dist/bin/libfixture.dylib"
 printf header > "$fixture/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/IOSBootstrap.h"
 printf header > "$fixture/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/GeckoViewSwiftSupport.h"
+printf header > "$fixture/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/GeckoViewRuntimeSupport.h"
 printf theme > "$fixture/Vendor/firefox/toolkit/mozapps/extensions/default-theme/theme.css"
 printf archive > "$fixture/.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a"
 VULPRA_ROOT_DIR="$fixture" "$ROOT/Tools/Runtime/verify-runtime-artifacts.sh" >/dev/null ||
@@ -89,6 +90,7 @@ printf xul > "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/bin/XUL"
 printf dylib > "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/bin/libfixture.dylib"
 printf header > "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView/IOSBootstrap.h"
 printf header > "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView/GeckoViewSwiftSupport.h"
+printf header > "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView/GeckoViewRuntimeSupport.h"
 printf archive > "$fixture/.build/idevice/aarch64-apple-ios-sim/release/libidevice_ffi.a"
 PLATFORM_NAME=iphonesimulator VULPRA_ROOT_DIR="$fixture" \
 	"$ROOT/Tools/Runtime/verify-runtime-artifacts.sh" >/dev/null ||

@@ -35,6 +35,9 @@ def main() -> None:
         "actions/upload-artifact@v4",
         "toolkit/xre/IOSBootstrap.h",
         "widget/uikit/GeckoViewSwiftSupport.h",
+        "Patches/toolkit/xre/IOSBootstrap.h.patch",
+        "Patches/widget/uikit/GeckoViewSwiftSupport.h.patch",
+        "Patches/widget/uikit/GeckoViewRuntimeSupport.h.patch",
     ):
         require(token in text, f"simulator launch workflow missing {token}")
     for forbidden in (

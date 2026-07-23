@@ -18,7 +18,7 @@ SOURCE_DIR="$ROOT_DIR/Vendor/firefox/obj-$TARGET_TRIPLE/dist/include/GeckoView"
 OUTPUT_DIR="$ROOT_DIR/.build/runtime-headers/GeckoView"
 mkdir -p "$OUTPUT_DIR"
 
-for name in IOSBootstrap.h GeckoViewSwiftSupport.h; do
+for name in IOSBootstrap.h GeckoViewSwiftSupport.h GeckoViewRuntimeSupport.h; do
 	source="$SOURCE_DIR/$name"
 	output="$OUTPUT_DIR/$name"
 	[ -s "$source" ] || {

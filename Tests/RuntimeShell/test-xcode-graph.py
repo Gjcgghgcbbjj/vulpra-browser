@@ -116,7 +116,7 @@ def main() -> None:
         "path = .build/runtime-headers/GeckoView;",
         "publicHeaders = (ExtensionBridge.h, );",
         "publicHeaders = (Utils.h, );",
-        "publicHeaders = (GeckoViewSwiftSupport.h, IOSBootstrap.h, );",
+        "publicHeaders = (GeckoViewRuntimeSupport.h, GeckoViewSwiftSupport.h, IOSBootstrap.h, );",
     )
     for token in required_tokens:
         require(token in text, f"missing graph contract: {token}")
