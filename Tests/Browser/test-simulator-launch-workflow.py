@@ -23,6 +23,7 @@ def main() -> None:
         "runs-on: macos-26",
         "vulpra-gecko-simulator-",
         "build-idevice.sh aarch64-apple-ios-sim",
+        "prepare-runtime-headers.sh",
         "generic/platform=iOS Simulator",
         "xcrun simctl create",
         "xcrun simctl bootstatus",

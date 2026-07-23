@@ -95,6 +95,7 @@ jobs:
           git submodule update --init --depth 1 Vendor/idevice
           ./Tools/Gecko/build-idevice.sh aarch64-apple-ios-sim 2>&1 | tee simulator-idevice.log
           PLATFORM_NAME=iphonesimulator ./Tools/Runtime/verify-runtime-artifacts.sh | tee simulator-runtime-verification.log
+          PLATFORM_NAME=iphonesimulator ./Tools/Runtime/prepare-runtime-headers.sh | tee simulator-runtime-headers.log
 
       - name: Build the real Vulpra application for Simulator
         shell: bash

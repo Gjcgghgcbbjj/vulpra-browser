@@ -14,6 +14,7 @@ require_file() {
 
 for path in \
 	Tools/Runtime/check-macos-prerequisites.sh \
+	Tools/Runtime/prepare-runtime-headers.sh \
 	Tools/Runtime/verify-runtime-artifacts.sh \
 	Tools/Runtime/build-runtime-substrate.sh; do
 	require_file "$path"
@@ -74,6 +75,11 @@ printf theme > "$fixture/Vendor/firefox/toolkit/mozapps/extensions/default-theme
 printf archive > "$fixture/.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a"
 VULPRA_ROOT_DIR="$fixture" "$ROOT/Tools/Runtime/verify-runtime-artifacts.sh" >/dev/null ||
 	fail "valid runtime artifact fixture was rejected"
+VULPRA_ROOT_DIR="$fixture" "$ROOT/Tools/Runtime/prepare-runtime-headers.sh" >/dev/null ||
+	fail "valid device runtime headers were not staged"
+cmp "$fixture/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/IOSBootstrap.h" \
+	"$fixture/.build/runtime-headers/GeckoView/IOSBootstrap.h" >/dev/null ||
+	fail "staged device runtime header differs from its canonical artifact"
 
 mkdir -p \
 	"$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/bin" \
@@ -87,6 +93,12 @@ printf archive > "$fixture/.build/idevice/aarch64-apple-ios-sim/release/libidevi
 PLATFORM_NAME=iphonesimulator VULPRA_ROOT_DIR="$fixture" \
 	"$ROOT/Tools/Runtime/verify-runtime-artifacts.sh" >/dev/null ||
 	fail "valid simulator runtime artifact fixture was rejected"
+PLATFORM_NAME=iphonesimulator VULPRA_ROOT_DIR="$fixture" \
+	"$ROOT/Tools/Runtime/prepare-runtime-headers.sh" >/dev/null ||
+	fail "valid simulator runtime headers were not staged"
+cmp "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView/GeckoViewSwiftSupport.h" \
+	"$fixture/.build/runtime-headers/GeckoView/GeckoViewSwiftSupport.h" >/dev/null ||
+	fail "staged simulator runtime header differs from its canonical artifact"
 
 rm -f "$fixture/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/IOSBootstrap.h"
 if VULPRA_ROOT_DIR="$fixture" "$ROOT/Tools/Runtime/verify-runtime-artifacts.sh" >"$prerequisite_output" 2>&1; then

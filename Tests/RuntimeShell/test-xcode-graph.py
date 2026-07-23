@@ -113,10 +113,10 @@ def main() -> None:
         "path = Extensions/GeckoView;",
         "path = Extensions/Helper;",
         "path = Extensions/OpenIn;",
-        "path = Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView;",
+        "path = .build/runtime-headers/GeckoView;",
         "publicHeaders = (ExtensionBridge.h, );",
         "publicHeaders = (Utils.h, );",
-        "publicHeaders = (GeckoViewRuntimeSupport.h, GeckoViewSwiftSupport.h, IOSBootstrap.h, );",
+        "publicHeaders = (GeckoViewSwiftSupport.h, IOSBootstrap.h, );",
     )
     for token in required_tokens:
         require(token in text, f"missing graph contract: {token}")
