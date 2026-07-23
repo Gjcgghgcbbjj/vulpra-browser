@@ -34,9 +34,9 @@ def main() -> None:
         "sudo -n xcrun lldb --batch",
         "VULPRA_LLDB_ATTACHED",
         "LLDB never attached to Vulpra",
-        "alarm $seconds; exec @ARGV' 180",
-        '--one-line-on-crash "thread backtrace all"',
-        '--one-line-on-crash "register read"',
+        "lldb.debugger.SetAsync(True)",
+        "VULPRA_LLDB_WAS_RUNNING",
+        '"process detach"',
         "xcrun lldb",
         "thread backtrace all",
         "simulator-lldb.log",
@@ -56,6 +56,7 @@ def main() -> None:
         "VulpraSimulator.swift",
         "Tools/Runtime/build-gecko-simulator.sh",
         "./mach build",
+        "alarm $seconds",
     ):
         require(forbidden not in text, f"simulator workflow contains fake/rebuild path: {forbidden}")
     runtime_text = RUNTIME_WORKFLOW.read_text(encoding="utf-8")

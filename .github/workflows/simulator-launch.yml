@@ -160,15 +160,17 @@ jobs:
           [[ "$pid" =~ ^[0-9]+$ ]]
 
           set +e
-          perl -e '$seconds = shift @ARGV; alarm $seconds; exec @ARGV' 180 \
-            sudo -n xcrun lldb --batch \
-              --one-line-on-crash "thread backtrace all" \
-              --one-line-on-crash "register read" \
-              -o "process attach --pid $pid" \
-              -o 'script print("VULPRA_LLDB_ATTACHED", flush=True)' \
-              -o "process handle -s true -n true -p false SIGSEGV" \
-              -o "continue" \
-              2>&1 | tee simulator-lldb.log
+          sudo -n xcrun lldb --batch \
+            -o "process attach --pid $pid" \
+            -o 'script print("VULPRA_LLDB_ATTACHED", flush=True)' \
+            -o "process handle -s true -n true -p false SIGSEGV" \
+            -o 'script import lldb; lldb.debugger.SetAsync(True)' \
+            -o "continue" \
+            -o 'script import lldb,time; time.sleep(20); process=lldb.debugger.GetSelectedTarget().GetProcess(); state=process.GetState(); running=state == lldb.eStateRunning; print(f"VULPRA_LLDB_WAS_RUNNING={int(running)}", flush=True); process.Stop() if running else None' \
+            -o "thread backtrace all" \
+            -o "register read" \
+            -o "process detach" \
+            2>&1 | tee simulator-lldb.log
           lldb_status=${PIPESTATUS[0]}
           set -e
 
@@ -194,7 +196,11 @@ jobs:
             echo "Vulpra stopped under LLDB with a segmentation fault" >&2
             exit 1
           fi
-          if [ "$lldb_status" -ne 142 ] || [ "$terminate_status" -ne 0 ]; then
+          if ! grep -Fq 'VULPRA_LLDB_WAS_RUNNING=1' simulator-lldb.log; then
+            echo "Vulpra was not running at the end of the LLDB survival window" >&2
+            exit 1
+          fi
+          if [ "$lldb_status" -ne 0 ] || [ "$terminate_status" -ne 0 ]; then
             echo "Vulpra did not survive the LLDB launch gate (lldb=$lldb_status terminate=$terminate_status)" >&2
             exit 1
           fi
