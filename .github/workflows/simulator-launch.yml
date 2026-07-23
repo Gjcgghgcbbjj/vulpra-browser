@@ -57,12 +57,28 @@ jobs:
           tar -xzf "$stage/payload/gecko-simulator-runtime.tar.gz" -C Vendor/firefox
           test -s Vendor/firefox/obj-aarch64-apple-ios-sim/dist/bin/XUL
 
-      - name: Restore pinned default theme resources
+      - name: Materialize pinned Gecko headers and default theme
         shell: bash
         run: |
           set -euo pipefail
           firefox_sha="$(git ls-tree HEAD Vendor/firefox | awk '{print $3}')"
           test -n "$firefox_sha"
+          include=Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView
+          mkdir -p "$include"
+          while read -r source target; do
+            destination="$include/$target"
+            if [ -L "$destination" ]; then
+              unlink "$destination"
+            fi
+            curl --fail --location --retry 4 --silent --show-error \
+              "https://raw.githubusercontent.com/mozilla-firefox/firefox/$firefox_sha/$source" \
+              --output "$destination"
+            test -s "$destination"
+          done <<'EOF'
+          toolkit/xre/IOSBootstrap.h IOSBootstrap.h
+          widget/uikit/GeckoViewSwiftSupport.h GeckoViewSwiftSupport.h
+          EOF
+
           theme=Vendor/firefox/toolkit/mozapps/extensions/default-theme
           mkdir -p "$theme"
           for name in icon.svg manifest.json preview.svg; do

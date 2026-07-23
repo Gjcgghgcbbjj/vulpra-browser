@@ -27,6 +27,8 @@ grep -Fq 'OUTPUT_LIB="$CARGO_TARGET_DIR/$RUST_TARGET/release/libidevice_ffi.a"' 
 	fail "idevice output is not target-scoped under the canonical build root"
 grep -Fq 'aarch64-apple-ios-sim' "$ROOT/Tools/Gecko/build-idevice.sh" ||
 	fail "idevice producer does not support the simulator target"
+grep -Fq 'export IPHONEOS_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET"' "$ROOT/Tools/Gecko/build-idevice.sh" ||
+	fail "idevice producer does not pass the canonical iOS deployment target to rustc"
 if grep -Fq 'Modules/VulpraRuntime/JIT/RPPairing/libidevice_ffi.a' "$ROOT/Tools/Gecko/build-idevice.sh"; then
 	fail "idevice producer still writes under Modules"
 fi

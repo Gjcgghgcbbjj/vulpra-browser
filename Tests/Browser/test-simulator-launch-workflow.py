@@ -7,6 +7,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW = ROOT / ".github" / "workflows" / "simulator-launch.yml"
+RUNTIME_WORKFLOW = ROOT / ".github" / "workflows" / "build-simulator-runtime.yml"
 
 
 def require(condition: bool, message: str) -> None:
@@ -31,6 +32,8 @@ def main() -> None:
         "simulator-system.log",
         "simulator-launch.png",
         "actions/upload-artifact@v4",
+        "toolkit/xre/IOSBootstrap.h",
+        "widget/uikit/GeckoViewSwiftSupport.h",
     ):
         require(token in text, f"simulator launch workflow missing {token}")
     for forbidden in (
@@ -40,6 +43,11 @@ def main() -> None:
         "./mach build",
     ):
         require(forbidden not in text, f"simulator workflow contains fake/rebuild path: {forbidden}")
+    runtime_text = RUNTIME_WORKFLOW.read_text(encoding="utf-8")
+    require(
+        "tar -C Vendor/firefox -cLzf gecko-simulator-runtime.tar.gz" in runtime_text,
+        "Simulator runtime artifact does not dereference Gecko header symlinks",
+    )
     print("PASS: real iOS Simulator launch workflow contract")
 
 

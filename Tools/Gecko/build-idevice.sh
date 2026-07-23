@@ -17,10 +17,10 @@ DEPLOYMENT_TARGET="15.0"
 }
 
 RUST_TARGET="${1:-aarch64-apple-ios}"
+export IPHONEOS_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET"
 case "$RUST_TARGET" in
 	aarch64-apple-ios)
 		DEPLOYMENT_FLAG="-miphoneos-version-min=${DEPLOYMENT_TARGET}"
-		export IPHONEOS_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET"
 		;;
 	aarch64-apple-ios-sim)
 		DEPLOYMENT_FLAG="-mios-simulator-version-min=${DEPLOYMENT_TARGET}"
