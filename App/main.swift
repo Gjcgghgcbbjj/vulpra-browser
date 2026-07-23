@@ -86,6 +86,8 @@ if #unavailable(iOS 14.0),
 RuntimeJITCoordinator.shared.start()
 vulpraStartupMarker("jit-started")
 #endif
+GeckoEngineGate.armFromStartup()
+vulpraStartupMarker("engine-gate-armed")
 vulpraStartupMarker("gecko-main-enter")
 GeckoRuntime.main(argc: CommandLine.argc, argv: CommandLine.unsafeArgv)
 #endif

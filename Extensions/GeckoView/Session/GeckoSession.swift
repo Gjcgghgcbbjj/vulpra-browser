@@ -33,9 +33,9 @@ public class GeckoSession {
 
     public func updateSettings(_ settings: GeckoSessionSettings) {
         self.settings = settings
-        GeckoRuntime.setLocale(acceptLanguages: settings.language.acceptLanguages)
-
         guard isOpen() else { return }
+
+        GeckoRuntime.setLocale(acceptLanguages: settings.language.acceptLanguages)
 
         dispatcher.dispatch(
             type: "GeckoView:UpdateSettings",
@@ -156,8 +156,17 @@ public class GeckoSession {
             return
         }
 
-        // GeckoView window creation must run on the main thread. Opening off-main
-        // (or before JS globals exist) crashes in AutoJSAPI::Init with a null JSObject.
+        // Always honor the engine gate — BrowserTab is not the only open caller
+        // (NavigationDelegate / windowID paths can open sessions too).
+        if !GeckoEngineGate.isReady {
+            let requested = windowId
+            GeckoEngineGate.whenReady { [weak self] in
+                self?.open(windowId: requested)
+            }
+            return
+        }
+
+        // GeckoView window creation must run on the main thread.
         if !Thread.isMainThread {
             DispatchQueue.main.sync {
                 self.open(windowId: windowId)
@@ -209,8 +218,6 @@ public class GeckoSession {
             return
         }
 
-        // Apply locale only after a real window exists so setLocale cannot race
-        // AutoJSAPI against a half-initialized global.
         GeckoRuntime.setLocale(acceptLanguages: sessionSettings.language.acceptLanguages)
 
         if let engineView = window.view() {

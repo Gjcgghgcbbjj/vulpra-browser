@@ -41,12 +41,15 @@ public class GeckoRuntime {
     }
 
     public static func setLocale(acceptLanguages: String) {
-        GeckoEventDispatcherWrapper.runtimeInstance.dispatch(
-            type: "GeckoView:SetLocale",
-            message: [
-                "acceptLanguages": acceptLanguages
-            ]
-        )
+        let languages = acceptLanguages
+        GeckoEngineGate.whenReady {
+            GeckoEventDispatcherWrapper.runtimeInstance.dispatch(
+                type: "GeckoView:SetLocale",
+                message: [
+                    "acceptLanguages": languages
+                ]
+            )
+        }
     }
 
     public static func main(
