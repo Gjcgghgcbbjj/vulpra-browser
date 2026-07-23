@@ -40,6 +40,7 @@ PRODUCT_WORKFLOWS = {
     Path(".github/workflows/build-ios-packages.yml"),
     Path(".github/workflows/build-runtime-substrate.yml"),
     Path(".github/workflows/build-simulator-runtime.yml"),
+    Path(".github/workflows/simulator-launch.yml"),
 }
 
 DERIVED_ROOTS = (

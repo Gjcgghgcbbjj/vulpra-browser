@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "known-working-control-falsifier-2026-07-23",
+  "type": "differential-device-evidence",
+  "source": "/mnt/c/Users/niting/Desktop/Vulpra-Diagnostic-Control/01-Known-Working-Vulpra.tipa and user physical-device result",
+  "summary": "The historical control remains byte-identical at SHA-256 e134fb36fb07ce93738a9c1bee8da12baf522e985d37e131e92a629eeb146c1b but now immediately exits on the same device. This falsifies current-client-only regression as the primary hypothesis and elevates shared app-container or TrollStore/device state.",
+  "verifier": "local sha256sum plus user physical-device launch result"
+}

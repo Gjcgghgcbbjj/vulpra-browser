@@ -174,8 +174,10 @@ for script in apply-patches.sh create-patches.sh update-gecko.sh; do
 done
 grep -Fq 'Vendor/idevice' "$ROOT/Tools/Gecko/build-idevice.sh" ||
 	fail "idevice path was not ported"
-grep -Fq '.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a' "$ROOT/Tools/Gecko/build-idevice.sh" ||
-	fail "idevice output path is not the generated-artifact owner"
+grep -Fq 'CARGO_TARGET_DIR="$REPO_ROOT/.build/idevice"' "$ROOT/Tools/Gecko/build-idevice.sh" ||
+	fail "idevice output root is not the generated-artifact owner"
+grep -Fq 'OUTPUT_LIB="$CARGO_TARGET_DIR/$RUST_TARGET/release/libidevice_ffi.a"' "$ROOT/Tools/Gecko/build-idevice.sh" ||
+	fail "idevice output is not scoped by its Rust target"
 if grep -Fq 'Modules/VulpraRuntime/JIT/RPPairing/libidevice_ffi.a' "$ROOT/Tools/Gecko/build-idevice.sh"; then
 	fail "idevice producer still writes generated output under maintained modules"
 fi

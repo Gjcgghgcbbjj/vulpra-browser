@@ -1,20 +1,20 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-23-vulpra-first-integration",
-  "currentTodo": "obtain physical-device launch result for startup-repair package 29981831300",
+  "currentTodo": "isolate the current device-wide launch failure with a known-working fresh-container probe and real Simulator launch evidence",
   "completedTodos": [
-    "falsified GeckoView/Helper runpath hypothesis with a locally repacked device test",
-    "identified startup JIT activation as the only build-time launch difference in the last bootable run logs",
-    "removed RuntimeJITCoordinator from App/main.swift and passed the full portable gate",
-    "built and verified run 29981831300 and replaced the Windows desktop packages"
+    "confirmed the exact known-working TIPA still hashes to e134fb36fb07ce93738a9c1bee8da12baf522e985d37e131e92a629eeb146c1b",
+    "received device evidence that both the known-working control and current package now immediately exit under the same bundle identity",
+    "added byte-verified clean-container repackaging and real iOS Simulator launch workflows without changing App startup code",
+    "passed the full portable startup-diagnostic gate"
   ],
-  "activeSlice": "physical-device verification of direct Gecko startup",
+  "activeSlice": "push and execute clean-container and Simulator diagnostics",
   "evidenceRefs": [
-    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-root-cause-2026-07-23.json",
-    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-repair-29981831300.json",
-    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29981831300.json"
+    "Tests/Browser/test-clean-container-probe-workflow.py",
+    "Tests/Browser/test-simulator-launch-workflow.py",
+    "evidence-bundle-draft-known-working-control-falsifier-2026-07-23.json"
   ],
-  "blockedOn": "user installation and launch result on physical iOS device",
-  "nextStep": "install Vulpra-Fixed-29981831300/Vulpra-TrollStore.tipa and report whether it remains open",
+  "blockedOn": "fresh GitHub workflow results and subsequent physical-device launch of the clean-container probe",
+  "nextStep": "commit and push the diagnostic workflows, dispatch both runs, then inspect their terminal evidence",
   "updatedAt": "2026-07-23"
 }

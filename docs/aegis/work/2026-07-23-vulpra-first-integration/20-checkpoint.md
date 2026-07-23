@@ -157,3 +157,28 @@ Updated: `2026-07-23`
 - New risk signals:
 - Physical-device launch and Gecko page-process behavior for run 29981831300 remain unverified.
 - Advisory decision: needs-verification
+
+## Checkpoint Update
+
+- Current todo: isolate the current device-wide launch failure with a known-working fresh-container probe and real Simulator launch evidence
+- Active slice: push and execute clean-container and Simulator diagnostics
+- Completed todos:
+- confirmed the exact known-working TIPA still hashes to e134fb36fb07ce93738a9c1bee8da12baf522e985d37e131e92a629eeb146c1b
+- received device evidence that both the known-working control and current package now immediately exit under the same bundle identity
+- added byte-verified clean-container repackaging and real iOS Simulator launch workflows without changing App startup code
+- passed the full portable startup-diagnostic gate
+- Evidence refs:
+- Tests/Browser/test-clean-container-probe-workflow.py
+- Tests/Browser/test-simulator-launch-workflow.py
+- evidence-bundle-draft-known-working-control-falsifier-2026-07-23.json
+- Blocked on: fresh GitHub workflow results and subsequent physical-device launch of the clean-container probe
+- Next step: commit and push the diagnostic workflows, dispatch both runs, then inspect their terminal evidence
+
+## DriftCheckDraft
+
+- Scope status: Diagnosis remains Vulpra-first and changes only CI diagnostics plus target-scoped Simulator substrate production.
+- Compatibility status: Formal product remains iOS 15 arm64 com.vulpra.browser; the cleanprobe identifier is an isolated diagnostic package with a fresh container.
+- Retirement status: No App fallback or duplicate startup owner was added; clean-container probe workflow can be retired after the device boundary is classified.
+- New risk signals:
+- The exact historical package now fails on device, so shared container state or TrollStore/device state is more likely than current client code.
+- Advisory decision: continue

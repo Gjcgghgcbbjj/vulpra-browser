@@ -23,8 +23,10 @@ grep -Fq 'enable-ios-target=15.0' "$ROOT/Tools/Gecko/build-gecko.sh" ||
 	fail "Gecko deployment target is not 15.0"
 grep -Fq 'DEPLOYMENT_TARGET="15.0"' "$ROOT/Tools/Gecko/build-idevice.sh" ||
 	fail "idevice deployment target is not 15.0"
-grep -Fq '.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a' "$ROOT/Tools/Gecko/build-idevice.sh" ||
-	fail "idevice output is not canonical"
+grep -Fq 'OUTPUT_LIB="$CARGO_TARGET_DIR/$RUST_TARGET/release/libidevice_ffi.a"' "$ROOT/Tools/Gecko/build-idevice.sh" ||
+	fail "idevice output is not target-scoped under the canonical build root"
+grep -Fq 'aarch64-apple-ios-sim' "$ROOT/Tools/Gecko/build-idevice.sh" ||
+	fail "idevice producer does not support the simulator target"
 if grep -Fq 'Modules/VulpraRuntime/JIT/RPPairing/libidevice_ffi.a' "$ROOT/Tools/Gecko/build-idevice.sh"; then
 	fail "idevice producer still writes under Modules"
 fi
@@ -70,6 +72,19 @@ printf theme > "$fixture/Vendor/firefox/toolkit/mozapps/extensions/default-theme
 printf archive > "$fixture/.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a"
 VULPRA_ROOT_DIR="$fixture" "$ROOT/Tools/Runtime/verify-runtime-artifacts.sh" >/dev/null ||
 	fail "valid runtime artifact fixture was rejected"
+
+mkdir -p \
+	"$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/bin" \
+	"$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView" \
+	"$fixture/.build/idevice/aarch64-apple-ios-sim/release"
+printf xul > "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/bin/XUL"
+printf dylib > "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/bin/libfixture.dylib"
+printf header > "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView/IOSBootstrap.h"
+printf header > "$fixture/Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView/GeckoViewSwiftSupport.h"
+printf archive > "$fixture/.build/idevice/aarch64-apple-ios-sim/release/libidevice_ffi.a"
+PLATFORM_NAME=iphonesimulator VULPRA_ROOT_DIR="$fixture" \
+	"$ROOT/Tools/Runtime/verify-runtime-artifacts.sh" >/dev/null ||
+	fail "valid simulator runtime artifact fixture was rejected"
 
 rm -f "$fixture/Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView/IOSBootstrap.h"
 if VULPRA_ROOT_DIR="$fixture" "$ROOT/Tools/Runtime/verify-runtime-artifacts.sh" >"$prerequisite_output" 2>&1; then

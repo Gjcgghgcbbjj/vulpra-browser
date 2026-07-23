@@ -119,3 +119,19 @@ Machine-readable evidence:
 - Source: /mnt/c/Users/niting/Desktop/Vulpra-Fixed-29981831300 and Vulpra-Fixed-29944288468
 - Summary: The repaired packages and SHA256SUMS were atomically copied to the new run folder and the previously used desktop folder; both checksum checks passed and the TIPA archive passed unzip integrity.
 - Verifier: sha256sum -c and unzip -t, exit 0
+
+## EvidenceBundleDraft
+
+- Artifact key: known-working-control-falsifier-2026-07-23
+- Type: differential-device-evidence
+- Source: /mnt/c/Users/niting/Desktop/Vulpra-Diagnostic-Control/01-Known-Working-Vulpra.tipa and user physical-device result
+- Summary: The historical control remains byte-identical at SHA-256 e134fb36fb07ce93738a9c1bee8da12baf522e985d37e131e92a629eeb146c1b but now immediately exits on the same device. This falsifies current-client-only regression as the primary hypothesis and elevates shared app-container or TrollStore/device state.
+- Verifier: local sha256sum plus user physical-device launch result
+
+## EvidenceBundleDraft
+
+- Artifact key: startup-diagnostics-portable-gate-2026-07-23
+- Type: command-output
+- Source: Bootstrap, Ownership, RuntimeShell, Browser, shell syntax, Python byte compilation, YAML parsing, and git diff checks
+- Summary: All portable gates passed after adding target-scoped Simulator artifacts, a real simctl launch workflow, and a known-working clean-container probe. No App source or startup fallback was added.
+- Verifier: root Codex session, fresh command exit 0

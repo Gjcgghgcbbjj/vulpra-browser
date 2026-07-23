@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "startup-diagnostics-portable-gate-2026-07-23",
+  "type": "command-output",
+  "source": "Bootstrap, Ownership, RuntimeShell, Browser, shell syntax, Python byte compilation, YAML parsing, and git diff checks",
+  "summary": "All portable gates passed after adding target-scoped Simulator artifacts, a real simctl launch workflow, and a known-working clean-container probe. No App source or startup fallback was added.",
+  "verifier": "root Codex session, fresh command exit 0"
+}

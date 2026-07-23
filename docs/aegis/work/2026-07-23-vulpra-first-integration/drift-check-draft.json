@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/baseline/2026-07-23-vulpra-first-portable-baseline.md"
   ],
-  "scopeStatus": "Vulpra remains the sole product owner; the repair removes one startup path and adds no product fallback.",
-  "compatStatus": "iOS 15.0, arm64, bundle identities, engine artifact, UI, persistence, and package shape remain unchanged.",
-  "retirementStatus": "Startup activation of RuntimeJITCoordinator is retired; its staged source remains inactive until page-process/JIT behavior is separately device-verified.",
+  "scopeStatus": "Diagnosis remains Vulpra-first and changes only CI diagnostics plus target-scoped Simulator substrate production.",
+  "compatStatus": "Formal product remains iOS 15 arm64 com.vulpra.browser; the cleanprobe identifier is an isolated diagnostic package with a fresh container.",
+  "retirementStatus": "No App fallback or duplicate startup owner was added; clean-container probe workflow can be retired after the device boundary is classified.",
   "newRiskSignals": [
-    "Physical-device launch and Gecko page-process behavior for run 29981831300 remain unverified."
+    "The exact historical package now fails on device, so shared container state or TrollStore/device state is more likely than current client code."
   ],
-  "decision": "needs-verification"
+  "decision": "continue"
 }

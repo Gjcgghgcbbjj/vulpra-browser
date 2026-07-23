@@ -4,8 +4,20 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 DEFAULT_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)
 ROOT_DIR=${VULPRA_ROOT_DIR:-$DEFAULT_ROOT}
-GECKO_DIST="$ROOT_DIR/Vendor/firefox/obj-aarch64-apple-ios/dist"
-IDEVICE_ARCHIVE="$ROOT_DIR/.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a"
+case "${PLATFORM_NAME:-iphoneos}" in
+	iphonesimulator)
+		TARGET_TRIPLE=aarch64-apple-ios-sim
+		;;
+	iphoneos|'')
+		TARGET_TRIPLE=aarch64-apple-ios
+		;;
+	*)
+		echo "Unsupported Apple platform: ${PLATFORM_NAME}" >&2
+		exit 64
+		;;
+esac
+GECKO_DIST="$ROOT_DIR/Vendor/firefox/obj-$TARGET_TRIPLE/dist"
+IDEVICE_ARCHIVE="$ROOT_DIR/.build/idevice/$TARGET_TRIPLE/release/libidevice_ffi.a"
 DEFAULT_THEME="$ROOT_DIR/Vendor/firefox/toolkit/mozapps/extensions/default-theme"
 
 missing=0

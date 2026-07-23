@@ -1,0 +1,165 @@
+name: Build Known-Working Clean-Container Probe
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  repackage:
+    name: Repackage known-working Vulpra with a fresh app container
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_RUN_ID: "29946679556"
+      SOURCE_ARTIFACT: vulpra-ios-test-29946679556
+      SOURCE_SHA256: e134fb36fb07ce93738a9c1bee8da12baf522e985d37e131e92a629eeb146c1b
+      PROBE_APP_ID: com.vulpra.browser.cleanprobe
+      PROBE_GECKOVIEW_ID: com.vulpra.browser.cleanprobe.geckoview
+      PROBE_HELPER_ID: com.vulpra.browser.cleanprobe.helper
+      PROBE_OPENIN_ID: com.vulpra.browser.cleanprobe.open-in
+
+    steps:
+      - name: Download the byte-verified known-working package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p source
+          gh run download "$SOURCE_RUN_ID" \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$SOURCE_ARTIFACT" \
+            --dir source
+          test -s source/Vulpra-TrollStore.tipa
+          actual="$(shasum -a 256 source/Vulpra-TrollStore.tipa | awk '{print $1}')"
+          test "$actual" = "$SOURCE_SHA256"
+          printf 'source_run=%s\nsource_sha256=%s\n' "$SOURCE_RUN_ID" "$actual" > probe-metadata.txt
+
+      - name: Install signing dependency
+        shell: bash
+        run: brew install ldid
+
+      - name: Assign a fresh bundle identity and sandbox container
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p stage entitlements dist
+          ditto -x -k source/Vulpra-TrollStore.tipa stage
+          app="$PWD/stage/Payload/Vulpra.app"
+          helper="$app/PlugIns/Vulpra Helper.appex/Vulpra Helper"
+          test -x "$app/Vulpra"
+          test -x "$helper"
+          test -x "$app/PlugIns/OpenIn.appex/OpenIn"
+          test -x "$app/Frameworks/GeckoView.framework/GeckoView"
+
+          ldid -e "$app/Vulpra" > entitlements/app.plist
+          ldid -e "$helper" > entitlements/helper.plist
+          ldid -e "$app/ptrace_jit" > entitlements/ptrace-jit.plist
+
+          python3 - "$app" entitlements/app.plist entitlements/helper.plist <<'PY'
+          from pathlib import Path
+          import os
+          import plistlib
+          import sys
+
+          app = Path(sys.argv[1])
+          app_entitlements = Path(sys.argv[2])
+          helper_entitlements = Path(sys.argv[3])
+          identities = {
+              app: os.environ["PROBE_APP_ID"],
+              app / "Frameworks/GeckoView.framework": os.environ["PROBE_GECKOVIEW_ID"],
+              app / "PlugIns/Vulpra Helper.appex": os.environ["PROBE_HELPER_ID"],
+              app / "PlugIns/OpenIn.appex": os.environ["PROBE_OPENIN_ID"],
+          }
+          for bundle, identity in identities.items():
+              plist_path = bundle / "Info.plist"
+              with plist_path.open("rb") as source:
+                  value = plistlib.load(source)
+              value["CFBundleIdentifier"] = identity
+              if bundle == app:
+                  value["CFBundleDisplayName"] = "Vulpra Clean Probe"
+                  value["CFBundleName"] = "Vulpra Clean Probe"
+                  for item in value.get("CFBundleURLTypes", []):
+                      item["CFBundleURLName"] = identity
+                      item["CFBundleURLSchemes"] = ["vulpra-cleanprobe"]
+              with plist_path.open("wb") as destination:
+                  plistlib.dump(value, destination, fmt=plistlib.FMT_BINARY, sort_keys=True)
+
+          for path, identity in (
+              (app_entitlements, os.environ["PROBE_APP_ID"]),
+              (helper_entitlements, os.environ["PROBE_HELPER_ID"]),
+          ):
+              with path.open("rb") as source:
+                  value = plistlib.load(source)
+              value["application-identifier"] = identity
+              with path.open("wb") as destination:
+                  plistlib.dump(value, destination, fmt=plistlib.FMT_XML, sort_keys=True)
+          PY
+
+      - name: Re-sign the unchanged known-working executables
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$PWD/stage/Payload/Vulpra.app"
+          ldid -Sentitlements/ptrace-jit.plist "$app/ptrace_jit"
+          find "$app/Frameworks" -type f \( -name '*.dylib' -o -name XUL \) -exec ldid -S {} \;
+          ldid -S "$app/Frameworks/GeckoView.framework/GeckoView"
+          ldid -Sentitlements/helper.plist "$app/PlugIns/Vulpra Helper.appex/Vulpra Helper"
+          ldid -S "$app/PlugIns/OpenIn.appex/OpenIn"
+          ldid -Sentitlements/app.plist "$app/Vulpra"
+
+      - name: Verify isolated identities and create TIPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$PWD/stage/Payload/Vulpra.app"
+          python3 - "$app" <<'PY'
+          from pathlib import Path
+          import os
+          import plistlib
+          import sys
+
+          app = Path(sys.argv[1])
+          expected = {
+              app: os.environ["PROBE_APP_ID"],
+              app / "Frameworks/GeckoView.framework": os.environ["PROBE_GECKOVIEW_ID"],
+              app / "PlugIns/Vulpra Helper.appex": os.environ["PROBE_HELPER_ID"],
+              app / "PlugIns/OpenIn.appex": os.environ["PROBE_OPENIN_ID"],
+          }
+          for bundle, identity in expected.items():
+              with (bundle / "Info.plist").open("rb") as source:
+                  actual = plistlib.load(source).get("CFBundleIdentifier")
+              if actual != identity:
+                  raise SystemExit(f"bundle identity mismatch: {bundle}: {actual}")
+          PY
+          ldid -e "$app/Vulpra" | grep -Fq "$PROBE_APP_ID"
+          ldid -e "$app/PlugIns/Vulpra Helper.appex/Vulpra Helper" | grep -Fq "$PROBE_HELPER_ID"
+
+          python3 - "$PWD/stage" "$PWD/dist/Vulpra-Clean-Container-Probe.tipa" <<'PY'
+          from pathlib import Path
+          import stat
+          import sys
+          import zipfile
+
+          stage, output = map(Path, sys.argv[1:])
+          with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+              for path in sorted(item for item in stage.rglob("*") if item.is_file()):
+                  info = zipfile.ZipInfo(path.relative_to(stage).as_posix(), (1980, 1, 1, 0, 0, 0))
+                  info.compress_type = zipfile.ZIP_DEFLATED
+                  info.external_attr = (stat.S_IMODE(path.stat().st_mode) & 0xFFFF) << 16
+                  archive.writestr(info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED, compresslevel=9)
+          PY
+          test -s dist/Vulpra-Clean-Container-Probe.tipa
+          shasum -a 256 dist/Vulpra-Clean-Container-Probe.tipa | tee -a probe-metadata.txt
+
+      - name: Upload fresh-container probe
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-clean-container-probe-${{ github.run_id }}
+          path: |
+            dist/Vulpra-Clean-Container-Probe.tipa
+            probe-metadata.txt
+          if-no-files-found: error
+          retention-days: 14

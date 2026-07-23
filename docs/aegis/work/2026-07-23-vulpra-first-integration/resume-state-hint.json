@@ -2,12 +2,12 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-23-vulpra-first-integration",
   "lastCheckpointRef": "docs/aegis/work/2026-07-23-vulpra-first-integration/todo-checkpoint-draft.json",
-  "resumeInstruction": "If the package still exits, treat it as a fresh residual symptom and compare current App executable paths against the bootable VULPRA_DISABLE_STARTUP_JIT binary before changing persistence or UI.",
+  "resumeInstruction": "read the latest clean-container and Simulator workflow conclusions before making any App code change",
   "knownPartialWork": [
-    "falsified GeckoView/Helper runpath hypothesis with a locally repacked device test",
-    "identified startup JIT activation as the only build-time launch difference in the last bootable run logs",
-    "removed RuntimeJITCoordinator from App/main.swift and passed the full portable gate",
-    "built and verified run 29981831300 and replaced the Windows desktop packages"
+    "confirmed the exact known-working TIPA still hashes to e134fb36fb07ce93738a9c1bee8da12baf522e985d37e131e92a629eeb146c1b",
+    "received device evidence that both the known-working control and current package now immediately exit under the same bundle identity",
+    "added byte-verified clean-container repackaging and real iOS Simulator launch workflows without changing App startup code",
+    "passed the full portable startup-diagnostic gate"
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-23-vulpra-first-integration/10-intent.md",
@@ -15,6 +15,6 @@
     "docs/aegis/work/2026-07-23-vulpra-first-integration/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "GitHub success or package integrity proves physical-device launch"
+    "a client regression caused the current device symptom; the byte-identical historical control now fails too"
   ]
 }
