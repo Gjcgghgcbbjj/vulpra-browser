@@ -149,20 +149,27 @@ jobs:
           xcrun simctl boot "$udid"
           xcrun simctl bootstatus "$udid" -b
           xcrun simctl install "$udid" "$app"
+
+          {
+            sudo -n /usr/sbin/DevToolsSecurity -enable
+            sudo -n xcrun lldb --batch -o "version" -o "quit"
+          } 2>&1 | tee simulator-lldb-warmup.log
+
           xcrun simctl launch --wait-for-debugger "$udid" com.vulpra.browser 2>&1 | tee simulator-launch.log
           pid="$(awk -F ': ' '/com\.vulpra\.browser:/ { print $2 }' simulator-launch.log | tail -n 1)"
           [[ "$pid" =~ ^[0-9]+$ ]]
 
           set +e
-          perl -e '$seconds = shift @ARGV; alarm $seconds; exec @ARGV' 25 \
-            xcrun lldb --batch \
+          perl -e '$seconds = shift @ARGV; alarm $seconds; exec @ARGV' 60 \
+            sudo -n xcrun lldb --batch \
               -o "process attach --pid $pid" \
+              -o 'script print("VULPRA_LLDB_ATTACHED", flush=True)' \
               -o "process handle -s true -n true -p false SIGSEGV" \
               -o "continue" \
               -o "thread backtrace all" \
               -o "register read" \
-              > simulator-lldb.log 2>&1
-          lldb_status=$?
+              2>&1 | tee simulator-lldb.log
+          lldb_status=${PIPESTATUS[0]}
           set -e
 
           sleep 1
@@ -179,6 +186,10 @@ jobs:
           find "$HOME/Library/Logs/DiagnosticReports" -type f \
             \( -name 'Vulpra*.crash' -o -name 'Vulpra*.ips' \) -mmin -10 \
             -exec cp {} . \; 2>/dev/null || true
+          if ! grep -Fq 'VULPRA_LLDB_ATTACHED' simulator-lldb.log; then
+            echo "LLDB never attached to Vulpra (status=$lldb_status)" >&2
+            exit 1
+          fi
           if grep -Eq 'stop reason = .*SIGSEGV|EXC_BAD_ACCESS' simulator-lldb.log; then
             echo "Vulpra stopped under LLDB with a segmentation fault" >&2
             exit 1
