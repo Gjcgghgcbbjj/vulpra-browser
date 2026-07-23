@@ -34,6 +34,7 @@ def main() -> None:
         "sudo -n xcrun lldb --batch",
         "VULPRA_LLDB_ATTACHED",
         "LLDB never attached to Vulpra",
+        "alarm $seconds; exec @ARGV' 180",
         '--one-line-on-crash "thread backtrace all"',
         '--one-line-on-crash "register read"',
         "xcrun lldb",

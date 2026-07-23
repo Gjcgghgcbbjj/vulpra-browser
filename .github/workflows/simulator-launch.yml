@@ -160,7 +160,7 @@ jobs:
           [[ "$pid" =~ ^[0-9]+$ ]]
 
           set +e
-          perl -e '$seconds = shift @ARGV; alarm $seconds; exec @ARGV' 60 \
+          perl -e '$seconds = shift @ARGV; alarm $seconds; exec @ARGV' 180 \
             sudo -n xcrun lldb --batch \
               --one-line-on-crash "thread backtrace all" \
               --one-line-on-crash "register read" \
