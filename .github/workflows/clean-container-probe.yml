@@ -2,6 +2,11 @@ name: Build Known-Working Clean-Container Probe
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/vulpra-first-integration
+    paths:
+      - .github/workflows/clean-container-probe.yml
 
 permissions:
   actions: read

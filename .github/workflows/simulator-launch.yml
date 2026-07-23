@@ -2,6 +2,11 @@ name: Vulpra Real iOS Simulator Launch
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - feature/vulpra-first-integration
+    paths:
+      - .github/workflows/simulator-launch.yml
 
 permissions:
   actions: read
