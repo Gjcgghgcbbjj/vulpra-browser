@@ -156,10 +156,18 @@ public class GeckoSession {
             return
         }
 
+        // GeckoView window creation must run on the main thread. Opening off-main
+        // (or before JS globals exist) crashes in AutoJSAPI::Init with a null JSObject.
+        if !Thread.isMainThread {
+            DispatchQueue.main.sync {
+                self.open(windowId: windowId)
+            }
+            return
+        }
+
         id = windowId ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
 
         let sessionSettings = settings
-        GeckoRuntime.setLocale(acceptLanguages: sessionSettings.language.acceptLanguages)
 
         let settings: [String: Any?] = [
             "chromeUri": nil,
@@ -196,7 +204,16 @@ public class GeckoSession {
             ],
             isPrivateMode
         )
-        if let engineView = window?.view() {
+        guard let window else {
+            id = nil
+            return
+        }
+
+        // Apply locale only after a real window exists so setLocale cannot race
+        // AutoJSAPI against a half-initialized global.
+        GeckoRuntime.setLocale(acceptLanguages: sessionSettings.language.acceptLanguages)
+
+        if let engineView = window.view() {
             autofillHandler.attach(to: engineView)
         }
     }

@@ -35,13 +35,25 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         view.backgroundColor = .systemBackground
         configureOwners()
         configureLayout()
-        if let initialURL {
-            tabManager.selectedTab?.load(initialURL, settings: BrowserSettingsStore.shared.value)
-            self.initialURL = nil
-        }
+        // Do not open Gecko windows in viewDidLoad. First-session open races
+        // MainProcessInit/JS globals on device (AutoJSAPI::Init SIGSEGV).
         showSelectedTab()
         NotificationCenter.default.addObserver(self, selector: #selector(settingsChanged),
                                                name: .browserSettingsDidChange, object: nil)
+        scheduleInitialEnginePresentation()
+    }
+
+    /// After the engine gate opens, apply cold-start URL / restored tab sessions.
+    private func scheduleInitialEnginePresentation() {
+        let pendingURL = initialURL
+        initialURL = nil
+        GeckoEngineGate.whenReady { [weak self] in
+            guard let self else { return }
+            if let pendingURL {
+                self.tabManager.selectedTab?.load(pendingURL, settings: BrowserSettingsStore.shared.value)
+            }
+            self.showSelectedTab()
+        }
     }
 
     override func didReceiveMemoryWarning() {
@@ -120,9 +132,13 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
         guard tab.url != nil else { showStartPage(); return }
         let session = tab.activate(settings: BrowserSettingsStore.shared.value)
+        // First activate may still be waiting on GeckoEngineGate — keep start page up.
+        guard session.isOpen(), let engineView = session.engineView else {
+            showStartPage()
+            return
+        }
         pictureInPicture.attach(to: session)
         tab.setActive(isSceneActive)
-        guard let engineView = session.engineView else { showFailure("Gecko engine view unavailable"); return }
         engineView.removeFromSuperview()
         engineView.translatesAutoresizingMaskIntoConstraints = false
         contentContainer.addSubview(engineView)

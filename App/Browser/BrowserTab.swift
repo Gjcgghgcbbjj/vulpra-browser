@@ -68,10 +68,25 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
         created.contentDelegate = self
         created.permissionDelegate = permissionDelegate
         created.promptDelegate = promptDelegate
-        created.open(windowId: windowID)
         session = created
-        if windowID == nil, let url { created.load(url.absoluteString) }
-        observer?.browserTabDidChange(self)
+
+        let openAndLoad = { [weak self] in
+            guard let self, self.session === created, !created.isOpen() else { return }
+            created.open(windowId: windowID)
+            guard created.isOpen() else { return }
+            if windowID == nil, let url = self.url {
+                created.load(url.absoluteString)
+            }
+            self.observer?.browserTabDidChange(self)
+        }
+
+        // Device IPS: first open ~0.7s after launch crashed in AutoJSAPI::Init(null).
+        // Wait for the engine gate before creating the first Gecko window.
+        if GeckoEngineGate.isReady {
+            openAndLoad()
+        } else {
+            GeckoEngineGate.whenReady(openAndLoad)
+        }
         return created
     }
 
@@ -95,7 +110,11 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
 
     func load(_ target: URL, settings: BrowserSettings) {
         url = target
-        activate(settings: settings).load(target.absoluteString)
+        let session = activate(settings: settings)
+        // Window open may still be pending behind GeckoEngineGate.
+        if session.isOpen() {
+            session.load(target.absoluteString)
+        }
         observer?.browserTabDidChange(self)
     }
 
