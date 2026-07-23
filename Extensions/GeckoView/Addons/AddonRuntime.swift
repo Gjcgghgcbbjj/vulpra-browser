@@ -18,9 +18,12 @@ public final class AddonRuntime: NSObject, GeckoEventListenerInternal {
             guard delegate != nil else {
                 return
             }
-            Task { @MainActor in
-                _ = try? await self.list()
-                self.notifyActionDelegateAttached()
+            // WebExtension:List touches AutoJSAPI; wait for engine gate first.
+            GeckoEngineGate.whenReady {
+                Task { @MainActor in
+                    _ = try? await self.list()
+                    self.notifyActionDelegateAttached()
+                }
             }
         }
     }

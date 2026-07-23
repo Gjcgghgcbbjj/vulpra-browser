@@ -68,10 +68,28 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
         created.contentDelegate = self
         created.permissionDelegate = permissionDelegate
         created.promptDelegate = promptDelegate
-        created.open(windowId: windowID)
         session = created
-        if windowID == nil, let url { created.load(url.absoluteString) }
-        observer?.browserTabDidChange(self)
+        // GeckoSession.open self-gates until GeckoEngineGate is ready.
+        created.open(windowId: windowID)
+        if created.isOpen() {
+            if windowID == nil, let url {
+                created.load(url.absoluteString)
+            }
+            observer?.browserTabDidChange(self)
+        } else {
+            // Open is pending on the engine gate; finish load when it becomes ready.
+            GeckoEngineGate.whenReady { [weak self] in
+                guard let self, self.session === created else { return }
+                if !created.isOpen() {
+                    created.open(windowId: windowID)
+                }
+                guard created.isOpen() else { return }
+                if windowID == nil, let url = self.url {
+                    created.load(url.absoluteString)
+                }
+                self.observer?.browserTabDidChange(self)
+            }
+        }
         return created
     }
 
@@ -95,7 +113,11 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
 
     func load(_ target: URL, settings: BrowserSettings) {
         url = target
-        activate(settings: settings).load(target.absoluteString)
+        let session = activate(settings: settings)
+        // Window open may still be pending behind GeckoEngineGate.
+        if session.isOpen() {
+            session.load(target.absoluteString)
+        }
         observer?.browserTabDidChange(self)
     }
 

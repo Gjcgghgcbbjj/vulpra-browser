@@ -6,7 +6,12 @@ final class BrowserAddonController: AddonEmbedderDelegate {
     weak var tabManager: TabManager?
     var onOpenURL: ((URL) -> Void)?
 
-    init() { AddonRuntime.shared.delegate = self }
+    init() {
+        // Defer WebExtension:List until Gecko AutoJSAPI can Init.
+        GeckoEngineGate.whenReady {
+            AddonRuntime.shared.delegate = self
+        }
+    }
 
     func addonController(_ controller: AddonRuntime, didUpdate addon: Addon) {
         NotificationCenter.default.post(name: .browserAddonsDidChange, object: controller)

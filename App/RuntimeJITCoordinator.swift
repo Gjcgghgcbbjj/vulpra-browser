@@ -1,6 +1,12 @@
 import Foundation
 import os
 
+/// Child-process JIT readiness owner.
+///
+/// Register for Gecko child notifications and attach only when the process type is a
+/// tab. Ptrace/unsandboxed attach is used when `com.apple.private.security.no-sandbox`
+/// is present (TrollStore tipa); otherwise attachment is skipped rather than failing
+/// hard at launch (same policy as the working Reynard client baseline).
 final class RuntimeJITCoordinator {
     static let shared = RuntimeJITCoordinator()
 
@@ -21,6 +27,11 @@ final class RuntimeJITCoordinator {
 
     private init() {}
 
+    /// Reynard baseline: ptrace path only when the private no-sandbox entitlement is active.
+    private var usesUnsandboxedPtrace: Bool {
+        getEntitlementValue("com.apple.private.security.no-sandbox")
+    }
+
     func start() {
         stateQueue.sync {
             guard !isStarted, !isStopped else {
@@ -37,6 +48,7 @@ final class RuntimeJITCoordinator {
         }
     }
 
+    /// Optional teardown for tests; not called from production main (matches Reynard).
     func stop() {
         var observerToRemove: NSObjectProtocol?
 
@@ -94,6 +106,13 @@ final class RuntimeJITCoordinator {
         pendingPIDs.insert(pid)
         guard processType == "tab" else {
             finish(pid: pid, enabled: false, reason: "non-tab")
+            return
+        }
+
+        // Without no-sandbox (non-TrollStore sideload), do not force ptrace attach.
+        // Still report status so Gecko can fall back to interpreter mode.
+        guard usesUnsandboxedPtrace else {
+            finish(pid: pid, enabled: false, reason: "no-unsandboxed-entitlement")
             return
         }
 

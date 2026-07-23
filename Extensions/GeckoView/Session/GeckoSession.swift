@@ -33,9 +33,9 @@ public class GeckoSession {
 
     public func updateSettings(_ settings: GeckoSessionSettings) {
         self.settings = settings
-        GeckoRuntime.setLocale(acceptLanguages: settings.language.acceptLanguages)
-
         guard isOpen() else { return }
+
+        GeckoRuntime.setLocale(acceptLanguages: settings.language.acceptLanguages)
 
         dispatcher.dispatch(
             type: "GeckoView:UpdateSettings",
@@ -156,10 +156,27 @@ public class GeckoSession {
             return
         }
 
+        // Always honor the engine gate — BrowserTab is not the only open caller
+        // (NavigationDelegate / windowID paths can open sessions too).
+        if !GeckoEngineGate.isReady {
+            let requested = windowId
+            GeckoEngineGate.whenReady { [weak self] in
+                self?.open(windowId: requested)
+            }
+            return
+        }
+
+        // GeckoView window creation must run on the main thread.
+        if !Thread.isMainThread {
+            DispatchQueue.main.sync {
+                self.open(windowId: windowId)
+            }
+            return
+        }
+
         id = windowId ?? UUID().uuidString.replacingOccurrences(of: "-", with: "")
 
         let sessionSettings = settings
-        GeckoRuntime.setLocale(acceptLanguages: sessionSettings.language.acceptLanguages)
 
         let settings: [String: Any?] = [
             "chromeUri": nil,
@@ -196,7 +213,14 @@ public class GeckoSession {
             ],
             isPrivateMode
         )
-        if let engineView = window?.view() {
+        guard let window else {
+            id = nil
+            return
+        }
+
+        GeckoRuntime.setLocale(acceptLanguages: sessionSettings.language.acceptLanguages)
+
+        if let engineView = window.view() {
             autofillHandler.attach(to: engineView)
         }
     }
