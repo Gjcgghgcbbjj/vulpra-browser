@@ -62,3 +62,17 @@ success.
 The Vulpra-first integration, GitHub compilation, package verification, and
 Windows desktop delivery scope reached its planned stop condition. Continue
 only with device evidence or the next approved feature-depth plan.
+
+## Device Evidence Correction
+
+Subsequent physical-device evidence invalidated the earlier package handoff as
+a launch candidate: run `29961256526` immediately exited, and a local package
+that restored only the last bootable GeckoView/Helper executables behaved the
+same. The package-shape evidence remained valid, but it did not cover startup.
+
+The last bootable build log used `VULPRA_DISABLE_STARTUP_JIT`; the failed build
+activated `RuntimeJITCoordinator` unconditionally. Commit `b392fe4` removed
+that startup path, reduced the main executable by 18,704 bytes, passed the full
+portable gate, and produced verified package run `29981831300`. The corrected
+decision is `needs-user-verification`: no launch-success claim is made until
+the repaired TIPA remains open on the physical device.

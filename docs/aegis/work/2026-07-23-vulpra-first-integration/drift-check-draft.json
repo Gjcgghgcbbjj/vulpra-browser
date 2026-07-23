@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/baseline/2026-07-23-vulpra-first-portable-baseline.md"
   ],
-  "scopeStatus": "All planned integration, package, verification, and desktop-delivery work is complete inside the Vulpra-first boundary.",
-  "compatStatus": "GitHub and local package evidence verify iOS 15.0 arm64 configuration and all four Vulpra identities; device runtime remains unobserved.",
-  "retirementStatus": "Reynard product ownership, diagnostic startup branches, fake simulator smoke ownership, the broad Phase 0 false-positive rule, and shallow Bootstrap checkout are retired.",
+  "scopeStatus": "Vulpra remains the sole product owner; the repair removes one startup path and adds no product fallback.",
+  "compatStatus": "iOS 15.0, arm64, bundle identities, engine artifact, UI, persistence, and package shape remain unchanged.",
+  "retirementStatus": "Startup activation of RuntimeJITCoordinator is retired; its staged source remains inactive until page-process/JIT behavior is separately device-verified.",
   "newRiskSignals": [
-    "Physical-device launch and performance remain needs-user-verification; no package-engineering blocker remains."
+    "Physical-device launch and Gecko page-process behavior for run 29981831300 remain unverified."
   ],
   "decision": "needs-verification"
 }

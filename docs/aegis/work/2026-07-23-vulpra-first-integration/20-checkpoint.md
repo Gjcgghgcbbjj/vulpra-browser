@@ -132,3 +132,28 @@ Updated: `2026-07-23`
 - New risk signals:
 - Physical-device launch and performance remain needs-user-verification; no package-engineering blocker remains.
 - Advisory decision: needs-verification
+
+## Checkpoint Update
+
+- Current todo: obtain physical-device launch result for startup-repair package 29981831300
+- Active slice: physical-device verification of direct Gecko startup
+- Completed todos:
+- falsified GeckoView/Helper runpath hypothesis with a locally repacked device test
+- identified startup JIT activation as the only build-time launch difference in the last bootable run logs
+- removed RuntimeJITCoordinator from App/main.swift and passed the full portable gate
+- built and verified run 29981831300 and replaced the Windows desktop packages
+- Evidence refs:
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-root-cause-2026-07-23.json
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-repair-29981831300.json
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29981831300.json
+- Blocked on: user installation and launch result on physical iOS device
+- Next step: install Vulpra-Fixed-29981831300/Vulpra-TrollStore.tipa and report whether it remains open
+
+## DriftCheckDraft
+
+- Scope status: Vulpra remains the sole product owner; the repair removes one startup path and adds no product fallback.
+- Compatibility status: iOS 15.0, arm64, bundle identities, engine artifact, UI, persistence, and package shape remain unchanged.
+- Retirement status: Startup activation of RuntimeJITCoordinator is retired; its staged source remains inactive until page-process/JIT behavior is separately device-verified.
+- New risk signals:
+- Physical-device launch and Gecko page-process behavior for run 29981831300 remain unverified.
+- Advisory decision: needs-verification

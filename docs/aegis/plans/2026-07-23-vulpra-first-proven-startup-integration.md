@@ -1,7 +1,7 @@
 # Vulpra-First Proven Startup Integration Plan
 
 Date: `2026-07-23`
-Status: `approved-for-inline-execution`
+Status: `startup-repair-built-needs-device-verification`
 ArchitectureReviewRequired: `yes`
 TDD Route: `light`
 
@@ -63,6 +63,18 @@ graph contracts, scripts, plist parsing, complexity, and deterministic
 packaging. GitHub macOS verification covers archive/IPA/TIPA creation and
 unpacked bundle checks. Physical-device launch remains a separate user-confirmed
 gate and is never inferred from an Actions success.
+
+## Device Startup Repair Addendum
+
+The package from run `29961256526` immediately exited on device. Replacing only
+its GeckoView and Helper executables with the last bootable Vulpra versions did
+not change the symptom, excluding those dynamic-load settings. The last
+bootable package build log showed
+`SWIFT_ACTIVE_COMPILATION_CONDITIONS=VULPRA_DISABLE_STARTUP_JIT`; the failed
+build activated `RuntimeJITCoordinator` unconditionally. Commit `b392fe4`
+therefore removes that startup activation and enters Gecko directly. Run
+`29981831300` built and packaged the repair successfully; device launch remains
+the only open acceptance gate.
 
 ## Plan Basis
 
@@ -370,14 +382,14 @@ unzip -t <downloaded-package>
 ## Execution Closeout
 
 - Verified package commit:
-  `5f49f3cdd62221b1bc9bb5be149b5c1be4922491`.
-- Bootstrap Core run `29961240711`: `success`.
-- Build Vulpra IPA and TIPA run `29961256526`: `success`.
-- Installable artifact ID: `8546130042`.
+  `b392fe45aa72a03a752dab8a49c0bc16cb7476e1`.
+- Bootstrap Core run `29981805622`: `success`.
+- Build Vulpra IPA and TIPA run `29981831300`: `success`.
+- Installable artifact ID: `8553508545`.
 - Package hashes and structural verification:
-  `docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json`.
+  `docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-repair-29981831300.json`.
 - Delivered path:
-  `/mnt/c/Users/niting/Desktop/Vulpra-Fixed-29944288468`.
+  `/mnt/c/Users/niting/Desktop/Vulpra-Fixed-29981831300`.
 - Physical-device installation and launch remain
   `needs-user-verification`, as required by the plan boundary.
 

@@ -1,23 +1,20 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-23-vulpra-first-integration",
-  "currentTodo": "commit and push the evidence closeout, then monitor the final Bootstrap run",
+  "currentTodo": "obtain physical-device launch result for startup-repair package 29981831300",
   "completedTodos": [
-    "completed Vulpra-first product integration and complexity governance",
-    "passed local portable, ownership, runtime-shell, browser, workflow, plist, and workspace gates",
-    "passed GitHub Bootstrap Core run 29961240711",
-    "passed GitHub Xcode package run 29961256526 using the exact runtime artifact",
-    "verified IPA/TIPA identity, iOS 15 arm64 structure, engine, extensions, signatures, entitlements, hashes, and archive integrity",
-    "atomically replaced and reverified the Windows desktop packages",
-    "updated the baseline, plan checklist, evidence bundle, proof bundle, and reflection"
+    "falsified GeckoView/Helper runpath hypothesis with a locally repacked device test",
+    "identified startup JIT activation as the only build-time launch difference in the last bootable run logs",
+    "removed RuntimeJITCoordinator from App/main.swift and passed the full portable gate",
+    "built and verified run 29981831300 and replaced the Windows desktop packages"
   ],
-  "activeSlice": "final evidence commit and remote Bootstrap confirmation",
+  "activeSlice": "physical-device verification of direct Gecko startup",
   "evidenceRefs": [
-    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-final-local-closeout-gate-2026-07-23.json",
-    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json",
-    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29961256526.json"
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-root-cause-2026-07-23.json",
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-repair-29981831300.json",
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29981831300.json"
   ],
-  "blockedOn": null,
-  "nextStep": "commit and push documentation/evidence closeout, monitor the automatically triggered Bootstrap run to terminal success, then hand off the TrollStore package for physical-device verification",
+  "blockedOn": "user installation and launch result on physical iOS device",
+  "nextStep": "install Vulpra-Fixed-29981831300/Vulpra-TrollStore.tipa and report whether it remains open",
   "updatedAt": "2026-07-23"
 }

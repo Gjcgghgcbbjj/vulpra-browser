@@ -1,9 +1,9 @@
 # Vulpra-First Portable Integration Baseline
 
 Date: `2026-07-23`
-Status: `vulpra-first-package-verified`
+Status: `startup-repair-package-verified`
 ArchitectureReviewRequired: `yes`
-Current GitHub package gate: `verified` in run `29961256526`
+Current GitHub package gate: `verified` in run `29981831300`
 Physical-device launch gate: `needs-verification`
 
 ## Product / requirement boundary
@@ -24,7 +24,7 @@ Durable rationale: `docs/aegis/adr/ADR-0002-vulpra-first-product-integration.md`
 
 - Branch: `feature/vulpra-first-integration`
 - Verified package commit:
-  `5f49f3cdd62221b1bc9bb5be149b5c1be4922491`
+  `b392fe45aa72a03a752dab8a49c0bc16cb7476e1`
 - Clean integration base: `6fbf6ae`
 - Vulpra product source donor: `7955722ce68f63e4f470837947cfdde385458b13`
 - Read-only boot contract reference: Reynard `3dea55d`
@@ -79,12 +79,15 @@ binaries, or imported-substrate classification appears.
 - Hard-coded signing team/profile: absent
 
 The app embeds GeckoView, Helper, and OpenIn. Startup is one minimal path:
-start `RuntimeJITCoordinator`, enter `GeckoRuntime.main`, and let the static
-scene manifest instantiate the Vulpra `SceneDelegate`.
+enter `GeckoRuntime.main` directly and let the static scene manifest
+instantiate the Vulpra `SceneDelegate`. `RuntimeJITCoordinator` remains staged
+source but is not connected to startup: the last user-confirmed bootable Vulpra
+package was compiled with `VULPRA_DISABLE_STARTUP_JIT`, while the package that
+activated the coordinator immediately exited on device.
 
 ## Integrated client state
 
-- 35 Vulpra product Swift files and 2,693 Swift lines;
+- 35 Vulpra product Swift files and 2,691 Swift lines;
 - largest product owner: `BrowserViewController.swift`, 292 lines;
 - next largest owners: `TabManager.swift`, 199 lines, and
   `BrowserTab.swift`, 187 lines;
@@ -136,20 +139,20 @@ git diff --check
 The four zsh Gecko producer scripts could not be parsed because zsh is absent
 on this host; the portable runners report that skip explicitly.
 
-Fresh remote evidence for the verified package commit:
+Fresh remote evidence for the verified startup-repair commit:
 
-- Bootstrap Core run `29961240711`: `success`;
-- package run `29961256526`: `success` under Xcode `26.4.1` build `17E202` and
+- Bootstrap Core run `29981805622`: `success`;
+- package run `29981831300`: `success` under Xcode `26.4.1` build `17E202` and
   iPhoneOS SDK build `23E252`;
 - restored exact runtime artifact name:
   `vulpra-runtime-substrate-v1-b170cbc0a490f9be2332721fc82540704f677d8f8bb352c6d9bf68ee81cd43fe`;
-- installable artifact ID `8546130042`, archive size `198,414,855` bytes, and
+- installable artifact ID `8553508545`, archive size `198,395,873` bytes, and
   archive SHA-256
-  `cdf716ad9eb73f31af0c73587a9a820f65f1d7ecc2b80c67ba371cbc4657622e`;
-- `Vulpra.ipa`: `98,596,207` bytes, SHA-256
-  `7444a53229b06869ea27cf4b38dce5cd4a8463b08f6ea45786b37e1f00b0e779`;
-- `Vulpra-TrollStore.tipa`: `101,857,453` bytes, SHA-256
-  `4ec90a87538cd01cf47f123f805f7ca3ba03cbc648be20cfc9b79babde28cbee`.
+  `6c94f07aea291efd766799fc7f41ca904e5ddfcaa3592e8040af2c6a9dc8bb39`;
+- `Vulpra.ipa`: `98,587,368` bytes, SHA-256
+  `b9f3441d1e638f07748681cafe97d5641e972586057459140daab126ccf0184d`;
+- `Vulpra-TrollStore.tipa`: `101,847,904` bytes, SHA-256
+  `2965d2108ef2053424ad9d83d63c880e33424f1f0b4d5bae1211aba29d774340`.
 
 Local unpacked verification covered archive integrity, all four bundle IDs,
 iOS `15.0`, arm64 Mach-O identity, executable modes, GeckoView, XUL, nine
@@ -169,11 +172,11 @@ targets, and embedded private entitlements.
 - Package-manager dependencies added: none.
 - Generated Gecko, archive, IPA, TIPA, framework, or static-library outputs in
   Git: none.
-- The verified TrollStore package is `3,199,653` bytes (`3.05%`) smaller than
+- The verified TrollStore package is `3,209,202` bytes (`3.05%`) smaller than
   the replaced desktop package.
-- The unpacked TrollStore app is `304,647,607` bytes: Gecko/runtime payload is
-  `300,091,305` bytes (`98.50%`), while the Vulpra-owned non-engine shell is
-  `4,556,302` bytes (`1.50%`).
+- The unpacked TrollStore app is `304,628,903` bytes. Removing the unsafe
+  startup activation reduced the main executable by `18,704` bytes without
+  changing the Gecko runtime payload.
 - Raw line-oriented pressure scan also sees newline bytes inside the binary PNG
   icon; the icon is governed as a 126,581-byte resource, not a text owner.
 - The only real maintained text artifact above 800 lines is the retired
@@ -184,11 +187,11 @@ Vulpra client growth.
 
 ## Open evidence and acceptance boundary
 
-- Current integration Xcode compilation: `verified` in run `29961256526`
+- Current integration Xcode compilation: `verified` in run `29981831300`
 - Asset catalog compilation and generated icon set: `verified` in run
-  `29961256526`
+  `29981831300`
 - IPA/TIPA package creation and unpacked-bundle verification:
-  `verified` from artifact `8546130042`
+  `verified` from artifact `8553508545`
 - iOS 15.8 and iOS 16.7 installation/launch: `needs-verification`
 - Gecko page loading, Helper/JIT child readiness, OpenIn, extensions, downloads,
   permissions, restoration, and private-data behavior on device:
@@ -200,8 +203,15 @@ Vulpra client growth.
 - public-distribution license/notices clearance: blocked outside this package
   engineering baseline
 
-GitHub compilation and package-shape evidence are closed for commit `5f49f3c`.
-The current packages were atomically delivered to
-`/mnt/c/Users/niting/Desktop/Vulpra-Fixed-29944288468` and reverified in place.
-Physical-device success is never inferred and requires user installation
-confirmation.
+The prior run `29961256526` and a local package that restored only the old
+GeckoView/Helper binaries both immediately exited on the user's device. That
+falsified the bridge/runpath hypothesis. Build-log comparison then exposed the
+missing `VULPRA_DISABLE_STARTUP_JIT` condition in the failed package; the active
+startup call was removed at its canonical owner rather than restored as a
+build-only fallback.
+
+GitHub compilation and package-shape evidence are closed for commit `b392fe4`.
+The current packages were atomically delivered to both
+`/mnt/c/Users/niting/Desktop/Vulpra-Fixed-29981831300` and the previously used
+desktop folder, then reverified in place. Physical-device success is never
+inferred and requires user installation confirmation.

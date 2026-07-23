@@ -5,13 +5,16 @@
   ],
   "impactStatement": "docs/aegis/work/2026-07-23-vulpra-first-integration/impact-statement-draft.json",
   "compatPlan": "iOS 15.0+, arm64, iPhone/iPad, four Vulpra bundle identities, TrollStore-first packaging.",
-  "retirementPlan": "Reynard product ownership, diagnostic startup branches, fake simulator smoke ownership, the broad Phase 0 false-positive rule, and shallow Bootstrap checkout are retired.",
+  "retirementPlan": "Startup activation of RuntimeJITCoordinator is retired; its staged source remains inactive until page-process/JIT behavior is separately device-verified.",
   "evidenceBundle": [
     "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-final-local-closeout-gate-2026-07-23.json",
     "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-github-runs-5f49f3c-2026-07-23.json",
     "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json",
     "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-portable-full-gate-2026-07-23.json",
     "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-prepush-full-gate-2026-07-23.json",
-    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29961256526.json"
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-repair-29981831300.json",
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-root-cause-2026-07-23.json",
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29961256526.json",
+    "docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29981831300.json"
   ]
 }

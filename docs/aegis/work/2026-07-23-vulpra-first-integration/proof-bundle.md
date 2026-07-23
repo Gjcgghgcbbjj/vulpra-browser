@@ -24,11 +24,14 @@ This proof bundle is an advisory Aegis Method Pack record. It does not determine
 - docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-package-verification-29961256526.json
 - docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-portable-full-gate-2026-07-23.json
 - docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-prepush-full-gate-2026-07-23.json
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-repair-29981831300.json
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-root-cause-2026-07-23.json
 - docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29961256526.json
+- docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29981831300.json
 
 ## Drift Check
 
-- Scope status: All planned integration, package, verification, and desktop-delivery work is complete inside the Vulpra-first boundary.
-- Compatibility status: GitHub and local package evidence verify iOS 15.0 arm64 configuration and all four Vulpra identities; device runtime remains unobserved.
-- Retirement status: Reynard product ownership, diagnostic startup branches, fake simulator smoke ownership, the broad Phase 0 false-positive rule, and shallow Bootstrap checkout are retired.
+- Scope status: Vulpra remains the sole product owner; the repair removes one startup path and adds no product fallback.
+- Compatibility status: iOS 15.0, arm64, bundle identities, engine artifact, UI, persistence, and package shape remain unchanged.
+- Retirement status: Startup activation of RuntimeJITCoordinator is retired; its staged source remains inactive until page-process/JIT behavior is separately device-verified.
 - Advisory decision: needs-verification

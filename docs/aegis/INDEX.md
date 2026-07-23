@@ -28,3 +28,6 @@
 | 2026-07-23 | work | docs/aegis/work/2026-07-23-vulpra-first-integration/proof-bundle.md | 2026-07-23-vulpra-first-integration proof bundle |
 | 2026-07-23 | work | docs/aegis/work/2026-07-23-vulpra-first-integration/99-reflection.md | Vulpra-First Integration reflection |
 | 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-final-local-closeout-gate-2026-07-23.json | 2026-07-23-vulpra-first-integration evidence final-local-closeout-gate-2026-07-23 |
+| 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-root-cause-2026-07-23.json | 2026-07-23-vulpra-first-integration evidence startup-root-cause-2026-07-23 |
+| 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-startup-repair-29981831300.json | 2026-07-23-vulpra-first-integration evidence startup-repair-29981831300 |
+| 2026-07-23 | artifact | docs/aegis/work/2026-07-23-vulpra-first-integration/evidence-bundle-draft-windows-desktop-delivery-29981831300.json | 2026-07-23-vulpra-first-integration evidence windows-desktop-delivery-29981831300 |

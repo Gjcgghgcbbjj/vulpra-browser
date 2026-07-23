@@ -95,3 +95,27 @@ Machine-readable evidence:
 - Source: full portable regression suite, shell/Python/YAML/plist validation, Aegis workspace check, git diff check, and maintained-file pressure report
 - Summary: Final local closeout gate passed. Product remains 35 Swift files with no owner at 350 lines; the only >=800 text owner is the retired Phase 0 plan, while the PNG line count is a binary scan artifact.
 - Verifier: root Codex session, fresh command exit 0
+
+## EvidenceBundleDraft
+
+- Artifact key: startup-root-cause-2026-07-23
+- Type: differential-debugging
+- Source: .build/startup-diagnosis/logs-working/build-app.log, .build/startup-diagnosis/logs-current/build-app.log, and user device results
+- Summary: The failed GeckoView/Helper rollback package excluded the bridge layer. The last bootable run 29946679556 compiled with VULPRA_DISABLE_STARTUP_JIT; failed run 29961256526 did not. Startup activation of RuntimeJITCoordinator was removed at App/main.swift.
+- Verifier: bounded package binary diff, GitHub build-log diff, portable tests, and user device falsification
+
+## EvidenceBundleDraft
+
+- Artifact key: startup-repair-29981831300
+- Type: artifact-verification
+- Source: .build/github/29981831300/package-verification.json and GitHub artifact 8553508545
+- Summary: Run 29981831300 built commit b392fe4 successfully. IPA/TIPA checksums, zip integrity, four bundle IDs, iOS 15.0, arm64 Mach-O identity, signatures, XUL, nine dylibs, GeckoView, Helper, OpenIn, and ptrace_jit package presence passed local verification.
+- Verifier: GitHub Actions success plus deterministic local package inspection, exit 0
+
+## EvidenceBundleDraft
+
+- Artifact key: windows-desktop-delivery-29981831300
+- Type: delivery-verification
+- Source: /mnt/c/Users/niting/Desktop/Vulpra-Fixed-29981831300 and Vulpra-Fixed-29944288468
+- Summary: The repaired packages and SHA256SUMS were atomically copied to the new run folder and the previously used desktop folder; both checksum checks passed and the TIPA archive passed unzip integrity.
+- Verifier: sha256sum -c and unzip -t, exit 0

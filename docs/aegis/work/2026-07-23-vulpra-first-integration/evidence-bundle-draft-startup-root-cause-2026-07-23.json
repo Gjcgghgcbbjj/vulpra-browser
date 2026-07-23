@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "startup-root-cause-2026-07-23",
+  "type": "differential-debugging",
+  "source": ".build/startup-diagnosis/logs-working/build-app.log, .build/startup-diagnosis/logs-current/build-app.log, and user device results",
+  "summary": "The failed GeckoView/Helper rollback package excluded the bridge layer. The last bootable run 29946679556 compiled with VULPRA_DISABLE_STARTUP_JIT; failed run 29961256526 did not. Startup activation of RuntimeJITCoordinator was removed at App/main.swift.",
+  "verifier": "bounded package binary diff, GitHub build-log diff, portable tests, and user device falsification"
+}

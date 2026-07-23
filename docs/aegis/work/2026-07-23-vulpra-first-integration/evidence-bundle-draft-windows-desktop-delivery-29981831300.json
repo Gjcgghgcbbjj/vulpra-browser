@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "windows-desktop-delivery-29981831300",
+  "type": "delivery-verification",
+  "source": "/mnt/c/Users/niting/Desktop/Vulpra-Fixed-29981831300 and Vulpra-Fixed-29944288468",
+  "summary": "The repaired packages and SHA256SUMS were atomically copied to the new run folder and the previously used desktop folder; both checksum checks passed and the TIPA archive passed unzip integrity.",
+  "verifier": "sha256sum -c and unzip -t, exit 0"
+}
