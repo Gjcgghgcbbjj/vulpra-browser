@@ -30,10 +30,11 @@ func vulpraStartupMarker(_ value: String) {
     }
 }
 
-/// iOS 13 + no-sandbox only (exact Reynard gate).
+/// iOS 13 + no-sandbox only (Reynard gate, runtime-selected).
 /// On iOS 14+ TrollStore, Gecko must keep the normal container layout;
 /// forcing MOZ_APP_DATA into Caches there can break MainProcessInit.
-@available(iOS, introduced: 13.0, obsoleted: 14.0)
+/// Note: do not mark this @available(obsoleted: 14.0) — Vulpra's deployment
+/// target is iOS 15+, which makes an obsoleted-14 API uncallable at compile time.
 private func configureUnsandboxedAppDataDirectories() {
     guard
         let cachesDirectory = FileManager.default.urls(
