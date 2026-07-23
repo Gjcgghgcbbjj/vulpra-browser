@@ -51,6 +51,15 @@ def main():
     require('<key>CADisableMinimumFrameDurationOnPhone</key>' in info and '<true/>' in info, '120 Hz opt-in missing')
     require('VulpraAppearance.applyGlobal()' in scene, 'global appearance is not installed')
 
+    addon_runtime = text('Extensions/GeckoView/Addons/AddonRuntime.swift')
+    delegate_setter = addon_runtime.split('public weak var delegate', 1)[1].split('var addonsByID', 1)[0]
+    require('Task {' not in delegate_setter and 'self.list()' not in delegate_setter,
+            'addon delegate assignment queries Gecko before its JS runtime is ready')
+    require('notifyActionDelegateAttached()' in delegate_setter,
+            'addon delegate reassignment no longer restores cached action delegates')
+    require('AddonRuntime.shared.list()' in text('App/Addons/AddonManagementViewController.swift'),
+            'addon management no longer performs an explicit post-startup refresh')
+
     tab = text('App/Browser/BrowserTab.swift')
     require('activate(settings: settings).load' not in tab, 'new tabs perform a duplicate first navigation')
     require('if let session {' in tab and 'session.load(target.absoluteString)' in tab,
