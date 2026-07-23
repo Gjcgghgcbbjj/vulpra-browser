@@ -65,9 +65,9 @@ actual_build_tools = {
 if actual_build_tools != {"Tools/Build/AddGecko.sh"}:
     raise SystemExit(f"FAIL: Tools/Build inventory mismatch: {sorted(actual_build_tools)}")
 
-if len(expected_targets) != 271:
+if len(expected_targets) != 272:
     raise SystemExit(
-        f"FAIL: expected 271 imported regular files, found {len(expected_targets)}"
+        f"FAIL: expected 272 imported regular files, found {len(expected_targets)}"
     )
 
 patch_targets = {path for path in expected_targets if path.startswith("Patches/")}
@@ -78,6 +78,7 @@ expected_tools = {
     f"Tools/Gecko/{name}"
     for name in (
         "apply-patches.sh",
+        "build-gecko-simulator.sh",
         "build-gecko.sh",
         "build-idevice.sh",
         "create-patches.sh",
@@ -101,8 +102,8 @@ if len({row["target_path"] for row in rows}) != len(rows):
     raise SystemExit("FAIL: manifest contains duplicate target paths")
 
 task3_rows = [row for row in rows if row["target_path"] in expected_targets]
-if len(task3_rows) != 271:
-    raise SystemExit(f"FAIL: manifest must contain 271 Task 3 rows, found {len(task3_rows)}")
+if len(task3_rows) != 272:
+    raise SystemExit(f"FAIL: manifest must contain 272 Task 3 rows, found {len(task3_rows)}")
 
 manifest_targets = {row["target_path"] for row in task3_rows}
 if manifest_targets != expected_targets:
