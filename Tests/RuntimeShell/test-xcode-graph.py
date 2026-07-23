@@ -166,6 +166,10 @@ def main() -> None:
     require("$(VULPRA_GECKO_DIST)/bin/XUL" in app_config, "app does not link Gecko XUL")
     require("$(VULPRA_IDEVICE_ARCHIVE)" in app_config, "app does not link idevice archive")
     require(
+        "EXCLUDED_SOURCE_FILE_NAMES[sdk=iphonesimulator*] = RuntimeJITCoordinator.swift" in app_config,
+        "Simulator must exclude the inactive device-only JIT coordinator",
+    )
+    require(
         "HEADER_SEARCH_PATHS = $(SRCROOT)/Modules/VulpraRuntime/JIT" in app_config
         and "$(VULPRA_GECKO_DIST)/include" not in app_config,
         "app header search must prefer the embedded GeckoView module",
