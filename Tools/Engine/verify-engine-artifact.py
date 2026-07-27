@@ -12,6 +12,7 @@ COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 ABI_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 KERNEL_TOKEN_PATTERN = re.compile(r"^_?[A-Za-z0-9][A-Za-z0-9._-]*$")
 ARTIFACT_PREFIX_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*-$")
+BUNDLE_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$")
 
 
 class ArtifactError(ValueError):
@@ -73,6 +74,13 @@ def validate_contract(contract: dict[str, object]) -> None:
     )
     if len(PurePosixPath(resource_container).parts) != 1:
         fail("contract runtimeResourceContainer must be a single directory name")
+    bundle_identifier = contract.get("runtimeResourceBundleIdentifier")
+    if resource_container.endswith(".framework"):
+        if (not isinstance(bundle_identifier, str)
+                or not BUNDLE_IDENTIFIER_PATTERN.fullmatch(bundle_identifier)):
+            fail("framework resource container requires a valid runtimeResourceBundleIdentifier")
+    elif bundle_identifier is not None:
+        fail("runtimeResourceBundleIdentifier is only valid for a framework resource container")
     roots = contract.get("allowedRoots")
     if not isinstance(roots, list) or not roots:
         fail("contract allowedRoots must be a non-empty list")

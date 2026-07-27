@@ -49,6 +49,9 @@ def main() -> None:
             "simulator runtime does not repair the precompiled Mach-O signature")
     require('json.load(open(sys.argv[1]' in staging and '["runtimeResourceContainer"]' in staging,
             "runtime staging does not use the platform artifact contract resource container")
+    require('runtimeResourceBundleIdentifier' in staging and 'CFBundleIdentifier' in staging
+            and 'Info.plist' in staging,
+            "Simulator resource framework does not carry Xcode bundle validation metadata")
     require("ENGINE_RUNTIME=$FRAMEWORKS/VulpraEngineRuntime" not in staging,
             "runtime staging still hard-codes the device resource container")
     require(not (ROOT / "Configuration/GeckoView.xcconfig").exists(), "old framework config remains")

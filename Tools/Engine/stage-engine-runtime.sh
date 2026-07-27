@@ -21,6 +21,17 @@ ENGINE_RUNTIME=$FRAMEWORKS/$RESOURCE_CONTAINER
 
 test -d "$ENGINE_FRAMEWORK"
 mkdir -p "$FRAMEWORKS" "$ENGINE_RUNTIME/Frameworks" "$ENGINE_RUNTIME/Licenses"
+python3 - "$CONTRACT" "$ENGINE_RUNTIME/Info.plist" <<'PY'
+import json
+import plistlib
+import sys
+
+contract = json.load(open(sys.argv[1], encoding="utf-8"))
+bundle_identifier = contract.get("runtimeResourceBundleIdentifier")
+if bundle_identifier:
+    with open(sys.argv[2], "wb") as sink:
+        plistlib.dump({"CFBundleIdentifier": bundle_identifier}, sink)
+PY
 cp -fL "$ENGINE_ROOT/runtime/bin/XUL" "$FRAMEWORKS/XUL"
 find "$ENGINE_ROOT/runtime/lib" -maxdepth 1 -type f -name '*.dylib' -exec cp -fL {} "$FRAMEWORKS/" \;
 rsync -a --delete "$ENGINE_ROOT/runtime/resources/" "$ENGINE_RUNTIME/Frameworks/"

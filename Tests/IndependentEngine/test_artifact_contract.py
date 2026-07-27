@@ -135,6 +135,9 @@ def main() -> None:
             "Simulator artifact does not verify the real process startup ABI")
     require(simulator_contract.get("runtimeResourceContainer") == "GeckoView.framework",
             "Simulator runtime resource container does not match its immutable XUL layout")
+    require(simulator_contract.get("runtimeResourceBundleIdentifier")
+            == "com.vulpra.browser.simulator-engine-resources",
+            "Simulator runtime resource bundle identity is missing")
     require(
         contract.get("allowedRoots")
         == ["runtime/bin", "runtime/lib", "runtime/include", "runtime/resources", "licenses"],
