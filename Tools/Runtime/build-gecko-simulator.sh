@@ -8,6 +8,26 @@ TARGET="aarch64-apple-ios-sim"
 
 [ -d "$FIREFOX_DIR" ] || { echo "Missing firefox source at $FIREFOX_DIR" >&2; exit 1; }
 
+# This script only produces a CoreSimulator runtime. Make the upstream intent
+# explicit because preference preprocessing does not reliably expose the
+# simulator target define for aarch64-apple-ios-sim.
+python3 - "$FIREFOX_DIR/mobile/ios/app/mobile.js" <<'PY'
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+source = path.read_text()
+conditional = '''#if TARGET_OS_SIMULATOR
+  pref("gfx.webrender.software", true);
+#endif'''
+if source.count(conditional) != 1:
+    raise SystemExit("unexpected Simulator software WebRender preference source")
+path.write_text(source.replace(
+    conditional,
+    'pref("gfx.webrender.software", true);',
+))
+PY
+
 cat >"$FIREFOX_DIR/.mozconfig" <<EOF
 mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-$TARGET
 ac_add_options --enable-application=mobile/ios

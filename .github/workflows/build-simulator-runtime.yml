@@ -15,11 +15,25 @@ jobs:
           rustup target add aarch64-apple-ios-sim
       - name: Fetch and patch Gecko
         shell: zsh {0}
-        run: ./Tools/Gecko/update-gecko.sh
+        run: |
+          ./Tools/Gecko/update-gecko.sh
+          ./Tools/Gecko/apply-patches.sh
       - name: Bootstrap Gecko
         run: cd Vendor/firefox && env -u MOZ_AUTOMATION MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" ./mach --no-interactive bootstrap --application-choice browser
       - name: Build Simulator Gecko
         run: env -u MOZ_AUTOMATION MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" IPHONESIMULATOR_SDK_DIR="$(xcrun --sdk iphonesimulator --show-sdk-path)" ./Tools/Runtime/build-gecko-simulator.sh
+      - name: Verify patched Simulator runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          dist=Vendor/firefox/obj-aarch64-apple-ios-sim/dist
+          grep -Fq 'pref("gfx.webrender.software", true);' \
+            "$dist/bin/defaults/pref/mobile.js"
+          if otool -L "$dist/bin/XUL" | grep -Fq BrowserEngineKit; then
+            echo "patched Simulator XUL still depends on BrowserEngineKit" >&2
+            exit 1
+          fi
+          grep -aFq 'firefox-152.0.6-ios-abi-1' "$dist/bin/XUL"
       - name: Package runtime
         run: tar -C Vendor/firefox -cLzf gecko-simulator-runtime.tar.gz obj-aarch64-apple-ios-sim/dist
       - uses: actions/upload-artifact@v4
