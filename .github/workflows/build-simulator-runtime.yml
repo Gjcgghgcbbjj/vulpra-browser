@@ -22,6 +22,14 @@ jobs:
         run: cd Vendor/firefox && env -u MOZ_AUTOMATION MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" ./mach --no-interactive bootstrap --application-choice browser
       - name: Build Simulator Gecko
         run: env -u MOZ_AUTOMATION MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" IPHONESIMULATOR_SDK_DIR="$(xcrun --sdk iphonesimulator --show-sdk-path)" ./Tools/Runtime/build-gecko-simulator.sh
+      - name: Package runtime candidate
+        run: tar -C Vendor/firefox -cLzf gecko-simulator-runtime.tar.gz obj-aarch64-apple-ios-sim/dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-gecko-simulator-${{ github.run_id }}
+          path: gecko-simulator-runtime.tar.gz
+          compression-level: 0
+          retention-days: 7
       - name: Verify patched Simulator runtime
         shell: bash
         run: |
@@ -33,11 +41,18 @@ jobs:
             echo "patched Simulator XUL still depends on BrowserEngineKit" >&2
             exit 1
           fi
-          grep -aFq 'firefox-152.0.6-ios-abi-1' "$dist/bin/XUL"
-      - name: Package runtime
-        run: tar -C Vendor/firefox -cLzf gecko-simulator-runtime.tar.gz obj-aarch64-apple-ios-sim/dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vulpra-gecko-simulator-${{ github.run_id }}
-          path: gecko-simulator-runtime.tar.gz
-          compression-level: 0
+          printf '%s\n' \
+            '44598acdcc08d064619a22c05aa5028d51fe9d779e32c26ca71e93e16e341a48  GeckoView/GeckoViewRuntimeSupport.h' \
+            '02e95e3992a1e590ac091cfa0c0c0bd760e206114f1c23847e51d23c598ba8a8  GeckoView/GeckoViewSwiftSupport.h' \
+            '8157d33637237ceb70165e857cd12347dca4419d1d37e1d1db24e658491fb006  GeckoView/IOSBootstrap.h' \
+            | (cd "$dist/include" && shasum -a 256 -c -)
+          nm -gjU "$dist/bin/XUL" > simulator-exported-symbols.txt
+          for symbol in \
+            _MainProcessInit \
+            _XRE_GetBootstrap \
+            _GeckoViewOpenWindow \
+            _ChildProcessInit \
+            _ReportJITStatusForChild
+          do
+            grep -Fxq "$symbol" simulator-exported-symbols.txt
+          done
