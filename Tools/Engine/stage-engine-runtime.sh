@@ -72,9 +72,6 @@ if [ "$KERNEL_LINK_PATH" != "@rpath/XUL" ]; then
   if ! otool -D "$ENGINE_KERNEL" | tail -n +2 | grep -Fxq "$KERNEL_LINK_PATH"; then
     install_name_tool -id "$KERNEL_LINK_PATH" "$ENGINE_KERNEL"
   fi
-  if otool -L "$ENGINE_BINARY" | grep -Fq "@rpath/XUL ("; then
-    install_name_tool -change "@rpath/XUL" "$KERNEL_LINK_PATH" "$ENGINE_BINARY"
-  fi
   otool -L "$ENGINE_BINARY" | grep -Fq "$KERNEL_LINK_PATH ("
 fi
 find "$ENGINE_ROOT/runtime/lib" -maxdepth 1 -type f -name '*.dylib' -exec cp -fL {} "$FRAMEWORKS/" \;

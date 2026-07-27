@@ -23,6 +23,7 @@ def main() -> None:
         "name = VulpraEngineKit; target = AB0000000000000000000005",
         'name = "Vulpra Engine Process"; target = AB0000000000000000000006',
         "Stage Engine Runtime",
+        "Relocate Simulator Kernel Link",
         "Verify Engine Artifact",
     ):
         require(token in text, f"independent graph is missing: {token}")
@@ -57,14 +58,24 @@ def main() -> None:
     engine_config = (ROOT / "Configuration/EngineKit.xcconfig").read_text(encoding="utf-8")
     require('GeckoView.framework' not in engine_config,
             "EngineKit still carries a layout-specific Simulator search path")
-    require('install_name_tool -change "@rpath/XUL" "$KERNEL_LINK_PATH"' in staging,
-            "Simulator staging does not rewrite EngineKit's XUL dependency")
+    relocation = (ROOT / "Tools/Engine/relocate-simulator-kernel-link.sh").read_text(
+        encoding="utf-8"
+    )
+    require('install_name_tool -change "@rpath/XUL" "$KERNEL_LINK_PATH"' in relocation,
+            "EngineKit post-link phase does not rewrite its Simulator XUL dependency")
+    require('install_name_tool -change "@rpath/XUL"' not in staging,
+            "App staging still patches the EngineKit consumer too late")
     require('install_name_tool -id "$KERNEL_LINK_PATH" "$ENGINE_KERNEL"' in staging,
             "Simulator staging does not align the installed XUL dylib identity")
     require('KERNEL_LINK_PATH=@rpath/$KERNEL_INSTALL_PATH' in staging,
             "runtime staging does not derive the link path from the install contract")
     require('Frameworks/XUL", );' not in text,
             "Xcode still declares the retired top-level XUL staging output")
+    engine_target = text.split('/* VulpraEngineKit */ = {isa = PBXNativeTarget;', 1)[1].split(
+        '};', 1
+    )[0]
+    require('Relocate Simulator Kernel Link' in engine_target,
+            "VulpraEngineKit target does not own its post-link relocation")
     require("ENGINE_RUNTIME=$FRAMEWORKS/VulpraEngineRuntime" not in staging,
             "runtime staging still hard-codes the device resource container")
     require(not (ROOT / "Configuration/GeckoView.xcconfig").exists(), "old framework config remains")
