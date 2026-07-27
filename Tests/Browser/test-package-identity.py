@@ -60,29 +60,26 @@ def main() -> None:
             "device source commit is not pinned")
     simulator_lock = lock.get("simulator", {})
     require(simulator_lock.get("archiveSHA256") ==
-            "264cd55232440f3b0407acb2b8249f2adb7bba3dd8e480ebaac41db4fd39fa5f",
+            "eef2fa9149fe65aceba18518195cbe68eba75304beba0a8c42d4d42cfae1e607",
             "simulator archive SHA-256 is not pinned to the validated runtime")
     require(simulator_lock.get("artifactId") ==
-            "vulpra-gecko-ios-simulator-arm64-v4-7b4c20887697b8bf5e99ba644aaf2ce0eb65c446d0f2a03d1600b4caf8883a56",
+            "vulpra-gecko-ios-simulator-arm64-v4-29805631eb63d3ac6bc0ce0ce34631fb7e570ac761cac69f5b53d74da6ecf0f4",
             "simulator content identity is not pinned")
     require(simulator_lock.get("abiVersion") == "firefox-152.0.6-ios-abi-1",
             "simulator ABI version is not pinned")
-    require(simulator_lock.get("producerRun") == 30277909573 and
-            simulator_lock.get("producerArtifactId") == 8663406576 and
-            simulator_lock.get("producerArchiveSHA256") ==
-            "3a391d55b80c7d148c8fb3f11f04f4308484278dcfd9451101ce95737808884b",
-            "simulator producer is not traceable")
-    require(simulator_lock.get("baselineArtifactId") ==
-            "vulpra-gecko-ios-simulator-arm64-v4-532166d08ca95da9774b54dc50e1493d8fac52bc06ea80e4961711af0f9adbbf",
-            "simulator inherited static-resource baseline is not traceable")
-    require(simulator_lock.get("runtimePolicy") ==
-            "force-software-webrender-on-coresimulator",
-            "simulator renderer policy is not explicit")
+    require(simulator_lock.get("derivedFromArtifactId") == device.get("artifactId"),
+            "simulator derivation source is not the verified device artifact")
+    require(simulator_lock.get("derivationTool") ==
+            "Tools/Engine/derive-simulator-artifact.py",
+            "simulator derivation tool is not traceable")
+    require(simulator_lock.get("derivationPolicy") ==
+            "rewrite-lc-build-version-to-iossim",
+            "simulator derivation policy is not explicit")
     for token in (
         "ENGINE_ARTIFACT_ID",
         "ENGINE_ABI_VERSION",
-        "force-software-webrender-on-coresimulator",
-        'pref("gfx.webrender.software", true);',
+        "ENGINE_DERIVED_FROM_ARTIFACT_ID",
+        "rewrite-lc-build-version-to-iossim",
     ):
         require(token in simulator,
                 f"simulator workflow does not enforce locked runtime policy: {token}")

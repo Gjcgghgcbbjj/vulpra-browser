@@ -59,7 +59,8 @@ jobs:
               'ENGINE_ARTIFACT_ID': lock['simulator']['artifactId'],
               'ENGINE_ABI_VERSION': lock['simulator']['abiVersion'],
               'ENGINE_SOURCE_COMMIT': lock['simulator']['sourceCommit'],
-              'ENGINE_RUNTIME_POLICY': lock['simulator']['runtimePolicy'],
+              'ENGINE_DERIVED_FROM_ARTIFACT_ID': lock['simulator']['derivedFromArtifactId'],
+              'ENGINE_DERIVATION_POLICY': lock['simulator']['derivationPolicy'],
           }
           for key, value in values.items():
               print(f'{key}={shlex.quote(value)}')
@@ -77,7 +78,6 @@ jobs:
           tar -xzf "$stage/$ENGINE_ARCHIVE" -C .build/engine
           python3 - <<'PY'
           import json, os
-          from pathlib import Path
 
           manifest = json.load(open('.build/engine/manifest.json'))
           if manifest['artifactId'] != os.environ['ENGINE_ARTIFACT_ID']:
@@ -86,11 +86,11 @@ jobs:
               raise SystemExit('simulator ABI version does not match repository lock')
           if manifest['source']['commit'] != os.environ['ENGINE_SOURCE_COMMIT']:
               raise SystemExit('engine source commit does not match repository lock')
-          if os.environ['ENGINE_RUNTIME_POLICY'] != 'force-software-webrender-on-coresimulator':
-              raise SystemExit('unsupported Simulator runtime policy')
-          mobile_prefs = Path('.build/engine/runtime/resources/defaults/pref/mobile.js').read_text()
-          if 'pref("gfx.webrender.software", true);' not in mobile_prefs:
-              raise SystemExit('Simulator runtime does not force the supported software renderer')
+          if os.environ['ENGINE_DERIVED_FROM_ARTIFACT_ID'] != \
+                  'vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9':
+              raise SystemExit('Simulator derivation source does not match the verified device artifact')
+          if os.environ['ENGINE_DERIVATION_POLICY'] != 'rewrite-lc-build-version-to-iossim':
+              raise SystemExit('unsupported Simulator derivation policy')
           PY
           python3 Tools/Engine/verify-engine-artifact.py \
             --contract Configuration/engine-artifact-simulator-v4.json .build/engine \
