@@ -12,6 +12,7 @@ COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
 ABI_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 KERNEL_TOKEN_PATTERN = re.compile(r"^_?[A-Za-z0-9][A-Za-z0-9._-]*$")
 ARTIFACT_PREFIX_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*-$")
+BUNDLE_IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$")
 
 
 class ArtifactError(ValueError):
@@ -73,14 +74,18 @@ def validate_contract(contract: dict[str, object]) -> None:
     )
     if len(PurePosixPath(resource_container).parts) != 1:
         fail("contract runtimeResourceContainer must be a single directory name")
-    resource_alias = contract.get("runtimeResourceAlias")
-    if resource_alias is not None:
-        resource_alias = normalized_path(resource_alias, "contract runtimeResourceAlias")
+    kernel_install_path = normalized_path(
+        contract.get("runtimeKernelInstallPath"), "contract runtimeKernelInstallPath"
+    )
+    bundle_identifier = contract.get("runtimeResourceBundleIdentifier")
+    if resource_container.endswith(".framework"):
         if (contract.get("platform") != "iphonesimulator"
-                or len(PurePosixPath(resource_alias).parts) != 1
-                or not resource_alias.endswith(".framework")
-                or resource_alias == resource_container):
-            fail("contract runtimeResourceAlias must be a distinct Simulator framework directory name")
+                or kernel_install_path != f"{resource_container}/XUL"
+                or not isinstance(bundle_identifier, str)
+                or not BUNDLE_IDENTIFIER_PATTERN.fullmatch(bundle_identifier)):
+            fail("Simulator framework carrier contract is invalid")
+    elif kernel_install_path != "XUL" or bundle_identifier is not None:
+        fail("device runtime kernel contract is invalid")
     roots = contract.get("allowedRoots")
     if not isinstance(roots, list) or not roots:
         fail("contract allowedRoots must be a non-empty list")

@@ -49,10 +49,14 @@ def main() -> None:
             "simulator runtime does not repair the precompiled Mach-O signature")
     require('json.load(open(sys.argv[1]' in staging and '["runtimeResourceContainer"]' in staging,
             "runtime staging does not use the platform artifact contract resource container")
-    require('runtimeResourceAlias' in staging and 'symlink_to(resource_container)' in staging,
-            "Simulator runtime does not create its resource-only compatibility alias")
-    require('CFBundleExecutable' not in staging and 'CFBundleIdentifier' not in staging,
-            "runtime staging fabricates an executable GeckoView framework bundle")
+    require('runtimeKernelInstallPath' in staging and 'ENGINE_KERNEL=$FRAMEWORKS/$KERNEL_INSTALL_PATH' in staging,
+            "runtime staging does not use the platform kernel install contract")
+    require('CFBundleExecutable' in staging and 'CFBundleIdentifier' in staging
+            and 'CFBundlePackageType' in staging,
+            "Simulator XUL carrier lacks an installable framework Info.plist")
+    engine_config = (ROOT / "Configuration/EngineKit.xcconfig").read_text(encoding="utf-8")
+    require('@loader_path/GeckoView.framework' in engine_config,
+            "EngineKit cannot resolve the Simulator XUL carrier")
     require("ENGINE_RUNTIME=$FRAMEWORKS/VulpraEngineRuntime" not in staging,
             "runtime staging still hard-codes the device resource container")
     require(not (ROOT / "Configuration/GeckoView.xcconfig").exists(), "old framework config remains")

@@ -16,6 +16,7 @@
   "requiredKernel": "runtime/bin/XUL",
   "requiredKernelToken": "VulpraEngineRuntime",
   "runtimeResourceContainer": "VulpraEngineRuntime",
+  "runtimeKernelInstallPath": "XUL",
   "nonEmptyRoots": [
     "runtime/include",
     "runtime/resources",

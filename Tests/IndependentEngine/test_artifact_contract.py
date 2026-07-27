@@ -128,17 +128,20 @@ def main() -> None:
             "independent runtime layout token is wrong")
     require(contract.get("runtimeResourceContainer") == "VulpraEngineRuntime",
             "device runtime resource container is wrong")
+    require(contract.get("runtimeKernelInstallPath") == "XUL",
+            "device runtime kernel install path is wrong")
     simulator_contract = json.loads(SIMULATOR_CONTRACT.read_text(encoding="utf-8"))
     require(simulator_contract.get("platform") == "iphonesimulator",
             "Simulator artifact platform is wrong")
     require(simulator_contract.get("requiredKernelToken") == "_MainProcessInit",
             "Simulator artifact does not verify the real process startup ABI")
-    require(simulator_contract.get("runtimeResourceContainer") == "VulpraEngineRuntime",
-            "Simulator runtime must retain the canonical resource container")
-    require(simulator_contract.get("runtimeResourceAlias") == "GeckoView.framework",
-            "Simulator runtime alias does not match its immutable XUL layout")
-    require("runtimeResourceBundleIdentifier" not in simulator_contract,
-            "Simulator resource alias must not masquerade as an executable framework")
+    require(simulator_contract.get("runtimeResourceContainer") == "GeckoView.framework",
+            "Simulator runtime container does not match its immutable XUL layout")
+    require(simulator_contract.get("runtimeKernelInstallPath") == "GeckoView.framework/XUL",
+            "Simulator runtime must install exactly one XUL inside its compatibility carrier")
+    require(simulator_contract.get("runtimeResourceBundleIdentifier")
+            == "com.vulpra.browser.simulator-engine-runtime",
+            "Simulator runtime carrier bundle identity is missing")
     require(
         contract.get("allowedRoots")
         == ["runtime/bin", "runtime/lib", "runtime/include", "runtime/resources", "licenses"],

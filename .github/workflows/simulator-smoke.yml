@@ -111,6 +111,11 @@ jobs:
             build 2>&1 | tee simulator-build.log
           test -d "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
           app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          test ! -e "$app/Frameworks/XUL"
+          test -f "$app/Frameworks/GeckoView.framework/XUL"
+          test "$(plutil -extract CFBundleExecutable raw "$app/Frameworks/GeckoView.framework/Info.plist")" = XUL
+          test "$(plutil -extract CFBundleIdentifier raw "$app/Frameworks/GeckoView.framework/Info.plist")" = \
+            com.vulpra.browser.simulator-engine-runtime
           python3 Tools/Build/generate-build-identity.py --check
           test "$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")" = \
             "$(python3 Tools/Build/generate-build-identity.py --print marketingVersion)"
