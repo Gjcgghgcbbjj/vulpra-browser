@@ -15,9 +15,9 @@
   ],
   "requiredKernel": "runtime/bin/XUL",
   "requiredKernelToken": "_MainProcessInit",
-  "runtimeResourceContainer": "GeckoView.framework",
+  "runtimeResourceContainer": "VulpraEngineRuntime",
   "runtimeKernelInstallPath": "GeckoView.framework/XUL",
-  "runtimeResourceBundleIdentifier": "com.vulpra.browser.simulator-engine-runtime",
+  "runtimeKernelBundleIdentifier": "com.vulpra.browser.simulator-engine-runtime",
   "nonEmptyRoots": [
     "runtime/include",
     "runtime/resources",

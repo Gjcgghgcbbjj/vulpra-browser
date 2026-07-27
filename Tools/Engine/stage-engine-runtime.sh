@@ -26,6 +26,7 @@ PY
 )
 ENGINE_RUNTIME=$FRAMEWORKS/$RESOURCE_CONTAINER
 ENGINE_KERNEL=$FRAMEWORKS/$KERNEL_INSTALL_PATH
+ENGINE_KERNEL_CONTAINER=$(dirname "$ENGINE_KERNEL")
 ENGINE_BINARY=$ENGINE_FRAMEWORK/VulpraEngineKit
 KERNEL_LINK_PATH=@rpath/$KERNEL_INSTALL_PATH
 
@@ -42,8 +43,8 @@ if runtime.is_symlink():
 if legacy_kernel != kernel and (legacy_kernel.is_file() or legacy_kernel.is_symlink()):
     legacy_kernel.unlink()
 PY
-mkdir -p "$FRAMEWORKS" "$ENGINE_RUNTIME/Frameworks" "$ENGINE_RUNTIME/Licenses" "$(dirname "$ENGINE_KERNEL")"
-python3 - "$CONTRACT" "$ENGINE_RUNTIME/Info.plist" "$ENGINE_KERNEL" <<'PY'
+mkdir -p "$FRAMEWORKS" "$ENGINE_RUNTIME/Frameworks" "$ENGINE_RUNTIME/Licenses" "$ENGINE_KERNEL_CONTAINER"
+python3 - "$CONTRACT" "$ENGINE_KERNEL_CONTAINER/Info.plist" "$ENGINE_KERNEL" <<'PY'
 import json
 import os
 from pathlib import Path
@@ -51,7 +52,7 @@ import plistlib
 import sys
 
 contract = json.load(open(sys.argv[1], encoding="utf-8"))
-bundle_identifier = contract.get("runtimeResourceBundleIdentifier")
+bundle_identifier = contract.get("runtimeKernelBundleIdentifier")
 if bundle_identifier:
     info = {
         "CFBundleExecutable": Path(sys.argv[3]).name,

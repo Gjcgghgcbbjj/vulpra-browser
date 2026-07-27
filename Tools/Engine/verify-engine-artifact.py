@@ -77,15 +77,17 @@ def validate_contract(contract: dict[str, object]) -> None:
     kernel_install_path = normalized_path(
         contract.get("runtimeKernelInstallPath"), "contract runtimeKernelInstallPath"
     )
-    bundle_identifier = contract.get("runtimeResourceBundleIdentifier")
-    if resource_container.endswith(".framework"):
-        if (contract.get("platform") != "iphonesimulator"
-                or kernel_install_path != f"{resource_container}/XUL"
-                or not isinstance(bundle_identifier, str)
-                or not BUNDLE_IDENTIFIER_PATTERN.fullmatch(bundle_identifier)):
-            fail("Simulator framework carrier contract is invalid")
-    elif kernel_install_path != "XUL" or bundle_identifier is not None:
-        fail("device runtime kernel contract is invalid")
+    bundle_identifier = contract.get("runtimeKernelBundleIdentifier")
+    kernel_parent = PurePosixPath(kernel_install_path).parent
+    if kernel_install_path == "XUL":
+        if contract.get("platform") != "iphoneos" or bundle_identifier is not None:
+            fail("device runtime kernel contract is invalid")
+    elif (contract.get("platform") != "iphonesimulator"
+          or kernel_parent.suffix != ".framework"
+          or PurePosixPath(kernel_install_path).name != "XUL"
+          or not isinstance(bundle_identifier, str)
+          or not BUNDLE_IDENTIFIER_PATTERN.fullmatch(bundle_identifier)):
+        fail("Simulator framework carrier contract is invalid")
     roots = contract.get("allowedRoots")
     if not isinstance(roots, list) or not roots:
         fail("contract allowedRoots must be a non-empty list")
@@ -232,8 +234,12 @@ def validate_entries(root: Path, manifest: dict[str, object], contract: dict[str
     if required_kernel not in declared:
         fail(f"missing required kernel: {required_kernel}")
     kernel_token = contract["requiredKernelToken"].encode("ascii")
-    if (root / required_kernel).read_bytes().count(kernel_token) != 1:
+    kernel_content = (root / required_kernel).read_bytes()
+    if kernel_content.count(kernel_token) != 1:
         fail("required kernel does not own the independent runtime layout")
+    resource_token = contract["runtimeResourceContainer"].encode("ascii")
+    if kernel_content.count(resource_token) != 1:
+        fail("required kernel does not own the declared runtime resource layout")
     if not any(path.endswith(".dylib") and is_under(path, "runtime") for path in paths):
         fail("artifact must contain at least one runtime dylib")
     for required_root in contract["nonEmptyRoots"]:

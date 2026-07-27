@@ -135,13 +135,15 @@ def main() -> None:
             "Simulator artifact platform is wrong")
     require(simulator_contract.get("requiredKernelToken") == "_MainProcessInit",
             "Simulator artifact does not verify the real process startup ABI")
-    require(simulator_contract.get("runtimeResourceContainer") == "GeckoView.framework",
-            "Simulator runtime container does not match its immutable XUL layout")
+    require(simulator_contract.get("runtimeResourceContainer") == "VulpraEngineRuntime",
+            "Simulator resource container does not match the immutable XUL lookup")
     require(simulator_contract.get("runtimeKernelInstallPath") == "GeckoView.framework/XUL",
             "Simulator runtime must install exactly one XUL inside its compatibility carrier")
-    require(simulator_contract.get("runtimeResourceBundleIdentifier")
+    require(simulator_contract.get("runtimeKernelBundleIdentifier")
             == "com.vulpra.browser.simulator-engine-runtime",
             "Simulator runtime carrier bundle identity is missing")
+    require("runtimeResourceBundleIdentifier" not in simulator_contract,
+            "Simulator contract still conflates resource and kernel containers")
     require(
         contract.get("allowedRoots")
         == ["runtime/bin", "runtime/lib", "runtime/include", "runtime/resources", "licenses"],

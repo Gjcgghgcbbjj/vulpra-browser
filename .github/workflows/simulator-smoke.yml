@@ -122,6 +122,9 @@ jobs:
           test "$(plutil -extract CFBundleExecutable raw "$app/Frameworks/GeckoView.framework/Info.plist")" = XUL
           test "$(plutil -extract CFBundleIdentifier raw "$app/Frameworks/GeckoView.framework/Info.plist")" = \
             com.vulpra.browser.simulator-engine-runtime
+          test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/application.ini"
+          test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"
+          test ! -e "$app/Frameworks/GeckoView.framework/Frameworks/application.ini"
           otool -D "$app/Frameworks/GeckoView.framework/XUL" \
             | grep -Fq '@rpath/GeckoView.framework/XUL'
           otool -L "$app/Frameworks/VulpraEngineKit.framework/VulpraEngineKit" \

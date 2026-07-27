@@ -52,6 +52,9 @@ def main() -> None:
             "runtime staging does not use the platform artifact contract resource container")
     require('runtimeKernelInstallPath' in staging and 'ENGINE_KERNEL=$FRAMEWORKS/$KERNEL_INSTALL_PATH' in staging,
             "runtime staging does not use the platform kernel install contract")
+    require('ENGINE_KERNEL_CONTAINER=$(dirname "$ENGINE_KERNEL")' in staging
+            and '"$ENGINE_KERNEL_CONTAINER/Info.plist"' in staging,
+            "runtime staging does not keep the kernel bundle separate from resources")
     require('CFBundleExecutable' in staging and 'CFBundleIdentifier' in staging
             and 'CFBundlePackageType' in staging,
             "Simulator XUL carrier lacks an installable framework Info.plist")
@@ -77,7 +80,7 @@ def main() -> None:
     require('Relocate Simulator Kernel Link' in engine_target,
             "VulpraEngineKit target does not own its post-link relocation")
     require("ENGINE_RUNTIME=$FRAMEWORKS/VulpraEngineRuntime" not in staging,
-            "runtime staging still hard-codes the device resource container")
+            "runtime staging hard-codes the resource container instead of using the contract")
     require(not (ROOT / "Configuration/GeckoView.xcconfig").exists(), "old framework config remains")
     require(not (ROOT / "Configuration/Helper.xcconfig").exists(), "old helper config remains")
 
