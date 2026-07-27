@@ -10,6 +10,6 @@ DYLIB_INSTALL_NAME_BASE = @rpath
 HEADER_SEARCH_PATHS = $(VULPRA_ENGINE_ROOT)/runtime/include
 LIBRARY_SEARCH_PATHS = $(VULPRA_ENGINE_ROOT)/runtime/lib
 LD_RUNPATH_SEARCH_PATHS = $(inherited) @loader_path @loader_path/Frameworks @executable_path/Frameworks
-LD_RUNPATH_SEARCH_PATHS[sdk=iphonesimulator*] = $(inherited) @loader_path/GeckoView.framework
+LD_RUNPATH_SEARCH_PATHS[sdk=iphonesimulator*] = $(inherited) @loader_path/../GeckoView.framework
 OTHER_LDFLAGS = $(inherited) -ObjC $(VULPRA_ENGINE_ROOT)/runtime/bin/XUL $(VULPRA_ENGINE_ROOT)/runtime/lib/libmozglue.dylib $(VULPRA_ENGINE_ROOT)/runtime/lib/libnss3.dylib $(VULPRA_ENGINE_ROOT)/runtime/lib/libfreebl3.dylib $(VULPRA_ENGINE_ROOT)/runtime/lib/libsoftokn3.dylib $(VULPRA_ENGINE_ROOT)/runtime/lib/liblgpllibs.dylib $(VULPRA_ENGINE_ROOT)/runtime/lib/libmozavcodec.dylib $(VULPRA_ENGINE_ROOT)/runtime/lib/libmozavutil.dylib $(VULPRA_ENGINE_ROOT)/runtime/lib/libgkcodecs.dylib $(VULPRA_ENGINE_ROOT)/runtime/lib/libmozinference.dylib
 SWIFT_OBJC_BRIDGING_HEADER =

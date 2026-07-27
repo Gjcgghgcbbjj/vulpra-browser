@@ -55,8 +55,10 @@ def main() -> None:
             and 'CFBundlePackageType' in staging,
             "Simulator XUL carrier lacks an installable framework Info.plist")
     engine_config = (ROOT / "Configuration/EngineKit.xcconfig").read_text(encoding="utf-8")
-    require('@loader_path/GeckoView.framework' in engine_config,
-            "EngineKit cannot resolve the Simulator XUL carrier")
+    require('@loader_path/../GeckoView.framework' in engine_config,
+            "EngineKit cannot resolve the sibling Simulator XUL carrier")
+    require('@loader_path/GeckoView.framework' not in engine_config,
+            "EngineKit still searches for the Simulator XUL carrier inside itself")
     require("ENGINE_RUNTIME=$FRAMEWORKS/VulpraEngineRuntime" not in staging,
             "runtime staging still hard-codes the device resource container")
     require(not (ROOT / "Configuration/GeckoView.xcconfig").exists(), "old framework config remains")
