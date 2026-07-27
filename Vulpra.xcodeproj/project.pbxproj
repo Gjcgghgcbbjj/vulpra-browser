@@ -94,7 +94,7 @@
 
 /* Begin PBXShellScriptBuildPhase section */
 		AC0000000000000000000001 /* Verify Engine Artifact */ = {isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = ("$(VULPRA_ENGINE_ROOT)/manifest.json", "$(VULPRA_ENGINE_CONTRACT)", ); name = "Verify Engine Artifact"; outputPaths = (); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/sh; shellScript = "python3 \"$SRCROOT/Tools/Engine/verify-engine-artifact.py\" --contract \"$VULPRA_ENGINE_CONTRACT\" \"$VULPRA_ENGINE_ROOT\"\n"; };
-		AC0000000000000000000002 /* Stage Engine Runtime */ = {isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = ("$(VULPRA_ENGINE_ROOT)/runtime/bin/XUL", ); name = "Stage Engine Runtime"; outputPaths = ("$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Frameworks/XUL", ); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/sh; shellScript = "\"$SRCROOT/Tools/Engine/stage-engine-runtime.sh\"\n"; };
+		AC0000000000000000000002 /* Stage Engine Runtime */ = {isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = ("$(VULPRA_ENGINE_ROOT)/runtime/bin/XUL", ); name = "Stage Engine Runtime"; outputPaths = (); runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/sh; shellScript = "\"$SRCROOT/Tools/Engine/stage-engine-runtime.sh\"\n"; };
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */

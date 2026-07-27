@@ -26,6 +26,8 @@ PY
 )
 ENGINE_RUNTIME=$FRAMEWORKS/$RESOURCE_CONTAINER
 ENGINE_KERNEL=$FRAMEWORKS/$KERNEL_INSTALL_PATH
+ENGINE_BINARY=$ENGINE_FRAMEWORK/VulpraEngineKit
+KERNEL_LINK_PATH=@rpath/$KERNEL_INSTALL_PATH
 
 test -d "$ENGINE_FRAMEWORK"
 python3 - "$ENGINE_RUNTIME" "$ENGINE_KERNEL" "$FRAMEWORKS/XUL" <<'PY'
@@ -66,6 +68,15 @@ if bundle_identifier:
         plistlib.dump(info, sink)
 PY
 cp -fL "$ENGINE_ROOT/runtime/bin/XUL" "$ENGINE_KERNEL"
+if [ "$KERNEL_LINK_PATH" != "@rpath/XUL" ]; then
+  if ! otool -D "$ENGINE_KERNEL" | tail -n +2 | grep -Fxq "$KERNEL_LINK_PATH"; then
+    install_name_tool -id "$KERNEL_LINK_PATH" "$ENGINE_KERNEL"
+  fi
+  if otool -L "$ENGINE_BINARY" | grep -Fq "@rpath/XUL ("; then
+    install_name_tool -change "@rpath/XUL" "$KERNEL_LINK_PATH" "$ENGINE_BINARY"
+  fi
+  otool -L "$ENGINE_BINARY" | grep -Fq "$KERNEL_LINK_PATH ("
+fi
 find "$ENGINE_ROOT/runtime/lib" -maxdepth 1 -type f -name '*.dylib' -exec cp -fL {} "$FRAMEWORKS/" \;
 rsync -a --delete "$ENGINE_ROOT/runtime/resources/" "$ENGINE_RUNTIME/Frameworks/"
 rsync -a --delete "$ENGINE_ROOT/licenses/" "$ENGINE_RUNTIME/Licenses/"

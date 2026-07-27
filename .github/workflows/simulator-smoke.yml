@@ -116,6 +116,10 @@ jobs:
           test "$(plutil -extract CFBundleExecutable raw "$app/Frameworks/GeckoView.framework/Info.plist")" = XUL
           test "$(plutil -extract CFBundleIdentifier raw "$app/Frameworks/GeckoView.framework/Info.plist")" = \
             com.vulpra.browser.simulator-engine-runtime
+          otool -D "$app/Frameworks/GeckoView.framework/XUL" \
+            | grep -Fq '@rpath/GeckoView.framework/XUL'
+          otool -L "$app/Frameworks/VulpraEngineKit.framework/VulpraEngineKit" \
+            | grep -Fq '@rpath/GeckoView.framework/XUL'
           python3 Tools/Build/generate-build-identity.py --check
           test "$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")" = \
             "$(python3 Tools/Build/generate-build-identity.py --print marketingVersion)"
