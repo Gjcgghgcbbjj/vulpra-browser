@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "artifact-8512456239-abi-v4-candidate",
+  "type": "binary-inspection",
+  "source": "GitHub artifact 8512456239; Configuration/engine-abi-inventory.json; Tools/Engine/inventory-engine-abi.py; abi-inventory-artifact-8512456239.json; .build/engine/manifest.json",
+  "summary": "Checksum-verified artifact 8512456239 yielded a deterministic six-symbol dyld export inventory. A filtered local v4 candidate with 2654 files passed the content-bound verifier, but it is not external producer evidence; process-wide shutdown and interpreter-only startup remain unproved.",
+  "verifier": "./Tests/IndependentEngine/run-portable.sh; python3 Tools/Engine/verify-engine-artifact.py --contract Configuration/engine-artifact-v4.json .build/engine; deterministic inventory cmp against artifact ZIP sha256 3919792d79f06969b210532bbca88ec4c822f7dba5b9fdae1741a4e8b11b1e75"
+}

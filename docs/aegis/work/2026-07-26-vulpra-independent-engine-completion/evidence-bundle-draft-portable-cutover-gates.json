@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "portable-cutover-gates",
+  "type": "local-verification",
+  "source": "Tests/IndependentEngine/run-portable.sh; Tests/RuntimeShell/run-portable.sh; Tests/Browser/run-portable.sh",
+  "summary": "Ownership, ABI, message, public contract, Xcode graph, package, browser client, plist, and negative retirement gates passed; cutover readiness reports ready.",
+  "verifier": "Portable test runners and git diff --check."
+}

@@ -1,5 +1,5 @@
 import Foundation
-import GeckoView
+import VulpraEngineKit
 
 struct DownloadRecord: Codable, Equatable, Identifiable {
     enum State: String, Codable { case active, complete, failed, cancelled }
@@ -22,15 +22,15 @@ final class DownloadManager {
 
     private init() { records = store.load(default: []) }
 
-    func accept(_ response: ExternalResponseInfo) -> Bool {
+    func accept(_ response: EngineDownloadResponse) -> Bool {
         guard !response.localFilePath.isEmpty else { return false }
-        let name = response.filename?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let fallback = URL(string: response.url)?.lastPathComponent
+        let name = response.suggestedFilename?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallback = response.sourceURL?.lastPathComponent
         let filename = sanitize((name?.isEmpty == false ? name : fallback) ?? "Download")
         records.insert(DownloadRecord(
-            id: UUID(), sourceURL: response.url, localPath: response.localFilePath,
-            filename: filename, mimeType: response.mimeType,
-            expectedBytes: response.contentLength, receivedBytes: 0,
+            id: UUID(), sourceURL: response.sourceURL?.absoluteString ?? "", localPath: response.localFilePath,
+            filename: filename, mimeType: response.contentType,
+            expectedBytes: response.contentLength >= 0 ? response.contentLength : nil, receivedBytes: 0,
             state: .active, startedAt: Date()
         ), at: 0)
         persist()

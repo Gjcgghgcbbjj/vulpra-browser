@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-26-vulpra-independent-engine-completion",
+  "currentTodo": "Close final evidence and workspace integrity for the runtime/package identity repair.",
+  "completedTodos": [
+    "Repaired runtime/session actor ownership, ready transition, dependency injection, ABI lifetime, and Engine Process cleanup.",
+    "Pinned engine artifact identity and enforced package version/UI fingerprint.",
+    "Passed final simulator run 30239461150 and package run 30240301567 from snapshot 95338aad.",
+    "Validated and copied IPA/TIPA/SHA256SUMS to dist and the Windows desktop.",
+    "Removed every temporary runtime-package-identity CI ref while preserving user HEAD and index."
+  ],
+  "activeSlice": "Final verification and evidence closure.",
+  "evidenceRefs": [
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30239461150",
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30240301567",
+    "dist/SHA256SUMS",
+    "/mnt/c/Users/niting/Desktop/Vulpra/SHA256SUMS"
+  ],
+  "blockedOn": null,
+  "nextStep": "No source/package task work remains; physical-device coverage stays an external release gate.",
+  "updatedAt": "2026-07-27"
+}

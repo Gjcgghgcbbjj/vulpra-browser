@@ -1,33 +1,40 @@
 import Foundation
-import GeckoView
 import UIKit
+import VulpraEngineKit
 
+@MainActor
 protocol TabManagerDelegate: AnyObject {
     func tabManagerDidChange(_ manager: TabManager)
-    func tabManager(_ manager: TabManager, requestedDownload response: ExternalResponseInfo) async -> Bool
+    func tabManager(_ manager: TabManager, requestedDownload response: EngineDownloadResponse,
+                    completion: @escaping (Bool) -> Void)
     func tabManager(_ manager: TabManager, downloadAt path: String, received bytes: Int64) -> Bool
     func tabManager(_ manager: TabManager, completedDownloadAt path: String, succeeded: Bool)
-    func tabManager(_ manager: TabManager, requestedContextMenu element: ContextElement)
+    func tabManager(_ manager: TabManager, requestedContextMenu element: EngineContextMenuElement)
 }
 
+@MainActor
 final class TabManager: BrowserTabObserver {
-    private struct SavedTabs: Codable { var selectedID: UUID?; var tabs: [BrowserTabRecord] }
+    private struct SavedTabs: Codable, Equatable { var selectedID: UUID?; var tabs: [BrowserTabRecord] }
     private let store = AtomicJSONStore<SavedTabs>(filename: "tabs.json")
+    private let runtime: any EngineRuntime
+    private var lastPersistedTabs: SavedTabs?
     private(set) var tabs: [BrowserTab] = []
     private(set) var selectedID: UUID?
     private(set) var recentlyClosed: [BrowserTabRecord] = []
     weak var delegate: TabManagerDelegate?
-    var promptDelegate: PromptDelegate? {
-        didSet { tabs.forEach { $0.promptDelegate = promptDelegate; $0.session?.promptDelegate = promptDelegate } }
+    weak var promptHandler: (any EnginePromptHandler)? {
+        didSet { tabs.forEach { $0.promptHandler = promptHandler; $0.session?.promptHandler = promptHandler } }
     }
-    var permissionDelegate: PermissionEmbedderDelegate? {
-        didSet { tabs.forEach { $0.permissionDelegate = permissionDelegate; $0.session?.permissionDelegate = permissionDelegate } }
+    weak var permissionHandler: (any EnginePermissionHandler)? {
+        didSet { tabs.forEach { $0.permissionHandler = permissionHandler; $0.session?.permissionHandler = permissionHandler } }
     }
 
-    init() {
+    init(runtime: any EngineRuntime) {
+        self.runtime = runtime
         let saved = store.load(default: SavedTabs(selectedID: nil, tabs: []))
-        tabs = saved.tabs.filter { !$0.isPrivate }.map(BrowserTab.init(record:))
+        tabs = saved.tabs.filter { !$0.isPrivate }.map { BrowserTab(record: $0, runtime: runtime) }
         selectedID = tabs.contains(where: { $0.id == saved.selectedID }) ? saved.selectedID : tabs.first?.id
+        lastPersistedTabs = SavedTabs(selectedID: selectedID, tabs: tabs.map(\.record))
         if tabs.isEmpty { _ = newTab(url: nil, privateMode: false, select: true) }
         tabs.forEach(configure)
     }
@@ -38,39 +45,31 @@ final class TabManager: BrowserTabObserver {
 
     @discardableResult
     func newTab(url: URL?, privateMode: Bool, select: Bool = true, windowID: String? = nil) -> BrowserTab {
-        let tab = BrowserTab(url: url, isPrivate: privateMode)
-        configure(tab)
-        tabs.append(tab)
+        let tab = BrowserTab(url: url, isPrivate: privateMode, runtime: runtime)
+        configure(tab); tabs.append(tab)
         if let windowID { _ = tab.activate(settings: BrowserSettingsStore.shared.value, windowID: windowID) }
         if select { selectedID = tab.id }
-        changed()
-        return tab
+        changed(); return tab
     }
 
+    @MainActor
     func select(_ tab: BrowserTab) {
         guard tabs.contains(where: { $0 === tab }) else { return }
-        selectedTab?.captureThumbnail()
-        selectedTab?.setActive(false)
-        selectedID = tab.id
-        tab.setActive(true)
-        changed()
+        selectedTab?.captureThumbnail(); selectedTab?.setActive(false)
+        selectedID = tab.id; tab.setActive(true); changed()
     }
 
+    @MainActor
     func selectAdjacent(offset: Int) {
         guard let selectedID, let index = tabs.firstIndex(where: { $0.id == selectedID }), !tabs.isEmpty else { return }
-        let next = (index + offset + tabs.count) % tabs.count
-        select(tabs[next])
+        select(tabs[(index + offset + tabs.count) % tabs.count])
     }
 
     func close(_ tab: BrowserTab) {
         guard let index = tabs.firstIndex(where: { $0 === tab }) else { return }
         let wasSelected = tab.id == selectedID
-        if !tab.isPrivate {
-            recentlyClosed.insert(tab.record, at: 0)
-            recentlyClosed = Array(recentlyClosed.prefix(20))
-        }
-        tab.suspend()
-        tabs.remove(at: index)
+        if !tab.isPrivate { recentlyClosed.insert(tab.record, at: 0); recentlyClosed = Array(recentlyClosed.prefix(20)) }
+        tab.suspend(); tabs.remove(at: index)
         if tabs.isEmpty { _ = newTab(url: nil, privateMode: tab.isPrivate, select: true) }
         else if wasSelected { selectedID = tabs[min(index, tabs.count - 1)].id }
         changed()
@@ -78,74 +77,60 @@ final class TabManager: BrowserTabObserver {
 
     func move(_ tab: BrowserTab, before target: BrowserTab) {
         guard tab !== target, let source = tabs.firstIndex(where: { $0 === tab }),
-              let destination = tabs.firstIndex(where: { $0 === target }),
-              tab.isPrivate == target.isPrivate else { return }
-        tabs.remove(at: source)
-        tabs.insert(tab, at: source < destination ? destination - 1 : destination)
-        changed()
+              let destination = tabs.firstIndex(where: { $0 === target }), tab.isPrivate == target.isPrivate else { return }
+        tabs.remove(at: source); tabs.insert(tab, at: source < destination ? destination - 1 : destination); changed()
     }
 
     func closeOthers(keeping tab: BrowserTab) {
         tabs.filter { $0 !== tab && $0.isPrivate == tab.isPrivate }.forEach { $0.suspend() }
-        tabs.removeAll { $0 !== tab && $0.isPrivate == tab.isPrivate }
-        selectedID = tab.id
-        changed()
+        tabs.removeAll { $0 !== tab && $0.isPrivate == tab.isPrivate }; selectedID = tab.id; changed()
     }
 
     func undoClose() {
         guard !recentlyClosed.isEmpty else { return }
-        let record = recentlyClosed.removeFirst()
-        let tab = BrowserTab(record: record)
-        configure(tab)
-        tabs.append(tab)
-        selectedID = tab.id
-        changed()
+        let tab = BrowserTab(record: recentlyClosed.removeFirst(), runtime: runtime)
+        configure(tab); tabs.append(tab); selectedID = tab.id; changed()
     }
 
-    func suspendBackgroundTabs() {
-        tabs.filter { $0.id != selectedID }.sorted { $0.lastAccess < $1.lastAccess }.forEach { $0.suspend() }
-    }
+    func suspendBackgroundTabs() { tabs.filter { $0.id != selectedID }.sorted { $0.lastAccess < $1.lastAccess }.forEach { $0.suspend() } }
 
-    func closePrivateTabs() {
-        privateTabs.forEach { $0.suspend() }
-        tabs.removeAll(where: \.isPrivate)
-        if selectedTab == nil { selectedID = normalTabs.first?.id }
-        if tabs.isEmpty { _ = newTab(url: nil, privateMode: false, select: true) }
-        changed()
+    func shutdown() {
+        tabs.forEach { $0.suspend() }
     }
 
     private func configure(_ tab: BrowserTab) {
-        tab.observer = self
-        tab.permissionDelegate = permissionDelegate
-        tab.promptDelegate = promptDelegate
+        tab.observer = self; tab.permissionHandler = permissionHandler; tab.promptHandler = promptHandler
     }
 
     private func changed() {
         let normal = tabs.filter { !$0.isPrivate }.map(\.record)
-        store.save(SavedTabs(selectedID: normal.contains(where: { $0.id == selectedID }) ? selectedID : normal.first?.id, tabs: normal))
+        let snapshot = SavedTabs(
+            selectedID: normal.contains(where: { $0.id == selectedID }) ? selectedID : normal.first?.id,
+            tabs: normal
+        )
+        if snapshot != lastPersistedTabs {
+            lastPersistedTabs = snapshot
+            store.save(snapshot)
+        }
         delegate?.tabManagerDidChange(self)
     }
 
     func browserTabDidChange(_ tab: BrowserTab) { changed() }
     func browserTabDidRequestClose(_ tab: BrowserTab) { close(tab) }
-
-    func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> GeckoSession? {
-        newTab(url: url, privateMode: tab.isPrivate, windowID: windowID).session
+    func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> Bool {
+        newTab(url: url, privateMode: tab.isPrivate, windowID: windowID).session != nil
     }
-
-    func browserTab(_ tab: BrowserTab, requestedDownload response: ExternalResponseInfo) async -> Bool {
-        await delegate?.tabManager(self, requestedDownload: response) ?? false
+    func browserTab(_ tab: BrowserTab, requestedDownload response: EngineDownloadResponse,
+                    completion: @escaping (Bool) -> Void) {
+        delegate?.tabManager(self, requestedDownload: response, completion: completion) ?? completion(false)
     }
-
     func browserTab(_ tab: BrowserTab, downloadAt path: String, received bytes: Int64) -> Bool {
         delegate?.tabManager(self, downloadAt: path, received: bytes) ?? false
     }
-
     func browserTab(_ tab: BrowserTab, completedDownloadAt path: String, succeeded: Bool) {
         delegate?.tabManager(self, completedDownloadAt: path, succeeded: succeeded)
     }
-
-    func browserTab(_ tab: BrowserTab, requestedContextMenu element: ContextElement) {
+    func browserTab(_ tab: BrowserTab, requestedContextMenu element: EngineContextMenuElement) {
         delegate?.tabManager(self, requestedContextMenu: element)
     }
 }

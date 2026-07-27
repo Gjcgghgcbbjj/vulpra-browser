@@ -1,11 +1,20 @@
 import UIKit
 
 final class DownloadsViewController: UITableViewController {
+    private let emptyState = VulpraEmptyStateView(
+        symbol: "arrow.down.circle", title: VulpraL10n.text("empty.downloads")
+    )
+
+    init() { super.init(style: .insetGrouped) }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Downloads"
+        title = VulpraL10n.text("downloads.title")
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "DownloadCell")
-        DownloadManager.shared.onChange = { [weak self] in self?.tableView.reloadData() }
+        DownloadManager.shared.onChange = { [weak self] in self?.refresh() }
+        refresh()
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -36,15 +45,22 @@ final class DownloadsViewController: UITableViewController {
                             forRowAt indexPath: IndexPath) {
         guard editingStyle == .delete else { return }
         DownloadManager.shared.remove(DownloadManager.shared.records[indexPath.row], deleteFile: true)
-        tableView.deleteRows(at: [indexPath], with: .automatic)
+    }
+
+    private func refresh() {
+        tableView.reloadData()
+        tableView.backgroundView = DownloadManager.shared.records.isEmpty ? emptyState : nil
     }
 
     private func detail(_ record: DownloadRecord) -> String {
         let formatter = ByteCountFormatter()
         let received = formatter.string(fromByteCount: record.receivedBytes)
         if let expected = record.expectedBytes {
-            return "\(record.state.rawValue.capitalized) · \(received) of \(formatter.string(fromByteCount: expected))"
+            return VulpraL10n.format(
+                "downloads.progress.total", record.state.localizedTitle,
+                received, formatter.string(fromByteCount: expected)
+            )
         }
-        return "\(record.state.rawValue.capitalized) · \(received)"
+        return VulpraL10n.format("downloads.progress.received", record.state.localizedTitle, received)
     }
 }

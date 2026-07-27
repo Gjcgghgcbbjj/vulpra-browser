@@ -3,7 +3,9 @@ import UIKit
 final class TabOverviewViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     private let manager: TabManager
     private var collectionView: UICollectionView!
-    private let privateControl = UISegmentedControl(items: ["Tabs", "Private"])
+    private let privateControl = UISegmentedControl(items: [
+        VulpraL10n.text("browser.tabs"), VulpraL10n.text("start.private"),
+    ])
     private var showingPrivate = false
     var onDismiss: (() -> Void)?
 
@@ -18,15 +20,23 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Tabs"
-        view.backgroundColor = .systemBackground
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(done))
+        title = VulpraL10n.text("browser.tabs")
+        view.backgroundColor = .systemGroupedBackground
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(done))
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addTab))
         privateControl.selectedSegmentIndex = 0
+        privateControl.selectedSegmentTintColor = VulpraAppearance.accent
+        privateControl.setTitleTextAttributes([.foregroundColor: UIColor.white], for: .selected)
+        let undoItem = UIBarButtonItem(image: UIImage(systemName: "arrow.uturn.backward"),
+                                       style: .plain, target: self, action: #selector(undoClose))
+        undoItem.accessibilityLabel = VulpraL10n.text("tab.undo_close")
+        let closeOthersItem = UIBarButtonItem(image: UIImage(systemName: "rectangle.stack.badge.minus"),
+                                              style: .plain, target: self, action: #selector(closeOthers))
+        closeOthersItem.accessibilityLabel = VulpraL10n.text("tab.close_others")
         toolbarItems = [
-            UIBarButtonItem(title: "Undo Close", style: .plain, target: self, action: #selector(undoClose)),
+            undoItem,
             UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
-            UIBarButtonItem(title: "Close Others", style: .plain, target: self, action: #selector(closeOthers)),
+            closeOthersItem,
         ]
         navigationController?.setToolbarHidden(false, animated: false)
         privateControl.addTarget(self, action: #selector(modeChanged), for: .valueChanged)
@@ -34,9 +44,9 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
         view.addSubview(privateControl)
 
         let layout = UICollectionViewFlowLayout()
-        layout.minimumLineSpacing = 14
+        layout.minimumLineSpacing = 12
         layout.minimumInteritemSpacing = 12
-        layout.sectionInset = UIEdgeInsets(top: 14, left: 14, bottom: 28, right: 14)
+        layout.sectionInset = UIEdgeInsets(top: 12, left: 12, bottom: 24, right: 12)
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .clear
         collectionView.dataSource = self
@@ -48,6 +58,8 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
         NSLayoutConstraint.activate([
             privateControl.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             privateControl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            privateControl.leadingAnchor.constraint(greaterThanOrEqualTo: view.layoutMarginsGuide.leadingAnchor),
+            privateControl.trailingAnchor.constraint(lessThanOrEqualTo: view.layoutMarginsGuide.trailingAnchor),
             privateControl.widthAnchor.constraint(lessThanOrEqualToConstant: 320),
             collectionView.topAnchor.constraint(equalTo: privateControl.bottomAnchor, constant: 4),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -85,8 +97,8 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
         let columns: CGFloat = traitCollection.horizontalSizeClass == .regular ? 3 : 2
-        let width = floor((collectionView.bounds.width - 28 - (columns - 1) * 12) / columns)
-        return CGSize(width: width, height: max(190, width * 1.15))
+        let width = floor((collectionView.bounds.width - 24 - (columns - 1) * 12) / columns)
+        return CGSize(width: width, height: max(180, width * 1.1))
     }
 
     @objc private func addTab() {
@@ -102,6 +114,8 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
 
     @objc private func modeChanged() {
         showingPrivate = privateControl.selectedSegmentIndex == 1
+        privateControl.selectedSegmentTintColor = showingPrivate
+            ? VulpraAppearance.privateAccent : VulpraAppearance.accent
         collectionView.reloadData()
     }
 

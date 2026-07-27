@@ -2,16 +2,20 @@ import UIKit
 
 final class TabCardCell: UICollectionViewCell {
     static let reuseIdentifier = "TabCardCell"
-    let closeButton = PressableButton(symbol: "xmark.circle.fill", accessibilityLabel: "Close tab")
+    let closeButton = PressableButton(
+        symbol: "xmark.circle.fill", accessibilityLabel: VulpraL10n.text("tab.close")
+    )
     private let preview = UIImageView()
     private let titleLabel = UILabel()
     private let urlLabel = UILabel()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        contentView.backgroundColor = .secondarySystemBackground
-        contentView.layer.cornerRadius = 18
+        contentView.backgroundColor = .systemBackground
+        contentView.layer.cornerRadius = VulpraAppearance.itemRadius
         contentView.layer.cornerCurve = .continuous
+        contentView.layer.borderWidth = 1
+        contentView.layer.borderColor = VulpraAppearance.separator.cgColor
         contentView.clipsToBounds = true
         preview.backgroundColor = .tertiarySystemBackground
         preview.image = UIImage(systemName: "globe")
@@ -48,12 +52,13 @@ final class TabCardCell: UICollectionViewCell {
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 
     func update(tab: BrowserTab, selected: Bool) {
-        titleLabel.text = tab.title
-        urlLabel.text = tab.url?.host ?? (tab.isPrivate ? "Private tab" : "New tab")
-        contentView.layer.borderWidth = selected ? 2 : 0
-        contentView.layer.borderColor = VulpraAppearance.accent.cgColor
+        titleLabel.text = tab.displayTitle
+        urlLabel.text = tab.url?.host ?? VulpraL10n.text(tab.isPrivate ? "tab.private" : "tab.new")
+        contentView.layer.borderWidth = selected ? 2 : 1
+        let borderColor = tab.isPrivate ? VulpraAppearance.privateAccent : VulpraAppearance.accent
+        contentView.layer.borderColor = (selected ? borderColor : VulpraAppearance.separator).cgColor
         preview.image = tab.thumbnail ?? UIImage(systemName: tab.isPrivate ? "hand.raised.fill" : "globe")
         preview.contentMode = tab.thumbnail == nil ? .center : .scaleAspectFill
-        accessibilityLabel = "\(tab.title), \(urlLabel.text ?? "")"
+        accessibilityLabel = "\(tab.displayTitle), \(urlLabel.text ?? "")"
     }
 }

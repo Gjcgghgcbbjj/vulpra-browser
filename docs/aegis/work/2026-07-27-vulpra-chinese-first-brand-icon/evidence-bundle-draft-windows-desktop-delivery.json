@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "windows-desktop-delivery",
+  "type": "delivery",
+  "source": "/mnt/c/Users/niting/Desktop/Vulpra",
+  "summary": "Vulpra.ipa, Vulpra-TrollStore.tipa, and SHA256SUMS copied to Windows desktop and matched downloaded artifact hashes.",
+  "verifier": "sha256sum -c /mnt/c/Users/niting/Desktop/Vulpra/SHA256SUMS"
+}

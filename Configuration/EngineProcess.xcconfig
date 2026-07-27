@@ -1,0 +1,12 @@
+#include "Base.xcconfig"
+PRODUCT_NAME = Vulpra Engine Process
+PRODUCT_BUNDLE_IDENTIFIER = com.vulpra.browser.engine-process
+INFOPLIST_FILE = Engine/VulpraEngineProcess/Info.plist
+APPLICATION_EXTENSION_API_ONLY = YES
+SKIP_INSTALL = YES
+CODE_SIGN_ENTITLEMENTS = Engine/VulpraEngineProcess/EngineProcess.entitlements
+HEADER_SEARCH_PATHS =
+LIBRARY_SEARCH_PATHS =
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @executable_path/../../Frameworks @loader_path/../../Frameworks
+OTHER_LDFLAGS = $(inherited) -Wl,-u,_NSExtensionMain
+SWIFT_OBJC_BRIDGING_HEADER =

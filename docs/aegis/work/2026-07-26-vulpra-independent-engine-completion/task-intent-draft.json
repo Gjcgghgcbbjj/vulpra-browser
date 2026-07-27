@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Complete the precompiled Gecko to VulpraEngineKit to Vulpra App architecture and deliver a verified IPA.",
+  "goal": "Implement the independent engine adapter and process host, atomically migrate the App, retire inherited runtime owners, and package a verified installable IPA.",
+  "successEvidence": [
+    "A content-bound v4 artifact, Mac/Xcode compile and link, simulator navigation, independent child process, zero old runtime references/targets/workflows, and a validated IPA containing VulpraEngineKit but no GeckoView/old Helper/JIT payload."
+  ],
+  "stopCondition": "done only after the IPA exists and package/runtime gates pass; blocked only on an external dependency after repeated attempts; needs-verification when implementation exists without Mac/device evidence; scope-exceeded if completing would require Gecko source rebuild or retaining inherited integration source.",
+  "nonGoals": [
+    "Rebuild or patch Gecko source, retain idevice/JIT/GeckoView/old Helper, delete user data, or claim App Store eligibility."
+  ],
+  "scope": "VulpraEngineKit runtime/session/event/feature implementation, independent process host, App protocol migration, atomic Xcode/workflow/package cutover, source retirement, Mac CI, simulator smoke, and IPA validation.",
+  "changeKinds": [
+    "architecture"
+  ],
+  "riskHints": [
+    "Private Gecko ABI, Objective-C/Swift bridging, iOS extension bootstrap, data preservation, atomic target removal, signing, and lack of local Xcode."
+  ]
+}

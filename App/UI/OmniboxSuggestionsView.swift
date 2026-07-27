@@ -10,16 +10,20 @@ final class OmniboxSuggestionsView: UIView, UITableViewDataSource, UITableViewDe
         super.init(frame: frame)
         translatesAutoresizingMaskIntoConstraints = false
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.12
-        layer.shadowRadius = 16
-        material.layer.cornerRadius = 18
+        layer.shadowOpacity = 0.06
+        layer.shadowRadius = 10
+        layer.shadowOffset = CGSize(width: 0, height: 3)
+        material.layer.cornerRadius = VulpraAppearance.itemRadius
+        material.layer.cornerCurve = .continuous
+        material.layer.borderWidth = 1 / UIScreen.main.scale
+        material.layer.borderColor = VulpraAppearance.separator.cgColor
         material.clipsToBounds = true
         material.translatesAutoresizingMaskIntoConstraints = false
         addSubview(material)
         tableView.backgroundColor = .clear
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.rowHeight = 58
+        tableView.rowHeight = 52
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "Suggestion")
         tableView.translatesAutoresizingMaskIntoConstraints = false
         material.contentView.addSubview(tableView)

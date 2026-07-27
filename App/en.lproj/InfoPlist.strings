@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Vulpra";
+"NSCameraUsageDescription" = "Scan QR codes for website addresses.";
+"NSPhotoLibraryAddUsageDescription" = "Save images selected from web pages.";

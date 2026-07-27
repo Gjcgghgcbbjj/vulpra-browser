@@ -1,15 +1,26 @@
+import os
 import UIKit
+import VulpraEngineKit
 
 final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    private let logger = Logger(subsystem: "com.vulpra.browser", category: "build")
     var window: UIWindow?
     private var browser: BrowserViewController?
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
-        let initialURL = RuntimeURLRouter.resolve(connectionOptions.urlContexts.first?.url)
+        logger.notice("Client build fingerprint: \(VulpraBuildIdentity.uiFingerprint, privacy: .public)")
+        var initialURL = RuntimeURLRouter.resolve(connectionOptions.urlContexts.first?.url)
+#if DEBUG
+        if initialURL == nil,
+           let value = ProcessInfo.processInfo.environment["VULPRA_SMOKE_URL"],
+           let candidate = URL(string: value) {
+            initialURL = RuntimeURLRouter.resolve(candidate)
+        }
+#endif
         VulpraAppearance.applyGlobal()
-        let browser = BrowserViewController(initialURL: initialURL)
+        let browser = BrowserViewController(runtime: VulpraEngine.runtime, initialURL: initialURL)
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = .systemBackground
         window.tintColor = VulpraAppearance.accent
@@ -27,5 +38,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidBecomeActive(_ scene: UIScene) { browser?.setActive(true) }
     func sceneWillResignActive(_ scene: UIScene) { browser?.setActive(false) }
     func sceneDidEnterBackground(_ scene: UIScene) { browser?.setActive(false) }
-    func sceneDidDisconnect(_ scene: UIScene) { browser?.closePrivateTabs() }
+    func sceneDidDisconnect(_ scene: UIScene) {
+        browser?.shutdown()
+        browser = nil
+        window = nil
+    }
 }

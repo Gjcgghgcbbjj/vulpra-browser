@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/aegis/specs/2026-07-26-vulpra-independent-engine-product-design.md",
+    "docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md",
+    "docs/provenance/substrate-boundary.md",
+    "docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md",
+    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md",
+    "docs/aegis/adr/ADR-0003-modern-browser-ownership-and-github-distribution.md",
+    "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md",
+    "docs/aegis/baseline/2026-07-22-modern-browser-package-baseline.md",
+    "docs/aegis/policies/efficiency-complexity-governance.md"
+  ],
+  "whyRelevant": "These refs define the approved replacement architecture, preserved product/data contracts, old source owners, existing verification surface, and complexity gates.",
+  "missingAuthority": []
+}

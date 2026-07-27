@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "state": "independent",
+  "authority": {
+    "engineDesign": "docs/aegis/specs/2026-07-26-vulpra-independent-engine-product-design.md",
+    "clientDesign": "docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md"
+  },
+  "externalArtifact": {
+    "onlyCompatibilityCarrier": "precompiled-gecko-kernel",
+    "allowedClasses": [
+      "kernel-binary",
+      "runtime-dylib",
+      "abi-header",
+      "runtime-resource",
+      "license",
+      "notice",
+      "checksum-manifest"
+    ]
+  },
+  "ownedRoots": [
+    "Engine/VulpraEngineKit",
+    "Engine/VulpraEngineProcess",
+    "Engine/VulpraExecution",
+    "App",
+    "Extensions/OpenIn",
+    "Configuration",
+    "Tools/Engine",
+    "Tests/IndependentEngine"
+  ],
+  "preservedOwners": [
+    "App/Browser/BrowserTab.swift",
+    "App/Browser/TabManager.swift",
+    "App/Persistence",
+    "App/Library",
+    "App/Settings",
+    "Extensions/OpenIn"
+  ],
+  "retiredRoots": [
+    "Extensions/GeckoView",
+    "Extensions/Helper",
+    "Modules/VulpraRuntime",
+    "Patches",
+    "Tools/Gecko",
+    "Vendor/firefox",
+    "Vendor/idevice"
+  ],
+  "historicalOnly": [
+    "docs/provenance/import-manifest.tsv",
+    "docs/provenance/substrate-boundary.md"
+  ],
+  "transitions": [
+    {
+      "from": "staged",
+      "to": "atomic-cutover",
+      "requirements": [
+        "verified-v4-artifact",
+        "verified-abi-inventory",
+        "independent-runtime-startup",
+        "independent-process-host",
+        "app-contract-migration",
+        "old-target-removal-ready",
+        "package-cutover-ready"
+      ]
+    },
+    {
+      "from": "atomic-cutover",
+      "to": "independent",
+      "requirements": [
+        "old-source-unreferenced",
+        "old-targets-removed",
+        "old-workflows-retired",
+        "simulator-navigation-verified",
+        "package-verified"
+      ]
+    }
+  ],
+  "invariants": {
+    "activeEngineAdapters": 1,
+    "runtimeFallbackAllowed": false,
+    "simultaneousOldAndNewAppAdaptersAllowed": false,
+    "persistentDataDeletionAllowed": false
+  }
+}

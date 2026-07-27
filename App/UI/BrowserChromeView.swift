@@ -15,17 +15,21 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
     weak var delegate: BrowserChromeViewDelegate?
     let progressView = BrowserProgressView(progressViewStyle: .bar)
     private let material = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterial))
-    private let backButton = PressableButton(symbol: "chevron.backward", accessibilityLabel: "Back")
-    private let forwardButton = PressableButton(symbol: "chevron.forward", accessibilityLabel: "Forward")
-    private let reloadButton = PressableButton(symbol: "arrow.clockwise", accessibilityLabel: "Reload")
-    private let shareButton = PressableButton(symbol: "square.and.arrow.up", accessibilityLabel: "Share")
-    private let tabsButton = PressableButton(symbol: "square.on.square", accessibilityLabel: "Tabs")
-    private let addressBackground = UIVisualEffectView(effect: UIBlurEffect(style: .systemThinMaterial))
+    private let backButton = PressableButton(symbol: "chevron.backward", accessibilityLabel: VulpraL10n.text("browser.back"))
+    private let forwardButton = PressableButton(symbol: "chevron.forward", accessibilityLabel: VulpraL10n.text("browser.forward"))
+    private let reloadButton = PressableButton(symbol: "arrow.clockwise", accessibilityLabel: VulpraL10n.text("browser.reload"))
+    private let shareButton = PressableButton(symbol: "square.and.arrow.up", accessibilityLabel: VulpraL10n.text("browser.share"))
+    private let tabsButton = PressableButton(symbol: "square.on.square", accessibilityLabel: VulpraL10n.text("browser.tabs"))
+    private let tabCountLabel = UILabel()
+    private let addressBackground = UIView()
     private let lockView = UIImageView(image: UIImage(systemName: "lock.fill"))
+    private let buttonRow = UIStackView()
     private(set) var addressField = UITextField()
     private var isLoading = false
     private var compactConstraint: NSLayoutConstraint!
-    private var expandedConstraint: NSLayoutConstraint!
+    private var focusedConstraint: NSLayoutConstraint!
+    private var buttonRowConstraint: NSLayoutConstraint!
+    private var collapsedRowConstraint: NSLayoutConstraint!
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -38,7 +42,12 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 22).cgPath
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: VulpraAppearance.dockRadius).cgPath
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        applyColors()
     }
 
     func update(tab: BrowserTab, tabCount: Int) {
@@ -47,9 +56,12 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         forwardButton.isEnabled = tab.canGoForward
         isLoading = tab.isLoading
         reloadButton.setImage(UIImage(systemName: tab.isLoading ? "xmark" : "arrow.clockwise"), for: .normal)
-        reloadButton.accessibilityLabel = tab.isLoading ? "Stop" : "Reload"
-        tabsButton.accessibilityValue = "\(tabCount) tabs"
-        lockView.isHidden = tab.url?.scheme?.lowercased() != "https"
+        reloadButton.accessibilityLabel = VulpraL10n.text(tab.isLoading ? "browser.stop" : "browser.reload")
+        tabsButton.accessibilityValue = VulpraL10n.format("browser.tabs.count", tabCount)
+        tabCountLabel.text = tabCount > 99 ? "99+" : String(tabCount)
+        let symbol = tab.url == nil ? "magnifyingglass" :
+            tab.url?.scheme?.lowercased() == "https" ? "lock.fill" : "globe"
+        lockView.image = UIImage(systemName: symbol)
         progressView.update(progress: tab.progress, loading: tab.isLoading)
     }
 
@@ -60,10 +72,12 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
 
     private func configure() {
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.12
-        layer.shadowRadius = 14
-        layer.shadowOffset = CGSize(width: 0, height: 5)
-        material.layer.cornerRadius = 22
+        layer.shadowOpacity = 0.07
+        layer.shadowRadius = 10
+        layer.shadowOffset = CGSize(width: 0, height: 3)
+        material.layer.cornerRadius = VulpraAppearance.dockRadius
+        material.layer.cornerCurve = .continuous
+        material.layer.borderWidth = 1 / UIScreen.main.scale
         material.clipsToBounds = true
         material.translatesAutoresizingMaskIntoConstraints = false
         addSubview(material)
@@ -73,7 +87,8 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         progressView.translatesAutoresizingMaskIntoConstraints = false
         addSubview(progressView)
 
-        addressBackground.layer.cornerRadius = 15
+        addressBackground.layer.cornerRadius = VulpraAppearance.itemRadius
+        addressBackground.layer.cornerCurve = .continuous
         addressBackground.clipsToBounds = true
         addressBackground.translatesAutoresizingMaskIntoConstraints = false
         material.contentView.addSubview(addressBackground)
@@ -81,7 +96,7 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         lockView.tintColor = .secondaryLabel
         lockView.contentMode = .scaleAspectFit
         lockView.translatesAutoresizingMaskIntoConstraints = false
-        addressField.placeholder = "Search or enter website"
+        addressField.placeholder = VulpraL10n.text("browser.search.placeholder")
         addressField.autocapitalizationType = .none
         addressField.autocorrectionType = .no
         addressField.keyboardType = .webSearch
@@ -90,41 +105,60 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         addressField.delegate = self
         addressField.addTarget(self, action: #selector(addressChanged), for: .editingChanged)
         addressField.translatesAutoresizingMaskIntoConstraints = false
-        addressBackground.contentView.addSubview(lockView)
-        addressBackground.contentView.addSubview(addressField)
+        addressBackground.addSubview(lockView)
+        addressBackground.addSubview(addressField)
 
-        let buttons = UIStackView(arrangedSubviews: [backButton, forwardButton, reloadButton, shareButton, tabsButton])
-        buttons.axis = .horizontal
-        buttons.distribution = .equalSpacing
-        buttons.translatesAutoresizingMaskIntoConstraints = false
-        material.contentView.addSubview(buttons)
+        [backButton, forwardButton, reloadButton, shareButton, tabsButton].forEach(buttonRow.addArrangedSubview)
+        buttonRow.axis = .horizontal
+        buttonRow.alignment = .center
+        buttonRow.distribution = .equalSpacing
+        buttonRow.translatesAutoresizingMaskIntoConstraints = false
+        buttonRow.clipsToBounds = true
+        material.contentView.addSubview(buttonRow)
 
-        compactConstraint = addressBackground.heightAnchor.constraint(equalToConstant: 38)
-        expandedConstraint = addressBackground.heightAnchor.constraint(equalToConstant: 48)
+        tabCountLabel.font = .systemFont(ofSize: 9, weight: .bold)
+        tabCountLabel.textColor = .white
+        tabCountLabel.textAlignment = .center
+        tabCountLabel.backgroundColor = VulpraAppearance.accent
+        tabCountLabel.layer.cornerRadius = 8
+        tabCountLabel.clipsToBounds = true
+        tabCountLabel.translatesAutoresizingMaskIntoConstraints = false
+        tabsButton.addSubview(tabCountLabel)
+
+        compactConstraint = addressBackground.heightAnchor.constraint(equalToConstant: 42)
+        focusedConstraint = addressBackground.heightAnchor.constraint(equalToConstant: 48)
+        buttonRowConstraint = buttonRow.heightAnchor.constraint(equalToConstant: 44)
+        collapsedRowConstraint = buttonRow.heightAnchor.constraint(equalToConstant: 0)
         compactConstraint.isActive = true
+        buttonRowConstraint.isActive = true
         NSLayoutConstraint.activate([
-            material.topAnchor.constraint(equalTo: topAnchor, constant: 4),
+            material.topAnchor.constraint(equalTo: topAnchor),
             material.leadingAnchor.constraint(equalTo: leadingAnchor),
             material.trailingAnchor.constraint(equalTo: trailingAnchor),
             material.bottomAnchor.constraint(equalTo: bottomAnchor),
             addressBackground.topAnchor.constraint(equalTo: material.contentView.topAnchor, constant: 8),
-            addressBackground.leadingAnchor.constraint(equalTo: material.contentView.leadingAnchor, constant: 10),
-            addressBackground.trailingAnchor.constraint(equalTo: material.contentView.trailingAnchor, constant: -10),
-            lockView.leadingAnchor.constraint(equalTo: addressBackground.contentView.leadingAnchor, constant: 12),
-            lockView.centerYAnchor.constraint(equalTo: addressBackground.contentView.centerYAnchor),
+            addressBackground.leadingAnchor.constraint(equalTo: material.contentView.leadingAnchor, constant: 8),
+            addressBackground.trailingAnchor.constraint(equalTo: material.contentView.trailingAnchor, constant: -8),
+            lockView.leadingAnchor.constraint(equalTo: addressBackground.leadingAnchor, constant: 12),
+            lockView.centerYAnchor.constraint(equalTo: addressBackground.centerYAnchor),
             lockView.widthAnchor.constraint(equalToConstant: 13),
             addressField.leadingAnchor.constraint(equalTo: lockView.trailingAnchor, constant: 7),
-            addressField.trailingAnchor.constraint(equalTo: addressBackground.contentView.trailingAnchor, constant: -8),
-            addressField.topAnchor.constraint(equalTo: addressBackground.contentView.topAnchor),
-            addressField.bottomAnchor.constraint(equalTo: addressBackground.contentView.bottomAnchor),
-            buttons.topAnchor.constraint(equalTo: addressBackground.bottomAnchor, constant: 2),
-            buttons.leadingAnchor.constraint(equalTo: material.contentView.leadingAnchor, constant: 10),
-            buttons.trailingAnchor.constraint(equalTo: material.contentView.trailingAnchor, constant: -10),
-            buttons.bottomAnchor.constraint(equalTo: material.contentView.bottomAnchor, constant: -4),
+            addressField.trailingAnchor.constraint(equalTo: addressBackground.trailingAnchor, constant: -10),
+            addressField.topAnchor.constraint(equalTo: addressBackground.topAnchor),
+            addressField.bottomAnchor.constraint(equalTo: addressBackground.bottomAnchor),
+            buttonRow.topAnchor.constraint(equalTo: addressBackground.bottomAnchor, constant: 2),
+            buttonRow.leadingAnchor.constraint(equalTo: material.contentView.leadingAnchor, constant: 8),
+            buttonRow.trailingAnchor.constraint(equalTo: material.contentView.trailingAnchor, constant: -8),
+            buttonRow.bottomAnchor.constraint(equalTo: material.contentView.bottomAnchor, constant: -4),
             progressView.topAnchor.constraint(equalTo: topAnchor),
-            progressView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            progressView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            progressView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            progressView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            tabCountLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 16),
+            tabCountLabel.heightAnchor.constraint(equalToConstant: 16),
+            tabCountLabel.topAnchor.constraint(equalTo: tabsButton.topAnchor, constant: 2),
+            tabCountLabel.trailingAnchor.constraint(equalTo: tabsButton.trailingAnchor, constant: 1),
         ])
+        applyColors()
 
         backButton.addTarget(self, action: #selector(back), for: .touchUpInside)
         forwardButton.addTarget(self, action: #selector(forward), for: .touchUpInside)
@@ -146,10 +180,22 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
 
     private func animateEditing(_ editing: Bool) {
         compactConstraint.isActive = !editing
-        expandedConstraint.isActive = editing
-        let changes = { self.transform = editing ? CGAffineTransform(translationX: 0, y: -6) : .identity; self.layoutIfNeeded() }
+        focusedConstraint.isActive = editing
+        buttonRowConstraint.isActive = !editing
+        collapsedRowConstraint.isActive = editing
+        let changes = {
+            self.buttonRow.alpha = editing ? 0 : 1
+            self.superview?.layoutIfNeeded()
+        }
         if UIAccessibility.isReduceMotionEnabled { changes() }
-        else { UIView.animate(withDuration: 0.28, delay: 0, usingSpringWithDamping: 0.82, initialSpringVelocity: 0.25, options: [.beginFromCurrentState], animations: changes) }
+        else { UIView.animate(withDuration: 0.22, delay: 0, options: [.beginFromCurrentState, .curveEaseInOut], animations: changes) }
+    }
+
+    private func applyColors() {
+        material.layer.borderColor = VulpraAppearance.separator.cgColor
+        addressBackground.backgroundColor = UIColor.tertiarySystemFill
+        lockView.tintColor = .secondaryLabel
+        addressField.textColor = VulpraAppearance.graphite
     }
 
     @objc private func addressChanged() { delegate?.browserChrome(self, textDidChange: addressField.text ?? "") }

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "evidenceRoot": ".build/engine/runtime/resources",
+  "commands": {
+    "load": {"name": "GeckoView:LoadUri", "required": ["uri", "flags"]},
+    "back": {"name": "GeckoView:GoBack", "required": ["userInteraction"]},
+    "forward": {"name": "GeckoView:GoForward", "required": ["userInteraction"]},
+    "reload": {"name": "GeckoView:Reload", "required": ["flags"]},
+    "stop": {"name": "GeckoView:Stop", "required": []},
+    "active": {"name": "GeckoView:SetActive", "required": ["active"]},
+    "focused": {"name": "GeckoView:SetFocused", "required": ["focused"]},
+    "settings": {"name": "GeckoView:UpdateSettings", "required": ["pageZoom", "userAgentMode", "useTrackingProtection"]}
+  },
+  "events": {
+    "location": {"name": "GeckoView:LocationChange", "required": ["uri", "canGoBack", "canGoForward"]},
+    "title": {"name": "GeckoView:PageTitleChanged", "required": ["title"]},
+    "pageStart": {"name": "GeckoView:PageStart", "required": ["uri"]},
+    "pageStop": {"name": "GeckoView:PageStop", "required": ["success"]},
+    "loadError": {"name": "GeckoView:OnLoadError", "required": ["uri", "error", "errorModule", "errorClass"]},
+    "progress": {"name": "GeckoView:ProgressChanged", "required": ["progress"]},
+    "newSession": {"name": "GeckoView:OnNewSession", "required": ["uri", "newSessionId"]},
+    "close": {"name": "GeckoView:DOMWindowClose", "required": []},
+    "crash": {"name": "GeckoView:ContentCrash", "required": []},
+    "kill": {"name": "GeckoView:ContentKill", "required": []},
+    "contextMenu": {"name": "GeckoView:ContextMenu", "required": []},
+    "prompt": {"name": "GeckoView:Prompt", "required": ["prompt"]},
+    "contentPermission": {"name": "GeckoView:ContentPermission", "required": ["uri", "perm"]},
+    "mediaPermission": {"name": "GeckoView:MediaPermission", "required": []},
+    "externalResponse": {"name": "GeckoView:ExternalResponse", "required": []},
+    "externalResponseProgress": {"name": "GeckoView:ExternalResponseProgress", "required": ["localFilePath", "bytesReceived"]},
+    "externalResponseComplete": {"name": "GeckoView:ExternalResponseComplete", "required": ["localFilePath", "succeeded"]}
+  },
+  "windowInit": {
+    "required": ["settings", "modules"],
+    "enabledModules": ["GeckoViewContent", "GeckoViewNavigation", "GeckoViewPermission", "GeckoViewProgress"]
+  }
+}

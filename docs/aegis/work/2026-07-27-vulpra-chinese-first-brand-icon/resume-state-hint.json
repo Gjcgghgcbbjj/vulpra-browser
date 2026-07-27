@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-27-vulpra-chinese-first-brand-icon",
+  "lastCheckpointRef": "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/todo-checkpoint-draft.json",
+  "resumeInstruction": "Task is complete after confirming cleanup and immutable HEAD/index evidence.",
+  "knownPartialWork": [
+    "Chinese-first localization and White Porcelain AppIcon",
+    "Porcelain Native UI across browser chrome, start page, tabs, lists, privacy, and settings",
+    "Canonical simulator engine evidence repair and dual-screenshot validation in run 30219730768",
+    "IPA/TIPA build, validation, and desktop delivery from run 30220272887"
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/10-intent.md",
+    "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/20-checkpoint.md",
+    "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "Do not claim dark-mode, iPad, or physical-device visual validation."
+  ]
+}

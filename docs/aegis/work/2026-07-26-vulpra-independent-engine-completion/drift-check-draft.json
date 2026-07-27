@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-26-vulpra-independent-engine-completion",
+  "taskIntentRef": "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md"
+  ],
+  "scopeStatus": "The repair and package identity work remained inside the approved independent-engine, Chinese-first UI, and IPA/TIPA delivery scope.",
+  "compatStatus": "com.vulpra.browser, iOS 15, iPhone/iPad, OpenIn, Codable data, and TabManager/BrowserTab ownership remain preserved.",
+  "retirementStatus": "GeckoView, Helper, JIT, source-build, alternate artifact, and fallback paths remain retired; no duplicate owner was introduced.",
+  "newRiskSignals": [
+    "Physical-device installation and public distribution remain outside this evidence boundary."
+  ],
+  "decision": "continue"
+}

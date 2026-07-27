@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md"
+  ],
+  "impactStatement": "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/impact-statement-draft.json",
+  "compatPlan": "Preserve com.vulpra.browser, iOS 15, iPhone/iPad, OpenIn, Codable data, TabManager/BrowserTab, VulpraEngineKit, and branch HEAD.",
+  "retirementPlan": "Duplicate start-page search and crashing alternate Simulator artifact workflow branch are removed; no fallback or duplicate engine owner remains.",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/evidence-bundle-draft-final-ios-packages-30220272887.json",
+    "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/evidence-bundle-draft-final-porcelain-simulator-30219730768.json",
+    "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/evidence-bundle-draft-local-porcelain-portable-gates.json",
+    "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/evidence-bundle-draft-windows-desktop-delivery.json"
+  ]
+}

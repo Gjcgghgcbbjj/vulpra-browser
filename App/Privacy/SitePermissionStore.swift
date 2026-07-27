@@ -1,5 +1,4 @@
 import Foundation
-import GeckoView
 
 struct SitePermissionRecord: Codable, Equatable, Identifiable {
     enum Decision: String, Codable { case allow, deny }

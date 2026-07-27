@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-26-vulpra-independent-engine-completion",
+  "requiredBaselineRefs": [
+    "docs/aegis/specs/2026-07-26-vulpra-independent-engine-product-design.md",
+    "docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md",
+    "docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md",
+    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md",
+    "docs/aegis/adr/ADR-0003-modern-browser-ownership-and-github-distribution.md"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "docs/aegis/specs/2026-07-26-vulpra-independent-engine-product-design.md",
+    "docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md",
+    "docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md",
+    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md",
+    "docs/aegis/adr/ADR-0003-modern-browser-ownership-and-github-distribution.md"
+  ],
+  "citedInPlanRefs": [
+    "docs/aegis/specs/2026-07-26-vulpra-independent-engine-product-design.md",
+    "docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md",
+    "docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md",
+    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md",
+    "docs/aegis/adr/ADR-0003-modern-browser-ownership-and-github-distribution.md"
+  ],
+  "missingRefs": [],
+  "decision": "continue"
+}

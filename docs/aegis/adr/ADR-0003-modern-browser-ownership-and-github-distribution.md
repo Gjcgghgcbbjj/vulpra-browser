@@ -46,3 +46,41 @@ RuntimeShellViewController and the one-session smoke owner are deleted. No fallb
 ## Boundary
 
 This ADR is an advisory Aegis Method Pack record. It does not grant completion authority or replace project-authoritative architecture sources.
+
+## Amendment - 2026-07-27 - Independent Engine Runtime Replacement
+
+- Status: amended
+
+### Source Evidence
+
+- Independent-engine completion work; simulator run 30213751790; final package run 30215026323.
+### Change Summary
+
+TabManager and BrowserTab remain the canonical tab owners. ADR-0004 supersedes
+this ADR's GeckoView, Helper, JIT, old artifact, and package-runtime details
+with VulpraEngineKit, VulpraEngineProcess, and the precompiled v4 engine
+boundary.
+
+### Compatibility Boundary
+
+The client ownership and Codable persistence decisions remain; com.vulpra.browser, iOS 15.0, arm64 iPhone/iPad, and OpenIn are preserved without data deletion.
+
+### Retirement Impact
+
+The old GeckoView session type, Helper/JIT ownership, runtime substrate producer, and old package payload are retired; no compatibility adapter remains.
+
+### Baseline Sync
+
+- Needed: needed
+- Target: docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md
+- Action: create snapshot
+- Reason: The baseline records the retained browser owners and replaced runtime/distribution owners together.
+
+### Evidence References
+
+- docs/aegis/adr/ADR-0004-independent-engine-runtime-and-distribution.md
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30213751790
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30215026323
+### Boundary
+
+This amendment is an advisory Aegis Method Pack record. It does not grant completion authority or replace project-authoritative architecture sources.

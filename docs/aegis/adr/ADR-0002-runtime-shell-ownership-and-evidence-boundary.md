@@ -46,3 +46,10 @@ Old project/client/JIT UI/release owners remain absent; AppDelegate dead code, T
 ## Boundary
 
 This ADR is an advisory Aegis Method Pack record. It does not grant completion authority or replace project-authoritative architecture sources.
+
+## Superseded By
+
+- Status: superseded
+- Date: 2026-07-27
+- ADR: docs/aegis/adr/ADR-0004-independent-engine-runtime-and-distribution.md
+- Reason: The independent engine removes the temporary GeckoView/JIT runtime-shell architecture and its v3 artifact boundary.

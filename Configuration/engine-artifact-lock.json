@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "releaseTag": "vulpra-engine-v4-candidate",
+  "device": {
+    "archive": "vulpra-engine-ios-arm64-v4.tar.gz",
+    "archiveSHA256": "9d62f558514f3749b93e8ee69d9063919c0545f7bc8f2a172024919b556bdcde",
+    "artifactId": "vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9",
+    "sourceCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932"
+  },
+  "simulator": {
+    "archive": "vulpra-engine-ios-simulator-arm64-v4.2.tar.gz",
+    "archiveSHA256": "94a1ecd11250220ee9317aa706e32d1cdca18b84e718592235d8628c45fb1259",
+    "artifactId": "vulpra-gecko-ios-simulator-arm64-v4-532166d08ca95da9774b54dc50e1493d8fac52bc06ea80e4961711af0f9adbbf",
+    "abiVersion": "gecko-ios-abi-1",
+    "sourceCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932",
+    "baseProducerRun": 29989996614,
+    "baseArchiveSHA256": "b9563d99884af6235b972dc1892a441f699bd8e16b1d53d32ed743c6cde7fd08",
+    "runtimePolicy": "force-software-webrender-on-coresimulator"
+  }
+}

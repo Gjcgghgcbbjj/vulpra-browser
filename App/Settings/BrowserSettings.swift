@@ -1,6 +1,6 @@
 import Foundation
-import GeckoView
 import UIKit
+import VulpraEngineKit
 
 enum SearchEngine: String, Codable, CaseIterable {
     case duckDuckGo, google, brave, bing
@@ -15,15 +15,15 @@ enum SearchEngine: String, Codable, CaseIterable {
     }
 
     func url(for query: String) -> URL {
-        let escaped = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? query
-        let template: String
+        var components: URLComponents
         switch self {
-        case .duckDuckGo: template = "https://duckduckgo.com/?q="
-        case .google: template = "https://www.google.com/search?q="
-        case .brave: template = "https://search.brave.com/search?q="
-        case .bing: template = "https://www.bing.com/search?q="
+        case .duckDuckGo: components = URLComponents(string: "https://duckduckgo.com/")!
+        case .google: components = URLComponents(string: "https://www.google.com/search")!
+        case .brave: components = URLComponents(string: "https://search.brave.com/search")!
+        case .bing: components = URLComponents(string: "https://www.bing.com/search")!
         }
-        return URL(string: template + escaped) ?? URL(string: "about:blank")!
+        components.queryItems = [URLQueryItem(name: "q", value: query)]
+        return components.url ?? URL(string: "about:blank")!
     }
 }
 
@@ -44,13 +44,11 @@ struct BrowserSettings: Codable, Equatable {
     var showRecentVisits = true
     var showRecentlyClosed = true
 
-    var geckoSettings: GeckoSessionSettings {
-        GeckoSessionSettings(
-            websiteMode: defaultDesktopMode
-                ? WebsiteModeSetting(userAgentOverride: nil, userAgentMode: 1, viewportMode: 1)
-                : .mobile,
-            pageZoom: PageZoomSetting(level: min(200, max(50, pageZoom))),
-            language: LanguageSetting(codes: Locale.preferredLanguages),
+    func engineConfiguration(isPrivate: Bool) -> EngineSessionConfiguration {
+        EngineSessionConfiguration(
+            isPrivate: isPrivate,
+            userAgentMode: defaultDesktopMode ? .desktop : .mobile,
+            pageZoom: Double(min(200, max(50, pageZoom))) / 100,
             trackingProtection: trackingProtection != .standard
         )
     }

@@ -1,0 +1,4 @@
+"error.no_url" = "未提供要分享的网页地址";
+"error.not_web_url" = "分享的内容不是网页地址";
+"error.cannot_create_url" = "无法创建 Vulpra 打开链接";
+"error.open_rejected" = "Vulpra 未接受分享的网页地址";

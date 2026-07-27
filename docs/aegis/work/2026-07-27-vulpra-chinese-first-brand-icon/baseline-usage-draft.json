@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-27-vulpra-chinese-first-brand-icon",
+  "requiredBaselineRefs": [
+    "docs/aegis/specs/2026-07-27-vulpra-chinese-first-brand-icon-brief.md",
+    "docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md",
+    "docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [],
+  "citedInPlanRefs": [],
+  "missingRefs": [
+    "docs/aegis/specs/2026-07-27-vulpra-chinese-first-brand-icon-brief.md",
+    "docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md",
+    "docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md"
+  ],
+  "decision": "needs-baseline-readback"
+}

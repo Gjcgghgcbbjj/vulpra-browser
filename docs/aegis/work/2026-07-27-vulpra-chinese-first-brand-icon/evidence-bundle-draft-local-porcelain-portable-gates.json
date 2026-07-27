@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "local-porcelain-portable-gates",
+  "type": "test",
+  "source": "local workspace 2026-07-27",
+  "summary": "All three portable suites, --require-cutover, localization/icon, Porcelain UI, deterministic icon check, compileall, diff check, and Aegis workspace check passed.",
+  "verifier": "./Tests/IndependentEngine/run-portable.sh; ./Tests/RuntimeShell/run-portable.sh; ./Tests/Browser/run-portable.sh; python3 Tests/IndependentEngine/test_cutover_readiness.py --require-cutover; python3 Tools/Brand/generate-app-icons.py --check"
+}

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task5-6-staging-readiness",
+  "type": "test",
+  "source": "Vulpra.xcodeproj; Configuration/EngineKit.xcconfig; Configuration/EngineProcess.xcconfig; Configuration/engine-cutover-gates.json; Tests/IndependentEngine",
+  "summary": "Dormant target graph and readiness gates passed; require-cutover correctly returned status 2 with all twelve external/migration gates open.",
+  "verifier": "./Tests/IndependentEngine/run-portable.sh; python3 Tests/IndependentEngine/test_cutover_readiness.py --require-cutover (expected exit 2)"
+}

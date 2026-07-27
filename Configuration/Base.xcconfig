@@ -1,6 +1,5 @@
 // Shared Vulpra iOS 15+ build contract.
-SDKROOT = iphoneos
-SDKROOT[sdk=iphonesimulator*] = iphonesimulator
+#include "BuildIdentity.generated.xcconfig"
 SUPPORTED_PLATFORMS = iphoneos iphonesimulator
 ARCHS = arm64
 IPHONEOS_DEPLOYMENT_TARGET = 15.0
@@ -13,13 +12,9 @@ SWIFT_STRICT_CONCURRENCY = targeted
 CLANG_ENABLE_MODULES = YES
 CLANG_ENABLE_OBJC_ARC = YES
 CODE_SIGN_STYLE = Automatic
-CURRENT_PROJECT_VERSION = 1
-MARKETING_VERSION = 0.1.0
-DEVELOPMENT_LANGUAGE = en
-VULPRA_GECKO_DIST = $(SRCROOT)/Vendor/firefox/obj-aarch64-apple-ios/dist
-VULPRA_GECKO_DIST[sdk=iphonesimulator*] = $(SRCROOT)/Vendor/firefox/obj-aarch64-apple-ios-sim/dist
-GECKO_DIST = $(VULPRA_GECKO_DIST)
-VULPRA_IDEVICE_ARCHIVE = $(SRCROOT)/.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a
-VULPRA_IDEVICE_ARCHIVE[sdk=iphonesimulator*] = $(SRCROOT)/.build/idevice/aarch64-apple-ios-sim/release/libidevice_ffi.a
-HEADER_SEARCH_PATHS = $(inherited) $(VULPRA_GECKO_DIST)/include $(SRCROOT)/Extensions/Helper $(SRCROOT)/Extensions/GeckoView/Runtime $(SRCROOT)/Modules/VulpraRuntime/JIT $(SRCROOT)/Modules/VulpraRuntime/JIT/RPPairing $(SRCROOT)/Modules/VulpraRuntime/Native
-LIBRARY_SEARCH_PATHS = $(inherited) $(VULPRA_GECKO_DIST)/bin $(VULPRA_GECKO_DIST)/lib
+VULPRA_DISTRIBUTION_PROFILE = external-signing
+VULPRA_ENGINE_ROOT = $(SRCROOT)/.build/engine
+VULPRA_ENGINE_CONTRACT = $(SRCROOT)/Configuration/engine-artifact-v4.json
+VULPRA_ENGINE_CONTRACT[sdk=iphonesimulator*] = $(SRCROOT)/Configuration/engine-artifact-simulator-v4.json
+HEADER_SEARCH_PATHS = $(inherited)
+LIBRARY_SEARCH_PATHS = $(inherited)

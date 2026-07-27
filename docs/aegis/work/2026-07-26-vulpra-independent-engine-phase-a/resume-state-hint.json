@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-26-vulpra-independent-engine-phase-a",
+  "lastCheckpointRef": "docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/todo-checkpoint-draft.json",
+  "resumeInstruction": "Read the real ABI inventory and candidate evidence; do not treat local v4 repackaging as producer proof, and do not implement shutdown/interpreter behavior without direct evidence.",
+  "knownPartialWork": [
+    "Tasks 1-6: Phase A source/contracts, dormant targets, and readiness gates.",
+    "Downloaded and checksum-verified GitHub artifact 8512456239; added deterministic Mach-O/header inventory tooling; produced and verified a filtered local v4 candidate."
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/10-intent.md",
+    "docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/20-checkpoint.md",
+    "docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/todo-checkpoint-draft.json"
+  ],
+  "unsafeToAssume": [
+    "Exported symbol and header presence does not prove call order, shutdown semantics, child-process behavior, interpreter-only execution, Xcode linkage, simulator browsing, or device performance."
+  ]
+}

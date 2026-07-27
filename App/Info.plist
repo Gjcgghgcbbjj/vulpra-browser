@@ -35,6 +35,10 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>VulpraUIBuildFingerprint</key>
+	<string>$(VULPRA_UI_FINGERPRINT)</string>
+	<key>VulpraDistributionProfile</key>
+	<string>$(VULPRA_DISTRIBUTION_PROFILE)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSPhotoLibraryAddUsageDescription</key>

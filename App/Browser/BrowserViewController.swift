@@ -1,28 +1,32 @@
-import GeckoView
 import os
 import UIKit
+import VulpraEngineKit
 
 final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, TabManagerDelegate,
     StartPageViewControllerDelegate, PageToolsControllerDelegate {
     private let logger = Logger(subsystem: "com.vulpra.browser", category: "browser")
-    private let tabManager = TabManager()
+    private let runtime: any EngineRuntime
+    private let tabManager: TabManager
     private let permissionController = BrowserPermissionController()
     private let promptController = BrowserPromptController()
-    private let addonController = BrowserAddonController()
     private let pageTools = PageToolsController()
-    private let pictureInPicture = BrowserPictureInPictureController()
     private let contextMenu = BrowserContextMenuController()
     private let contentContainer = UIView()
     private let chrome = BrowserChromeView()
     private let startPage = StartPageViewController()
     private let suggestionsView = OmniboxSuggestionsView()
     private var attachedEngineView: UIView?
+    private var failureView: VulpraEmptyStateView?
     private var privacyCover: UIVisualEffectView?
     private var recordedURLs: [UUID: String] = [:]
     private var initialURL: URL?
     private var isSceneActive = false
+    private var suggestionWorkItem: DispatchWorkItem?
+    private lazy var engineStartup = BrowserEngineStartupCoordinator(runtime: runtime)
 
-    init(initialURL: URL? = nil) {
+    init(runtime: any EngineRuntime, initialURL: URL? = nil) {
+        self.runtime = runtime
+        tabManager = TabManager(runtime: runtime)
         self.initialURL = initialURL
         super.init(nibName: nil, bundle: nil)
     }
@@ -35,8 +39,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         view.backgroundColor = .systemBackground
         configureOwners()
         configureLayout()
-        // Do not open Gecko windows in viewDidLoad. First-session open races
-        // MainProcessInit/JS globals on device (AutoJSAPI::Init SIGSEGV).
         showSelectedTab()
         NotificationCenter.default.addObserver(self, selector: #selector(settingsChanged),
                                                name: .browserSettingsDidChange, object: nil)
@@ -45,14 +47,16 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
     /// After the engine gate opens, apply cold-start URL / restored tab sessions.
     private func scheduleInitialEnginePresentation() {
-        let pendingURL = initialURL
-        initialURL = nil
-        GeckoEngineGate.whenReady { [weak self] in
+        engineStartup.start(localeIdentifier: Bundle.main.preferredLocalizations.first ?? "zh-Hans") { [weak self] in
             guard let self else { return }
+            let pendingURL = self.initialURL
+            self.initialURL = nil
             if let pendingURL {
                 self.tabManager.selectedTab?.load(pendingURL, settings: BrowserSettingsStore.shared.value)
             }
             self.showSelectedTab()
+        } onFailure: { [weak self] failure in
+            self?.showFailure(failure, retry: { [weak self] in self?.scheduleInitialEnginePresentation() })
         }
     }
 
@@ -67,7 +71,13 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         showSelectedTab()
     }
 
-    func closePrivateTabs() { tabManager.closePrivateTabs() }
+    func shutdown() {
+        suggestionWorkItem?.cancel(); suggestionWorkItem = nil
+        engineStartup.cancel()
+        tabManager.shutdown()
+        attachedEngineView?.removeFromSuperview()
+        attachedEngineView = nil
+    }
 
     func setActive(_ active: Bool) {
         isSceneActive = active
@@ -77,13 +87,10 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
     private func configureOwners() {
         tabManager.delegate = self
-        tabManager.permissionDelegate = permissionController
-        tabManager.promptDelegate = promptController
+        tabManager.permissionHandler = permissionController
+        tabManager.promptHandler = promptController
         permissionController.presenter = self
         promptController.presenter = self
-        addonController.presenter = self
-        addonController.tabManager = tabManager
-        addonController.onOpenURL = { [weak self] in self?.open($0) }
         pageTools.delegate = self
         contextMenu.onOpenURL = { [weak self] in self?.open($0) }
         chrome.delegate = self
@@ -124,21 +131,26 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private func showSelectedTab() {
         guard isViewLoaded, let tab = tabManager.selectedTab else { return }
         chrome.update(tab: tab, tabCount: tabManager.tabs.count)
-        attachedEngineView?.removeFromSuperview()
-        attachedEngineView = nil
-        startPage.willMove(toParent: nil)
-        startPage.view.removeFromSuperview()
-        startPage.removeFromParent()
-
+        if tab.lastFailure != nil { showFailure(for: tab); return }
         guard tab.url != nil else { showStartPage(); return }
-        let session = tab.activate(settings: BrowserSettingsStore.shared.value)
-        // First activate may still be waiting on GeckoEngineGate — keep start page up.
-        guard session.isOpen(), let engineView = session.engineView else {
+        _ = tab.activate(settings: BrowserSettingsStore.shared.value)
+        if tab.lastFailure != nil { showFailure(for: tab); return }
+        guard let engineView = tab.engineView else {
             showStartPage()
             return
         }
-        pictureInPicture.attach(to: session)
-        tab.setActive(isSceneActive)
+        if attachedEngineView === engineView {
+            tab.setActive(isSceneActive)
+            return
+        }
+        attachedEngineView?.removeFromSuperview()
+        attachedEngineView = nil
+        clearFailureView()
+        if startPage.parent === self {
+            startPage.willMove(toParent: nil)
+            startPage.view.removeFromSuperview()
+            startPage.removeFromParent()
+        }
         engineView.removeFromSuperview()
         engineView.translatesAutoresizingMaskIntoConstraints = false
         contentContainer.addSubview(engineView)
@@ -149,9 +161,18 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             engineView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
         ])
         attachedEngineView = engineView
+        logger.notice("Engine view attached")
+        DispatchQueue.main.async { [weak self, weak tab] in
+            guard let self, self.attachedEngineView === engineView else { return }
+            tab?.setActive(self.isSceneActive)
+        }
     }
 
     private func showStartPage() {
+        attachedEngineView?.removeFromSuperview()
+        attachedEngineView = nil
+        clearFailureView()
+        guard startPage.parent !== self else { return }
         addChild(startPage)
         startPage.view.translatesAutoresizingMaskIntoConstraints = false
         contentContainer.addSubview(startPage.view)
@@ -164,17 +185,51 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         startPage.didMove(toParent: self)
     }
 
-    private func showFailure(_ message: String) {
-        logger.error("\(message, privacy: .public)")
-        let label = UILabel(); label.text = message; label.textColor = .secondaryLabel
-        label.textAlignment = .center; label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(label)
+    private func showFailure(for tab: BrowserTab) {
+        guard let failure = tab.lastFailure else { return }
+        showFailure(failure, url: tab.url, retry: { [weak self, weak tab] in
+            guard let self, let tab else { return }
+            tab.retry(settings: BrowserSettingsStore.shared.value); self.showSelectedTab()
+        }, useHTTP: tab.httpFallbackURL == nil ? nil : { [weak self, weak tab] in
+            guard let self, let tab else { return }
+            tab.loadHTTPFallback(settings: BrowserSettingsStore.shared.value); self.showSelectedTab()
+        })
+    }
+
+    private func showFailure(_ failure: EngineFailure, url: URL? = nil,
+                             retry: @escaping () -> Void, useHTTP: (() -> Void)? = nil) {
+        logger.error("\(failure.code, privacy: .public): \(failure.message, privacy: .public)")
+        attachedEngineView?.removeFromSuperview()
+        attachedEngineView = nil
+        if startPage.parent === self {
+            startPage.willMove(toParent: nil)
+            startPage.view.removeFromSuperview()
+            startPage.removeFromParent()
+        }
+        clearFailureView()
+        let state = VulpraEmptyStateView(
+            symbol: "exclamationmark.triangle",
+            title: VulpraL10n.text(failure.code == "navigation-failed" ? "browser.load_failure" : "engine.failure"),
+            subtitle: url?.host,
+            actionTitle: failure.isRecoverable ? VulpraL10n.text("common.retry") : nil,
+            action: failure.isRecoverable ? retry : nil,
+            secondaryActionTitle: useHTTP == nil ? nil : VulpraL10n.text("browser.use_http"),
+            secondaryAction: useHTTP
+        )
+        state.translatesAutoresizingMaskIntoConstraints = false
+        contentContainer.addSubview(state)
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: contentContainer.centerYAnchor),
-            label.leadingAnchor.constraint(greaterThanOrEqualTo: contentContainer.layoutMarginsGuide.leadingAnchor),
+            state.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            state.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
+            state.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            state.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
         ])
+        failureView = state
+    }
+
+    private func clearFailureView() {
+        failureView?.removeFromSuperview()
+        failureView = nil
     }
 
     private func presentLibrary(_ section: LibrarySection) {
@@ -190,12 +245,23 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     }
 
     func browserChrome(_ chrome: BrowserChromeView, submitted text: String) {
+        suggestionWorkItem?.cancel(); suggestionWorkItem = nil
         suggestionsView.update([])
-        guard let url = OmniboxResolver.resolve(text, settings: BrowserSettingsStore.shared.value) else { return }
-        open(url)
+        let settings = BrowserSettingsStore.shared.value
+        guard let resolution = OmniboxResolver.resolve(text, settings: settings),
+              let tab = tabManager.selectedTab else { return }
+        tab.load(resolution.url, settings: settings, httpFallbackURL: resolution.httpFallbackURL)
+        showSelectedTab()
     }
     func browserChrome(_ chrome: BrowserChromeView, textDidChange text: String) {
-        suggestionsView.update(OmniboxSuggestionProvider.suggestions(for: text, tabs: tabManager.tabs))
+        suggestionWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, self.chrome.addressField.text == text else { return }
+            self.suggestionWorkItem = nil
+            self.suggestionsView.update(OmniboxSuggestionProvider.suggestions(for: text, tabs: self.tabManager.tabs))
+        }
+        suggestionWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.09, execute: work)
     }
     func browserChromeDidRequestBack(_ chrome: BrowserChromeView) { tabManager.selectedTab?.goBack() }
     func browserChromeDidRequestForward(_ chrome: BrowserChromeView) { tabManager.selectedTab?.goForward() }
@@ -213,7 +279,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     func browserChrome(_ chrome: BrowserChromeView, requestedAdjacentTab offset: Int) {
         tabManager.selectAdjacent(offset: offset); showSelectedTab()
     }
-
     func tabManagerDidChange(_ manager: TabManager) {
         showSelectedTab()
         guard let tab = manager.selectedTab, let url = tab.url, !tab.isLoading,
@@ -221,20 +286,23 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         recordedURLs[tab.id] = url.absoluteString
         HistoryStore.shared.record(title: tab.title, url: url, privateMode: tab.isPrivate)
     }
-    func tabManager(_ manager: TabManager, requestedDownload response: ExternalResponseInfo) async -> Bool { DownloadManager.shared.accept(response) }
+    func tabManager(_ manager: TabManager, requestedDownload response: EngineDownloadResponse,
+                    completion: @escaping (Bool) -> Void) {
+        completion(DownloadManager.shared.accept(response))
+    }
     func tabManager(_ manager: TabManager, downloadAt path: String, received bytes: Int64) -> Bool { DownloadManager.shared.update(path: path, bytes: bytes) }
     func tabManager(_ manager: TabManager, completedDownloadAt path: String, succeeded: Bool) { DownloadManager.shared.complete(path: path, succeeded: succeeded) }
-    func tabManager(_ manager: TabManager, requestedContextMenu element: ContextElement) {
+    func tabManager(_ manager: TabManager, requestedContextMenu element: EngineContextMenuElement) {
         contextMenu.present(element: element, from: self, sourceView: contentContainer)
     }
-
     func startPage(_ controller: StartPageViewController, open text: String) { browserChrome(chrome, submitted: text) }
     func startPageDidRequestPrivateTab(_ controller: StartPageViewController) { _ = tabManager.newTab(url: nil, privateMode: true); showSelectedTab() }
     func startPageDidRequestBookmarks(_ controller: StartPageViewController) { presentLibrary(.bookmarks) }
     func startPageDidRequestHistory(_ controller: StartPageViewController) { presentLibrary(.history) }
     func startPageDidRequestDownloads(_ controller: StartPageViewController) { presentNavigation(DownloadsViewController()) }
-    func startPageDidRequestSettings(_ controller: StartPageViewController) { presentNavigation(SettingsViewController()) }
-
+    func startPageDidRequestSettings(_ controller: StartPageViewController) {
+        presentNavigation(SettingsViewController(runtime: runtime))
+    }
     func pageToolsDidRequestShare(_ controller: PageToolsController) {
         guard let url = tabManager.selectedTab?.url else { return }
         let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
@@ -245,10 +313,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         guard let tab = tabManager.selectedTab, let url = tab.url else { return }
         BookmarkStore.shared.add(title: tab.title, url: url)
     }
-    func pageTools(_ controller: PageToolsController, find text: String) {
-        guard !text.isEmpty, let finder = tabManager.selectedTab?.session?.finder else { return }
-        Task { _ = try? await finder.find(text); finder.setDisplayOptions([.highlightAll, .dimPage]) }
-    }
     func pageToolsDidRequestDesktopMode(_ controller: PageToolsController) {
         BrowserSettingsStore.shared.update { $0.defaultDesktopMode.toggle() }
         tabManager.selectedTab?.applySettings(BrowserSettingsStore.shared.value)
@@ -258,14 +322,12 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         BrowserSettingsStore.shared.update { $0.pageZoom = level }
         tabManager.selectedTab?.applySettings(BrowserSettingsStore.shared.value)
     }
-    func pageToolsDidRequestPictureInPicture(_ controller: PageToolsController) { pictureInPicture.start() }
     func pageToolsDidRequestQRScanner(_ controller: PageToolsController) {
         let scanner = QRScannerViewController(); scanner.onCode = { [weak self] value in
             guard let self else { return }; self.browserChrome(self.chrome, submitted: value)
         }
         present(UINavigationController(rootViewController: scanner), animated: true)
     }
-
     private func updatePrivacyCover(show: Bool) {
         if show, privacyCover == nil {
             let cover = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterialDark))
