@@ -21,21 +21,28 @@ ENGINE_RUNTIME=$FRAMEWORKS/$RESOURCE_CONTAINER
 
 test -d "$ENGINE_FRAMEWORK"
 mkdir -p "$FRAMEWORKS" "$ENGINE_RUNTIME/Frameworks" "$ENGINE_RUNTIME/Licenses"
-python3 - "$CONTRACT" "$ENGINE_RUNTIME/Info.plist" <<'PY'
-import json
-import plistlib
-import sys
-
-contract = json.load(open(sys.argv[1], encoding="utf-8"))
-bundle_identifier = contract.get("runtimeResourceBundleIdentifier")
-if bundle_identifier:
-    with open(sys.argv[2], "wb") as sink:
-        plistlib.dump({"CFBundleIdentifier": bundle_identifier}, sink)
-PY
 cp -fL "$ENGINE_ROOT/runtime/bin/XUL" "$FRAMEWORKS/XUL"
 find "$ENGINE_ROOT/runtime/lib" -maxdepth 1 -type f -name '*.dylib' -exec cp -fL {} "$FRAMEWORKS/" \;
 rsync -a --delete "$ENGINE_ROOT/runtime/resources/" "$ENGINE_RUNTIME/Frameworks/"
 rsync -a --delete "$ENGINE_ROOT/licenses/" "$ENGINE_RUNTIME/Licenses/"
+python3 - "$CONTRACT" "$FRAMEWORKS" "$RESOURCE_CONTAINER" <<'PY'
+import json
+from pathlib import Path
+import shutil
+import sys
+
+contract = json.load(open(sys.argv[1], encoding="utf-8"))
+resource_alias = contract.get("runtimeResourceAlias")
+if resource_alias:
+    frameworks = Path(sys.argv[2])
+    resource_container = Path(sys.argv[3])
+    alias_path = frameworks / resource_alias
+    if alias_path.is_symlink() or alias_path.is_file():
+        alias_path.unlink()
+    elif alias_path.exists():
+        shutil.rmtree(alias_path)
+    alias_path.symlink_to(resource_container)
+PY
 
 if [ "${CODE_SIGNING_ALLOWED:-YES}" != NO ]; then
   identity=${EXPANDED_CODE_SIGN_IDENTITY:-${EXPANDED_CODE_SIGN_IDENTITY_NAME:-}}
