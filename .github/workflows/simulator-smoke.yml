@@ -89,8 +89,14 @@ jobs:
           if os.environ['ENGINE_DERIVED_FROM_ARTIFACT_ID'] != \
                   'vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9':
               raise SystemExit('Simulator derivation source does not match the verified device artifact')
-          if os.environ['ENGINE_DERIVATION_POLICY'] != 'rewrite-lc-build-version-to-iossim':
+          if os.environ['ENGINE_DERIVATION_POLICY'] != \
+                  'rewrite-lc-build-version-to-iossim-and-force-software-webrender':
               raise SystemExit('unsupported Simulator derivation policy')
+          preferences = open(
+              '.build/engine/runtime/resources/defaults/pref/mobile.js', encoding='utf-8'
+          ).read()
+          if preferences.count('pref("gfx.webrender.software", true);') != 1:
+              raise SystemExit('Simulator artifact does not enforce software WebRender exactly once')
           PY
           python3 Tools/Engine/verify-engine-artifact.py \
             --contract Configuration/engine-artifact-simulator-v4.json .build/engine \

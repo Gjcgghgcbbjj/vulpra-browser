@@ -16,6 +16,7 @@ LC_BUILD_VERSION = 0x32
 PLATFORM_IOS = 2
 PLATFORM_IOSSIMULATOR = 7
 ARTIFACT_PREFIX = "vulpra-gecko-ios-simulator-arm64-v4-"
+SOFTWARE_WEBRENDER_PREFERENCE = 'pref("gfx.webrender.software", true);'
 
 
 class DerivationError(ValueError):
@@ -65,6 +66,21 @@ def rewrite_build_platform(path: Path) -> None:
     path.write_bytes(data)
 
 
+def apply_simulator_runtime_policy(path: Path) -> None:
+    text = path.read_text(encoding="utf-8")
+    if "gfx.webrender.software" in text:
+        fail(f"source artifact already declares the Simulator WebRender policy: {path}")
+    if text and not text.endswith("\n"):
+        text += "\n"
+    path.write_text(
+        text
+        + "\n// Vulpra Simulator artifact policy.\n"
+        + SOFTWARE_WEBRENDER_PREFERENCE
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def derive(source: Path, output: Path) -> str:
     manifest_path = source / "manifest.json"
     if not source.is_dir() or not manifest_path.is_file():
@@ -87,6 +103,9 @@ def derive(source: Path, output: Path) -> str:
         fail("source artifact is missing XUL or runtime dylibs")
     for path in binary_paths:
         rewrite_build_platform(path)
+    apply_simulator_runtime_policy(
+        output / "runtime/resources/defaults/pref/mobile.js"
+    )
 
     derived = copy.deepcopy(manifest)
     derived["build"]["platform"] = "iphonesimulator"

@@ -8,13 +8,13 @@
     "sourceCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932"
   },
   "simulator": {
-    "archive": "vulpra-engine-ios-simulator-derived-arm64-v4.tar.gz",
-    "archiveSHA256": "eef2fa9149fe65aceba18518195cbe68eba75304beba0a8c42d4d42cfae1e607",
-    "artifactId": "vulpra-gecko-ios-simulator-arm64-v4-29805631eb63d3ac6bc0ce0ce34631fb7e570ac761cac69f5b53d74da6ecf0f4",
+    "archive": "vulpra-engine-ios-simulator-derived-arm64-v4-r2.tar.gz",
+    "archiveSHA256": "5a5f8af884cb2ad8b944d533b772797f8eb06b642c94f170c9a27b562dbb5f55",
+    "artifactId": "vulpra-gecko-ios-simulator-arm64-v4-062a961ea95993c14803f70cf1a51408969df80f77b69fffa64d51066ac5b566",
     "abiVersion": "firefox-152.0.6-ios-abi-1",
     "sourceCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932",
     "derivedFromArtifactId": "vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9",
     "derivationTool": "Tools/Engine/derive-simulator-artifact.py",
-    "derivationPolicy": "rewrite-lc-build-version-to-iossim"
+    "derivationPolicy": "rewrite-lc-build-version-to-iossim-and-force-software-webrender"
   }
 }

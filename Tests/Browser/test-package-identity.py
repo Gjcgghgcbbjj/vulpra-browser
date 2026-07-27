@@ -60,10 +60,10 @@ def main() -> None:
             "device source commit is not pinned")
     simulator_lock = lock.get("simulator", {})
     require(simulator_lock.get("archiveSHA256") ==
-            "eef2fa9149fe65aceba18518195cbe68eba75304beba0a8c42d4d42cfae1e607",
+            "5a5f8af884cb2ad8b944d533b772797f8eb06b642c94f170c9a27b562dbb5f55",
             "simulator archive SHA-256 is not pinned to the validated runtime")
     require(simulator_lock.get("artifactId") ==
-            "vulpra-gecko-ios-simulator-arm64-v4-29805631eb63d3ac6bc0ce0ce34631fb7e570ac761cac69f5b53d74da6ecf0f4",
+            "vulpra-gecko-ios-simulator-arm64-v4-062a961ea95993c14803f70cf1a51408969df80f77b69fffa64d51066ac5b566",
             "simulator content identity is not pinned")
     require(simulator_lock.get("abiVersion") == "firefox-152.0.6-ios-abi-1",
             "simulator ABI version is not pinned")
@@ -73,13 +73,14 @@ def main() -> None:
             "Tools/Engine/derive-simulator-artifact.py",
             "simulator derivation tool is not traceable")
     require(simulator_lock.get("derivationPolicy") ==
-            "rewrite-lc-build-version-to-iossim",
+            "rewrite-lc-build-version-to-iossim-and-force-software-webrender",
             "simulator derivation policy is not explicit")
     for token in (
         "ENGINE_ARTIFACT_ID",
         "ENGINE_ABI_VERSION",
         "ENGINE_DERIVED_FROM_ARTIFACT_ID",
-        "rewrite-lc-build-version-to-iossim",
+        "rewrite-lc-build-version-to-iossim-and-force-software-webrender",
+        'pref("gfx.webrender.software", true);',
     ):
         require(token in simulator,
                 f"simulator workflow does not enforce locked runtime policy: {token}")

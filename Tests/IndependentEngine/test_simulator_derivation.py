@@ -9,6 +9,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL = ROOT / "Tools/Engine/derive-simulator-artifact.py"
+SOFTWARE_WEBRENDER_PREFERENCE = 'pref("gfx.webrender.software", true);'
 
 
 def require(condition: bool, message: str) -> None:
@@ -76,6 +77,12 @@ def main() -> None:
                 "derivation changed source or ABI identity")
         require(derived["artifactId"].startswith("vulpra-gecko-ios-simulator-arm64-v4-"),
                 "derived artifact ID prefix is wrong")
+        source_preferences = (source / "runtime/resources/defaults/pref/mobile.js").read_text()
+        derived_preferences = (output / "runtime/resources/defaults/pref/mobile.js").read_text()
+        require(SOFTWARE_WEBRENDER_PREFERENCE not in source_preferences,
+                "test source unexpectedly contains the Simulator runtime policy")
+        require(derived_preferences.count(SOFTWARE_WEBRENDER_PREFERENCE) == 1,
+                "derived artifact does not contain exactly one software WebRender policy")
         for relative in ("runtime/bin/XUL", "runtime/lib/libmozglue.dylib"):
             data = (output / relative).read_bytes()
             require(struct.unpack_from("<I", data, 40)[0] == 7,
@@ -95,6 +102,18 @@ def main() -> None:
         )
         require(rejected.returncode != 0 and "iphoneos" in rejected.stderr,
                 "derivation accepted a non-device source artifact")
+
+        conflicting = base / "conflicting"
+        conflicting.mkdir()
+        write_source(conflicting)
+        preferences = conflicting / "runtime/resources/defaults/pref/mobile.js"
+        preferences.write_text(SOFTWARE_WEBRENDER_PREFERENCE + "\n", encoding="utf-8")
+        conflict_result = subprocess.run(
+            ["python3", str(TOOL), str(conflicting), str(base / "conflict-output")],
+            text=True, capture_output=True, check=False,
+        )
+        require(conflict_result.returncode != 0 and "already declares" in conflict_result.stderr,
+                "derivation accepted a pre-existing Simulator runtime policy")
     print("PASS: deterministic device-to-Simulator artifact derivation")
 
 
