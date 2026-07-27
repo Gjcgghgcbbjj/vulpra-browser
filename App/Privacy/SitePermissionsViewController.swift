@@ -1,11 +1,24 @@
 import UIKit
 
 final class SitePermissionsViewController: UITableViewController {
+    private let emptyState = VulpraEmptyStateView(
+        symbol: "checkmark.shield", title: VulpraL10n.text("empty.permissions")
+    )
+
+    init() { super.init(style: .insetGrouped) }
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Site Permissions"
-        navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Clear", style: .plain, target: self, action: #selector(clear))
+        title = VulpraL10n.text("site_permissions.title")
+        let clearItem = UIBarButtonItem(
+            image: UIImage(systemName: "trash"), style: .plain, target: self, action: #selector(clear)
+        )
+        clearItem.accessibilityLabel = VulpraL10n.text("common.clear")
+        navigationItem.rightBarButtonItem = clearItem
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "PermissionCell")
+        refresh()
     }
 
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -16,8 +29,9 @@ final class SitePermissionsViewController: UITableViewController {
         let record = SitePermissionStore.shared.records[indexPath.row]
         let cell = tableView.dequeueReusableCell(withIdentifier: "PermissionCell", for: indexPath)
         var content = cell.defaultContentConfiguration()
-        content.text = record.host
-        content.secondaryText = "\(record.permission) · \(record.decision.rawValue)"
+        content.text = record.host == "This site" ? VulpraL10n.text("permission.this_site") : record.host
+        let permission = VulpraL10n.text("permission.kind.\(record.permission)", fallback: record.permission)
+        content.secondaryText = VulpraL10n.format("site_permissions.record", permission, record.decision.localizedTitle)
         content.image = UIImage(systemName: record.decision == .allow ? "checkmark.shield" : "xmark.shield")
         cell.contentConfiguration = content
         return cell
@@ -27,8 +41,15 @@ final class SitePermissionsViewController: UITableViewController {
                             forRowAt indexPath: IndexPath) {
         guard editingStyle == .delete else { return }
         SitePermissionStore.shared.remove(SitePermissionStore.shared.records[indexPath.row])
-        tableView.deleteRows(at: [indexPath], with: .automatic)
+        refresh()
     }
 
-    @objc private func clear() { SitePermissionStore.shared.clear(); tableView.reloadData() }
+    @objc private func clear() { SitePermissionStore.shared.clear(); refresh() }
+
+    private func refresh() {
+        tableView.reloadData()
+        let isEmpty = SitePermissionStore.shared.records.isEmpty
+        tableView.backgroundView = isEmpty ? emptyState : nil
+        navigationItem.rightBarButtonItem?.isEnabled = !isEmpty
+    }
 }

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/aegis/specs/2026-07-27-vulpra-chinese-first-brand-icon-brief.md",
+    "docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md",
+    "docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md"
+  ],
+  "whyRelevant": "The approved brief owns language/icon acceptance; existing experience and package baselines own UI and runtime boundaries.",
+  "missingAuthority": []
+}

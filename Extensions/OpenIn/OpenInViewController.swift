@@ -24,7 +24,7 @@ final class VulpraOpenInViewController: UIViewController {
             }
 
         guard let provider else {
-            finish(.failure(makeError(code: 1, description: "No shared web URL was provided")))
+            finish(.failure(makeError(code: 1, description: NSLocalizedString("error.no_url", comment: ""))))
             return
         }
 
@@ -42,7 +42,9 @@ final class VulpraOpenInViewController: UIViewController {
                     let scheme = sharedURL.scheme?.lowercased(),
                     scheme == "http" || scheme == "https"
                 else {
-                    self.finish(.failure(self.makeError(code: 2, description: "The shared item is not a web URL")))
+                    self.finish(.failure(self.makeError(
+                        code: 2, description: NSLocalizedString("error.not_web_url", comment: "")
+                    )))
                     return
                 }
                 self.openSharedURL(sharedURL)
@@ -59,7 +61,9 @@ final class VulpraOpenInViewController: UIViewController {
         ]
 
         guard let destination = components.url, let extensionContext else {
-            finish(.failure(makeError(code: 3, description: "Unable to create the Vulpra URL")))
+            finish(.failure(makeError(
+                code: 3, description: NSLocalizedString("error.cannot_create_url", comment: "")
+            )))
             return
         }
 
@@ -71,7 +75,9 @@ final class VulpraOpenInViewController: UIViewController {
                 if opened {
                     self.finish(.success(()))
                 } else {
-                    self.finish(.failure(self.makeError(code: 4, description: "Vulpra did not accept the shared URL")))
+                    self.finish(.failure(self.makeError(
+                        code: 4, description: NSLocalizedString("error.open_rejected", comment: "")
+                    )))
                 }
             }
         }

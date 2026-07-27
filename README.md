@@ -1,52 +1,46 @@
 # Vulpra Browser
 
-Vulpra Browser is a new Gecko-based browser client for iOS 15 and later, with a
-UIKit and TrollStore-first direction.
+Vulpra is a UIKit browser for iOS 15 and later. The application consumes one
+independent engine boundary:
 
-This repository contains the verified Phase 0 Gecko/iOS/JIT substrate and the
-implemented Vulpra modern browser client: a fresh four-target native Xcode
-graph, bounded multi-tab UIKit browser, exactly-once JIT readiness owner,
-OpenIn extension, local browser features, and deterministic GitHub macOS
-runtime/package workflows. It does not contain the inherited client, old Xcode
-project, old-data migration, third-party UI/analytics packages, or committed
-release binaries.
+```text
+Precompiled Gecko Runtime -> VulpraEngineKit -> Vulpra App
+```
 
-Provenance and scope:
+`VulpraEngineKit` owns the direct runtime ABI, message routing, sessions, and
+views. `Vulpra Engine Process` owns child-process bootstrap. The App owns browser
+state through `TabManager` and `BrowserTab`; normal-tab Codable records remain
+compatible and private tabs remain excluded from persistence. `OpenIn` remains
+the sole share extension.
 
-- source commit: `ef14c2997ae7dfdb44155240ec64fea3140ba9e1`
-- machine manifest: `docs/provenance/import-manifest.tsv`
-- human boundary: `docs/provenance/substrate-boundary.md`
-- efficiency policy: `docs/aegis/policies/efficiency-complexity-governance.md`
-- current package baseline:
-  `docs/aegis/baseline/2026-07-22-modern-browser-package-baseline.md`
-
-Implemented client areas include normal/private tabs, restoration and
-suspension, omnibox suggestions, start page, bookmarks/history/downloads,
-page tools, permissions/privacy settings, Gecko addon management, native
-animations, iPad/landscape adaptation, Reduce Motion, and 120 Hz opt-in.
+The repository does not build or patch Gecko. A normal build consumes a
+content-bound v4 artifact from `.build/engine` containing only XUL, runtime
+dylibs, three direct ABI headers, resources, licenses, notices, and its
+manifest. The active Xcode graph contains four targets: Vulpra, OpenIn,
+VulpraEngineKit, and Vulpra Engine Process.
 
 Portable verification:
 
 ```sh
+./Tests/IndependentEngine/run-portable.sh
 ./Tests/RuntimeShell/run-portable.sh
 ./Tests/Browser/run-portable.sh
+python3 Tools/Engine/verify-engine-artifact.py \
+  --contract Configuration/engine-artifact-v4.json .build/engine
 ```
 
-GitHub build evidence:
-
-- Runtime substrate run: https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/29856427149
-- IPA/TIPA run: https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/29877342036
-
-Manual Mac commands, when Xcode and the iPhoneOS SDK are available:
+Mac build and packaging:
 
 ```sh
-./Tools/Runtime/check-macos-prerequisites.sh
-./Tools/Runtime/build-runtime-substrate.sh
 ./Tools/Release/build-app.sh
 ./Tools/Release/create-ipa.sh
+python3 Tools/Engine/validate-ipa.py dist/Vulpra.ipa
 ```
 
-GitHub has compiled the Xcode graph and produced checksum-verified test IPA and
-TIPA artifacts. Physical-device launch/JIT behavior, iOS 15.8/16.7 testing,
-performance, and public-distribution clearance remain explicit device/release
-gates.
+The GitHub workflows restore pinned device and Simulator v4 artifacts, verify
+them before Xcode runs, compile the independent graph, exercise Simulator
+launch/navigation, and publish validated IPA/TIPA packages with SHA-256 sums.
+
+Architecture requirements and evidence gates are recorded in
+`docs/aegis/specs/`, `docs/aegis/adr/`, and
+`Configuration/engine-cutover-gates.json`.

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task3-public-contract-red-green",
+  "type": "test",
+  "source": "Engine/VulpraEngineKit/Public; Tests/IndependentEngine/test_public_contract.py",
+  "summary": "Public contract structural gate and all existing portable regressions passed; no Swift compiler is available on this Linux host.",
+  "verifier": "./Tests/IndependentEngine/run-portable.sh && ./Tests/RuntimeShell/run-portable.sh && ./Tests/Browser/run-portable.sh"
+}

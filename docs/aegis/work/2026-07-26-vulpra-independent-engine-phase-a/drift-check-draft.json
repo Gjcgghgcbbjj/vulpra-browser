@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-26-vulpra-independent-engine-phase-a",
+  "taskIntentRef": "docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/aegis/specs/2026-07-26-vulpra-independent-engine-product-design.md"
+  ],
+  "scopeStatus": "Artifact investigation stayed within precompiled kernel, dylib, direct ABI header, runtime resource, and license boundaries.",
+  "compatStatus": "App, active GeckoView/Helper runtime, bundle identity, user data, packaging workflow, and dormant target graph remain unchanged.",
+  "retirementStatus": "No old owner was retired; atomic cutover remains gated on external v4 production, Mac runtime startup/process proof, App migration, and old target removal.",
+  "newRiskSignals": [
+    "The dyld export trie contains only six symbols; process-wide shutdown candidates are defined but not exported.",
+    "ReportJITStatusForChild reports status but does not select or prove interpreter-only startup.",
+    "The verified .build/engine v4 root is a local filtered candidate, not an external producer artifact."
+  ],
+  "decision": "needs-verification"
+}

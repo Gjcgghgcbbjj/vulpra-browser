@@ -3,10 +3,10 @@
    <BuildAction parallelizeBuildables="YES" buildImplicitDependencies="YES">
       <BuildActionEntries>
          <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
-            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AB0000000000000000000002" BuildableName="GeckoView.framework" BlueprintName="GeckoView" ReferencedContainer="container:Vulpra.xcodeproj"/>
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AB0000000000000000000005" BuildableName="VulpraEngineKit.framework" BlueprintName="VulpraEngineKit" ReferencedContainer="container:Vulpra.xcodeproj"/>
          </BuildActionEntry>
          <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
-            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AB0000000000000000000003" BuildableName="Vulpra Helper.appex" BlueprintName="Vulpra Helper" ReferencedContainer="container:Vulpra.xcodeproj"/>
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AB0000000000000000000006" BuildableName="Vulpra Engine Process.appex" BlueprintName="Vulpra Engine Process" ReferencedContainer="container:Vulpra.xcodeproj"/>
          </BuildActionEntry>
          <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
             <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AB0000000000000000000004" BuildableName="OpenIn.appex" BlueprintName="OpenIn" ReferencedContainer="container:Vulpra.xcodeproj"/>
@@ -14,9 +14,18 @@
          <BuildActionEntry buildForTesting="YES" buildForRunning="YES" buildForProfiling="YES" buildForArchiving="YES" buildForAnalyzing="YES">
             <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AB0000000000000000000001" BuildableName="Vulpra.app" BlueprintName="Vulpra" ReferencedContainer="container:Vulpra.xcodeproj"/>
          </BuildActionEntry>
+         <BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForArchiving="NO" buildForAnalyzing="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AB0000000000000000000007" BuildableName="VulpraEngineKitTests.xctest" BlueprintName="VulpraEngineKitTests" ReferencedContainer="container:Vulpra.xcodeproj"/>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
-   <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES"/>
+   <TestAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Launcher.LLDB" shouldUseLaunchSchemeArgsEnv="YES">
+      <Testables>
+         <TestableReference skipped="NO" parallelizable="YES">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AB0000000000000000000007" BuildableName="VulpraEngineKitTests.xctest" BlueprintName="VulpraEngineKitTests" ReferencedContainer="container:Vulpra.xcodeproj"/>
+         </TestableReference>
+      </Testables>
+   </TestAction>
    <LaunchAction buildConfiguration="Debug" selectedDebuggerIdentifier="Xcode.DebuggerFoundation.Debugger.LLDB" selectedLauncherIdentifier="Xcode.DebuggerFoundation.Launcher.LLDB" launchStyle="0" useCustomWorkingDirectory="NO" ignoresPersistentStateOnLaunch="NO" debugDocumentVersioning="YES" debugServiceExtension="internal" allowLocationSimulation="YES">
       <BuildableProductRunnable runnableDebuggingMode="0">
          <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AB0000000000000000000001" BuildableName="Vulpra.app" BlueprintName="Vulpra" ReferencedContainer="container:Vulpra.xcodeproj"/>

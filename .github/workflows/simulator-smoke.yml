@@ -1,55 +1,395 @@
-name: Vulpra Simulator Phase B smoke
+name: Vulpra Independent Simulator Navigation
 
 on:
   workflow_dispatch:
+    inputs:
+      xcode_version:
+        required: true
+        default: Xcode_26.4.1.app
+        type: string
+      engine_release_tag:
+        required: true
+        default: vulpra-engine-v4-candidate
+        type: string
+      isolate_engine_process:
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
-  simulator:
+  launch:
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DERIVED_DATA: ${{ github.workspace }}/.build/simulator-derived
+
     steps:
       - uses: actions/checkout@v4
-      - name: Build native simulator shell
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Select Xcode
+        shell: bash
         run: |
           set -euo pipefail
-          cat >/tmp/VulpraSimulator.swift <<'EOF'
-          import UIKit
-          final class AppDelegate: UIResponder, UIApplicationDelegate {
-              var window: UIWindow?
-              func application(_ app: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
-                  let w = UIWindow(frame: UIScreen.main.bounds)
-                  let label = UILabel(frame: w.bounds)
-                  label.text = "Vulpra Simulator Shell"
-                  label.textAlignment = .center
-                  w.rootViewController = UIViewController()
-                  w.rootViewController?.view.addSubview(label)
-                  label.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-                  w.makeKeyAndVisible(); window = w
-                  return true
+          sudo xcode-select --switch "/Applications/${{ inputs.xcode_version }}/Contents/Developer"
+          xcodebuild -version | tee simulator-environment.log
+          xcrun --sdk iphonesimulator --show-sdk-build-version | tee -a simulator-environment.log
+          xcrun simctl list runtimes | tee -a simulator-environment.log
+          xcrun simctl list devicetypes | tee -a simulator-environment.log
+
+      - name: Restore verified Simulator engine v4
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - '${{ inputs.engine_release_tag }}' <<'PY' > engine-lock.env
+          import json, shlex, sys
+          lock = json.load(open('Configuration/engine-artifact-lock.json'))
+          if sys.argv[1] != lock['releaseTag']:
+              raise SystemExit('workflow release tag does not match engine-artifact-lock.json')
+          values = {
+              'ENGINE_RELEASE_TAG': lock['releaseTag'],
+              'ENGINE_ARCHIVE': lock['simulator']['archive'],
+              'ENGINE_ARCHIVE_SHA256': lock['simulator']['archiveSHA256'],
+              'ENGINE_ARTIFACT_ID': lock['simulator']['artifactId'],
+              'ENGINE_ABI_VERSION': lock['simulator']['abiVersion'],
+              'ENGINE_SOURCE_COMMIT': lock['simulator']['sourceCommit'],
+              'ENGINE_RUNTIME_POLICY': lock['simulator']['runtimePolicy'],
+          }
+          for key, value in values.items():
+              print(f'{key}={shlex.quote(value)}')
+          PY
+          set -a
+          source engine-lock.env
+          set +a
+          stage="$(mktemp -d)"
+          gh release download "$ENGINE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ENGINE_ARCHIVE" \
+            --dir "$stage"
+          printf '%s  %s\n' "$ENGINE_ARCHIVE_SHA256" "$stage/$ENGINE_ARCHIVE" | shasum -a 256 -c -
+          mkdir -p .build/engine
+          tar -xzf "$stage/$ENGINE_ARCHIVE" -C .build/engine
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          manifest = json.load(open('.build/engine/manifest.json'))
+          if manifest['artifactId'] != os.environ['ENGINE_ARTIFACT_ID']:
+              raise SystemExit('simulator artifact ID does not match repository lock')
+          if manifest['abiVersion'] != os.environ['ENGINE_ABI_VERSION']:
+              raise SystemExit('simulator ABI version does not match repository lock')
+          if manifest['source']['commit'] != os.environ['ENGINE_SOURCE_COMMIT']:
+              raise SystemExit('engine source commit does not match repository lock')
+          if os.environ['ENGINE_RUNTIME_POLICY'] != 'force-software-webrender-on-coresimulator':
+              raise SystemExit('unsupported Simulator runtime policy')
+          mobile_prefs = Path('.build/engine/runtime/resources/defaults/pref/mobile.js').read_text()
+          if 'pref("gfx.webrender.software", true);' not in mobile_prefs:
+              raise SystemExit('Simulator runtime does not force the supported software renderer')
+          PY
+          python3 Tools/Engine/verify-engine-artifact.py \
+            --contract Configuration/engine-artifact-simulator-v4.json .build/engine \
+            | tee simulator-engine-verification.log
+
+      - name: Build Vulpra for Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project Vulpra.xcodeproj \
+            -scheme Vulpra \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee simulator-build.log
+          test -d "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          python3 Tools/Build/generate-build-identity.py --check
+          test "$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")" = \
+            "$(python3 Tools/Build/generate-build-identity.py --print marketingVersion)"
+          test "$(plutil -extract CFBundleVersion raw "$app/Info.plist")" = \
+            "$(python3 Tools/Build/generate-build-identity.py --print buildVersion)"
+          test "$(plutil -extract VulpraUIBuildFingerprint raw "$app/Info.plist")" = \
+            "$(python3 Tools/Build/generate-build-identity.py --print uiFingerprint)"
+          python3 - "$app" "$(python3 Tools/Build/generate-build-identity.py --print uiFingerprint)" <<'PY'
+          import sys
+          from pathlib import Path
+          app = Path(sys.argv[1])
+          token = sys.argv[2].encode('ascii')
+          binaries = [path for path in app.iterdir() if path.is_file()]
+          if not any(token in path.read_bytes() for path in binaries):
+              raise SystemExit('simulator App binaries do not contain the UI fingerprint')
+          PY
+
+      - name: Run native EngineKit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test_runtime="$(xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["runtimes"] if item.get("isAvailable") and item.get("name", "").startswith("iOS")]
+          if not values: raise SystemExit("no iOS Simulator runtime")
+          print(values[-1]["identifier"])
+          ')"
+          test_device_type="$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["devicetypes"] if item.get("name", "").startswith("iPhone")]
+          if not values: raise SystemExit("no iPhone Simulator type")
+          preferred = [item for item in values if "Pro" in item["name"]]
+          print((preferred or values)[-1]["identifier"])
+          ')"
+          test_udid="$(xcrun simctl create "Vulpra-Tests-$GITHUB_RUN_ID" "$test_device_type" "$test_runtime")"
+          trap 'xcrun simctl delete "$test_udid" >/dev/null 2>&1 || true' EXIT
+          xcrun simctl boot "$test_udid"
+          xcrun simctl bootstatus "$test_udid" -b
+          test_deadline=$((SECONDS + 600))
+          test_result=running
+          xcodebuild \
+            -project Vulpra.xcodeproj \
+            -scheme Vulpra \
+            -configuration Debug \
+            -destination "platform=iOS Simulator,id=$test_udid" \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            test > simulator-native-tests.log 2>&1 &
+          test_pid=$!
+          while kill -0 "$test_pid" >/dev/null 2>&1; do
+            if grep -Fq "** TEST FAILED **" simulator-native-tests.log; then
+              test_result=failed
+              break
+            fi
+            if grep -Fq "** TEST SUCCEEDED **" simulator-native-tests.log; then
+              test_result=succeeded
+              break
+            fi
+            if (( SECONDS >= test_deadline )); then
+              test_result=timed-out
+              break
+            fi
+            sleep 5
+          done
+
+          if [[ "$test_result" == running ]]; then
+            set +e
+            wait "$test_pid"
+            test_exit=$?
+            set -e
+            test_result=completed
+          else
+            sleep 10
+            if kill -0 "$test_pid" >/dev/null 2>&1; then
+              kill "$test_pid" >/dev/null 2>&1 || true
+              sleep 2
+            fi
+            if kill -0 "$test_pid" >/dev/null 2>&1; then
+              kill -9 "$test_pid" >/dev/null 2>&1 || true
+            fi
+            wait "$test_pid" >/dev/null 2>&1 || true
+          fi
+
+          cat simulator-native-tests.log
+          if [[ "$test_result" == timed-out ]]; then
+            echo "native EngineKit tests exceeded 600 seconds" >&2
+            exit 1
+          fi
+          if [[ "$test_result" == failed ]]; then
+            echo "native EngineKit tests reported failure" >&2
+            exit 1
+          fi
+          if [[ "$test_result" == completed && "$test_exit" -ne 0 ]]; then
+            echo "native EngineKit test process exited with $test_exit" >&2
+            exit "$test_exit"
+          fi
+          ! grep -Fq "** TEST FAILED **" simulator-native-tests.log
+          grep -Fq "** TEST SUCCEEDED **" simulator-native-tests.log
+          grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeCreatesProtocolSessionWithRequestedConfiguration()' passed" simulator-native-tests.log
+          grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeStartsStopped()' passed" simulator-native-tests.log
+          grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseResolvesOnlyOnce()' passed" simulator-native-tests.log
+          grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseCancelsWhenAbandoned()' passed" simulator-native-tests.log
+          grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeLifecycleCanRetryRecoverableFailure()' passed" simulator-native-tests.log
+          grep -Fq "Test case 'VulpraEngineKitTests.testSessionLifecycleClosesAfterFailedOpenAndRetry()' passed" simulator-native-tests.log
+          grep -Fq "Test case 'VulpraEngineKitTests.testNavigationLoadErrorPreservesURLAndCoalescesFailedPageStop()' passed" simulator-native-tests.log
+
+      - name: Launch and navigate
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_with_timeout() {
+            local seconds="$1"
+            shift
+            perl -e 'alarm shift; exec @ARGV or die "exec failed: $!\n"' "$seconds" "$@"
+          }
+          app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          runtime="$(xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["runtimes"] if item.get("isAvailable") and item.get("name", "").startswith("iOS")]
+          if not values: raise SystemExit("no iOS Simulator runtime")
+          print(values[-1]["identifier"])
+          ')"
+          device_types="$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["devicetypes"] if item.get("name", "").startswith("iPhone")]
+          if not values: raise SystemExit("no iPhone Simulator type")
+          preferred = [item for item in values if "Pro" in item["name"]]
+          ordered = list(reversed(preferred)) + [item for item in reversed(values) if item not in preferred]
+          print("\n".join(item["identifier"] for item in ordered))
+          ')"
+          udid=""
+          while IFS= read -r device_type; do
+            if candidate="$(xcrun simctl create "Vulpra-Independent-$GITHUB_RUN_ID" "$device_type" "$runtime" 2>/dev/null)"; then
+              udid="$candidate"
+              printf 'runtime=%s\ndevice_type=%s\nudid=%s\n' "$runtime" "$device_type" "$udid" \
+                | tee simulator-device.log
+              break
+            fi
+          done <<< "$device_types"
+          test -n "$udid"
+          cleanup() {
+            run_with_timeout 60 xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true
+            run_with_timeout 60 xcrun simctl delete "$udid" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          xcrun simctl boot "$udid"
+          run_with_timeout 180 xcrun simctl bootstatus "$udid" -b
+          xcrun simctl spawn "$udid" defaults write NSGlobalDomain AppleLanguages -array zh-Hans
+          xcrun simctl spawn "$udid" defaults write NSGlobalDomain AppleLocale -string zh_CN
+          if [[ '${{ inputs.isolate_engine_process }}' == 'true' ]]; then
+            mkdir -p .build/diagnostic-plugins
+            mv "$app/PlugIns/OpenIn.appex" .build/diagnostic-plugins/
+          fi
+          run_with_timeout 300 xcrun simctl install "$udid" "$app"
+          start_output="$(run_with_timeout 60 xcrun simctl launch "$udid" com.vulpra.browser)"
+          printf '%s\n' "$start_output" | tee simulator-start-page-launch.log
+          start_pid="${start_output##*: }"
+          sleep 8
+          if ! /bin/kill -0 "$start_pid"; then
+            echo "Vulpra exited before the start-page screenshot" >&2
+            exit 1
+          fi
+          run_with_timeout 60 xcrun simctl io "$udid" screenshot simulator-start-page.png
+          test -s simulator-start-page.png
+          run_with_timeout 30 xcrun simctl terminate "$udid" com.vulpra.browser | tee simulator-start-page-terminate.log || true
+          run_with_timeout 60 xcrun simctl shutdown "$udid"
+          run_with_timeout 60 xcrun simctl delete "$udid"
+          udid="$(xcrun simctl create "Vulpra-Navigation-$GITHUB_RUN_ID" "$device_type" "$runtime")"
+          printf 'navigation_udid=%s\n' "$udid" | tee -a simulator-device.log
+          xcrun simctl boot "$udid"
+          run_with_timeout 180 xcrun simctl bootstatus "$udid" -b
+          xcrun simctl spawn "$udid" defaults write NSGlobalDomain AppleLanguages -array zh-Hans
+          xcrun simctl spawn "$udid" defaults write NSGlobalDomain AppleLocale -string zh_CN
+          run_with_timeout 300 xcrun simctl install "$udid" "$app"
+          xcrun simctl spawn "$udid" log stream --style compact --info --debug \
+            --predicate 'process == "Vulpra" OR process CONTAINS[c] "Vulpra Engine" OR senderImagePath CONTAINS[c] "Vulpra" OR eventMessage CONTAINS[c] "Vulpra"' \
+            > simulator-system.log 2>&1 &
+          system_log_pid=$!
+          sleep 2
+          launch_output="$(SIMCTL_CHILD_VULPRA_SMOKE_URL='https://example.com/' \
+            run_with_timeout 60 xcrun simctl launch "$udid" com.vulpra.browser)"
+          printf '%s\n' "$launch_output" | tee simulator-launch.log
+          app_pid="${launch_output##*: }"
+          sleep 8
+          app_alive=1
+          if ! /bin/kill -0 "$app_pid"; then
+            app_alive=0
+            echo "Vulpra exited before navigation" | tee simulator-survival.log
+          else
+            echo "Vulpra initial navigation requested: https://example.com/" \
+              | tee simulator-navigation.log
+          fi
+          sleep 60
+          if ! /bin/kill -0 "$app_pid"; then
+            app_alive=0
+            echo "Vulpra exited after navigation" | tee -a simulator-survival.log
+          else
+            echo "Vulpra survived launch and navigation" | tee -a simulator-survival.log
+          fi
+          run_with_timeout 60 xcrun simctl io "$udid" screenshot simulator-navigation.png
+          kill "$system_log_pid" >/dev/null 2>&1 || true
+          wait "$system_log_pid" >/dev/null 2>&1 || true
+          : > simulator-crash-paths.log
+          for crash_root in \
+            "$HOME/Library/Logs/DiagnosticReports" \
+            "$HOME/Library/Developer/CoreSimulator/Devices/$udid/data"; do
+            test -d "$crash_root" || continue
+            find "$crash_root" -type f \
+              \( -name 'Vulpra*.crash' -o -name 'Vulpra*.ips' \) -mmin -10 \
+              -print -exec cp {} . \; 2>/dev/null \
+              | tee -a simulator-crash-paths.log || true
+          done
+          run_with_timeout 30 xcrun simctl terminate "$udid" com.vulpra.browser | tee simulator-terminate.log || true
+          swift - simulator-navigation.png <<'SWIFT' | tee simulator-rendering.log
+          import CoreGraphics
+          import Darwin
+          import Foundation
+          import ImageIO
+
+          let path = CommandLine.arguments[1]
+          guard let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
+                let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
+              fputs("unable to decode simulator screenshot\n", stderr)
+              exit(1)
+          }
+          let width = image.width
+          let height = image.height
+          var pixels = [UInt8](repeating: 255, count: width * height * 4)
+          let drewImage = pixels.withUnsafeMutableBytes { buffer -> Bool in
+              guard let context = CGContext(
+                  data: buffer.baseAddress, width: width, height: height,
+                  bitsPerComponent: 8, bytesPerRow: width * 4,
+                  space: CGColorSpaceCreateDeviceRGB(),
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              ) else { return false }
+              context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+              return true
+          }
+          guard drewImage else {
+              fputs("unable to inspect simulator screenshot\n", stderr)
+              exit(1)
+          }
+          var darkPixels = 0
+          for y in (height / 8)..<(height * 3 / 4) {
+              for x in 0..<width {
+                  let offset = (y * width + x) * 4
+                  if pixels[offset] < 220 && pixels[offset + 1] < 220 && pixels[offset + 2] < 220 {
+                      darkPixels += 1
+                  }
               }
           }
-          UIApplicationMain(CommandLine.argc, CommandLine.unsafeArgv, nil, NSStringFromClass(AppDelegate.self))
-          EOF
-          mkdir -p VulpraSimulator.app
-          xcrun --sdk iphonesimulator swiftc -target arm64-apple-ios15.0-simulator -O /tmp/VulpraSimulator.swift -o VulpraSimulator.app/VulpraSimulator -framework UIKit
-          cat >VulpraSimulator.app/Info.plist <<'EOF'
-          <?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleExecutable</key><string>VulpraSimulator</string><key>CFBundleIdentifier</key><string>com.vulpra.simulator</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleVersion</key><string>1</string><key>CFBundleShortVersionString</key><string>1.0</string></dict></plist>
-          EOF
-      - name: Run simulator smoke test
-        run: |
-          set -euo pipefail
-          device="$(xcrun simctl create VulpraSmoke 'iPhone 15' | tail -n 1)"
-          trap 'xcrun simctl shutdown "$device" >/dev/null 2>&1 || true; xcrun simctl delete "$device" >/dev/null 2>&1 || true' EXIT
-          xcrun simctl boot "$device"
-          open -a Simulator
-          xcrun simctl install "$device" VulpraSimulator.app
-          xcrun simctl launch "$device" com.vulpra.simulator
-          sleep 5
-          xcrun simctl io "$device" screenshot simulator-smoke.png
-      - uses: actions/upload-artifact@v4
+          print("rendered_dark_pixels=\(darkPixels)")
+          guard darkPixels >= 1_000 else {
+              fputs("simulator page content is visually blank\n", stderr)
+              exit(1)
+          }
+          SWIFT
+          test -s simulator-navigation.png
+          if find . -maxdepth 1 -type f \( -name 'Vulpra*.crash' -o -name 'Vulpra*.ips' \) | grep -q .; then
+            echo "Vulpra produced a Simulator crash report" >&2
+            exit 1
+          fi
+          test "$app_alive" -eq 1
+          grep -Fq 'Engine location: https://example.com/' simulator-system.log
+          grep -Fq 'Engine page completed: true' simulator-system.log
+          grep -Fq 'Vulpra Engine Process connected' simulator-system.log
+          grep -Fq 'Engine view attached' simulator-system.log
+
+      - name: Upload Simulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
         with:
-          name: vulpra-simulator-smoke-${{ github.run_id }}
-          path: simulator-smoke.png
+          name: vulpra-independent-simulator-${{ github.run_id }}
+          path: |
+            simulator-*.log
+            simulator-start-page.png
+            simulator-navigation.png
+            Vulpra*.crash
+            Vulpra*.ips
+          if-no-files-found: warn
+          retention-days: 14

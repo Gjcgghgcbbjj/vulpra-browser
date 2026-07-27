@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Make the client Chinese-first, add the approved predominantly white Vulpra icon, rebuild and deliver validated IPA/TIPA packages.",
+  "goal": "Ship Chinese-first UI and the White Porcelain Flame V icon without changing runtime, data, or bundle identity.",
+  "successEvidence": [
+    "Chinese simulator UI and installed icon, passing portable contracts, successful archive/package workflow, validated desktop IPA/TIPA."
+  ],
+  "stopCondition": "Done after validated packages are copied to the visible Windows desktop; needs-verification if remote Xcode evidence cannot be refreshed.",
+  "nonGoals": [
+    "Runtime redesign, schema migration, alternate icons, new feature work, or App Store eligibility."
+  ],
+  "scope": "App and OpenIn localization resources, one localization helper, one deterministic AppIcon owner, Xcode resource integration, tests, simulator/package evidence, desktop delivery.",
+  "changeKinds": [
+    "interface"
+  ],
+  "riskHints": [
+    "Localization completeness, small-size icon clarity, Xcode asset compilation, package resource inclusion, and preserving the independent-engine/data boundary."
+  ]
+}

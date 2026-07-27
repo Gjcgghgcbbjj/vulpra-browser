@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "final-runtime-package-identity-simulator-30239461150",
+  "type": "github-actions-runtime",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30239461150",
+  "summary": "Snapshot 95338aad built 0.2.0 (2), passed both native EngineKit XCTest cases, rendered the Chinese Porcelain start page, navigated to Example Domain for 60 seconds, connected Engine Process, and produced no crash.",
+  "verifier": ".github/workflows/simulator-smoke.yml; downloaded logs and screenshots; manual screenshot inspection."
+}

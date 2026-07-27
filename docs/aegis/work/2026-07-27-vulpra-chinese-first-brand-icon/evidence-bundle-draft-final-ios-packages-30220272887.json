@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "final-ios-packages-30220272887",
+  "type": "package",
+  "source": "GitHub Actions run 30220272887 and local readback",
+  "summary": "IPA and TIPA built and validated; 2671 files; TIPA signatures required; ZIP integrity, localization, AppIcon, bundle identities, engine payload, retired-path absence, and SHA-256 passed.",
+  "verifier": "validate-ipa.py; unzip -tq; sha256sum -c; package resource inspection"
+}

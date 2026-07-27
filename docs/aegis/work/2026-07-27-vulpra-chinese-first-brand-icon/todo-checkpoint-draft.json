@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-27-vulpra-chinese-first-brand-icon",
+  "currentTodo": "Delivery closure complete",
+  "completedTodos": [
+    "Chinese-first localization and White Porcelain AppIcon",
+    "Porcelain Native UI across browser chrome, start page, tabs, lists, privacy, and settings",
+    "Canonical simulator engine evidence repair and dual-screenshot validation in run 30219730768",
+    "IPA/TIPA build, validation, and desktop delivery from run 30220272887"
+  ],
+  "activeSlice": "Final evidence, cleanup, and immutable-HEAD verification",
+  "evidenceRefs": [
+    "run:30219730768",
+    "run:30220272887",
+    "/mnt/c/Users/niting/Desktop/Vulpra/SHA256SUMS"
+  ],
+  "blockedOn": null,
+  "nextStep": "No implementation work remains; retain uncovered dark-mode, iPad, and physical-device visual coverage as bounded residual risk.",
+  "updatedAt": "2026-07-27"
+}

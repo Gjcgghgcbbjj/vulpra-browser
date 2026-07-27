@@ -5,6 +5,10 @@ enum LibrarySection { case bookmarks, history }
 final class LibraryViewController: UITableViewController, UISearchResultsUpdating {
     private let section: LibrarySection
     private var query = ""
+    private lazy var emptyState = VulpraEmptyStateView(
+        symbol: section == .bookmarks ? "star" : "clock",
+        title: VulpraL10n.text(section == .bookmarks ? "empty.bookmarks" : "empty.history")
+    )
     var onOpenURL: ((URL) -> Void)?
 
     init(section: LibrarySection) {
@@ -17,14 +21,21 @@ final class LibraryViewController: UITableViewController, UISearchResultsUpdatin
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = section == .bookmarks ? "Bookmarks" : "History"
-        navigationItem.rightBarButtonItem = section == .history
-            ? UIBarButtonItem(title: "Clear", style: .plain, target: self, action: #selector(clearHistory)) : nil
+        title = VulpraL10n.text(section == .bookmarks ? "library.bookmarks" : "library.history")
+        if section == .history {
+            let clearItem = UIBarButtonItem(
+                image: UIImage(systemName: "trash"), style: .plain,
+                target: self, action: #selector(clearHistory)
+            )
+            clearItem.accessibilityLabel = VulpraL10n.text("common.clear")
+            navigationItem.rightBarButtonItem = clearItem
+        }
         let search = UISearchController(searchResultsController: nil)
         search.searchResultsUpdater = self
         search.obscuresBackgroundDuringPresentation = false
         navigationItem.searchController = search
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "LibraryCell")
+        refresh()
     }
 
     private var bookmarks: [Bookmark] { BookmarkStore.shared.search(query).filter { !$0.isFolder } }
@@ -64,20 +75,30 @@ final class LibraryViewController: UITableViewController, UISearchResultsUpdatin
         guard editingStyle == .delete else { return }
         if section == .bookmarks { BookmarkStore.shared.remove(bookmarks[indexPath.row]) }
         else { HistoryStore.shared.remove(history[indexPath.row]) }
-        tableView.deleteRows(at: [indexPath], with: .automatic)
+        refresh()
     }
 
     func updateSearchResults(for searchController: UISearchController) {
         query = searchController.searchBar.text ?? ""
-        tableView.reloadData()
+        refresh()
     }
 
     @objc private func clearHistory() {
-        let alert = UIAlertController(title: "Clear History?", message: "Bookmarks and downloads are not removed.", preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: "Clear History", style: .destructive) { _ in
-            HistoryStore.shared.clear(); self.tableView.reloadData()
+        let alert = UIAlertController(
+            title: VulpraL10n.text("library.clear_history.title"),
+            message: VulpraL10n.text("library.clear_history.message"),
+            preferredStyle: .actionSheet
+        )
+        alert.addAction(UIAlertAction(title: VulpraL10n.text("library.clear_history"), style: .destructive) { _ in
+            HistoryStore.shared.clear(); self.refresh()
         })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: VulpraL10n.text("common.cancel"), style: .cancel))
         present(alert, animated: true)
+    }
+
+    private func refresh() {
+        tableView.reloadData()
+        let isEmpty = section == .bookmarks ? bookmarks.isEmpty : history.isEmpty
+        tableView.backgroundView = isEmpty ? emptyState : nil
     }
 }

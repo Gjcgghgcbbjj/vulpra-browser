@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-26-vulpra-independent-engine-completion",
+  "currentTodo": "Assemble and verify the patched Simulator artifact, then run the final integrated simulator/package delivery.",
+  "completedTodos": [
+    "Repaired runtime/session actor ownership, ready transition, dependency injection, ABI lifetime, and Engine Process cleanup.",
+    "Pinned engine artifact identity and enforced package version/UI fingerprint.",
+    "Passed final simulator run 30239461150 and package run 30240301567 from snapshot 95338aad.",
+    "Validated and copied IPA/TIPA/SHA256SUMS to dist and the Windows desktop.",
+    "Removed every temporary runtime-package-identity CI ref while preserving user HEAD and index.",
+    "Completed performance, website-compatibility, and icon-first Porcelain client repairs.",
+    "Advanced the final integrated package identity to 0.2.0 (4) / porcelain-zh-v4-20260728.",
+    "Passed all three portable suites, build-identity generation/check, compileall, and diff check."
+  ],
+  "activeSlice": "Awaiting patched Simulator Gecko producer run 30277909573.",
+  "evidenceRefs": [
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30239461150",
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30240301567",
+    "dist/SHA256SUMS",
+    "/mnt/c/Users/niting/Desktop/Vulpra/SHA256SUMS",
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30287131207",
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30277909573",
+    "Tests/Browser/test-porcelain-ui.py",
+    "Tests/Browser/test-localization-and-icon.py"
+  ],
+  "blockedOn": "Patched Simulator Gecko producer run 30277909573 remains in Build Simulator Gecko.",
+  "nextStep": "Download and assemble the canonical 2654-file simulator v4 archive, update the release lock, then run the integrated simulator and package workflows.",
+  "updatedAt": "2026-07-28"
+}

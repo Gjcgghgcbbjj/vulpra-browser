@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "candidate-package-30214371123",
+  "type": "github-actions-package",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30214371123",
+  "summary": "Xcode archive, IPA/TIPA creation, artifact-backed signing-independent Mach-O content validation, signature checks, SHA256SUMS, and artifact upload passed.",
+  "verifier": ".github/workflows/build-ios-packages.yml and uploaded validation logs."
+}

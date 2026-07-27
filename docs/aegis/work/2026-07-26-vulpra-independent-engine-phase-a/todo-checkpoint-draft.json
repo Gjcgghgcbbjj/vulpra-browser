@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-26-vulpra-independent-engine-phase-a",
+  "currentTodo": "Design the Phase B Mac compile/link/startup experiment from the verified six-symbol export inventory.",
+  "completedTodos": [
+    "Tasks 1-6: Phase A source/contracts, dormant targets, and readiness gates.",
+    "Downloaded and checksum-verified GitHub artifact 8512456239; added deterministic Mach-O/header inventory tooling; produced and verified a filtered local v4 candidate."
+  ],
+  "activeSlice": "Real artifact ABI inventory and v4 candidate evidence completed.",
+  "evidenceRefs": [
+    "task1-ownership-red-green",
+    "task2-artifact-v4-red-green",
+    "task3-public-contract-red-green",
+    "task4-internal-boundaries-red-green",
+    "task5-6-staging-readiness",
+    "artifact-8512456239-abi-v4-candidate"
+  ],
+  "blockedOn": "No external v4 producer artifact or Mac/Xcode compile evidence; XUL exposes no dedicated process-wide shutdown export or explicit interpreter-only startup selector.",
+  "nextStep": "Write a Phase B plan for a Mac compile/link experiment using only MainProcessInit, GeckoViewOpenWindow, ChildProcessInit, and the three direct ABI headers; keep App and old targets unchanged until runtime evidence exists.",
+  "updatedAt": "2026-07-26"
+}

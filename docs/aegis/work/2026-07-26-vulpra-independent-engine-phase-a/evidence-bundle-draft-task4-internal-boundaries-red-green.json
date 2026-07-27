@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task4-internal-boundaries-red-green",
+  "type": "test",
+  "source": "Engine/VulpraEngineKit/Internal/ABI; Engine/VulpraEngineProcess; Tests/IndependentEngine/test_internal_boundaries.py",
+  "summary": "ABI/process structural gate, plist parsing, independent suite, and existing RuntimeShell/Browser regressions passed; ABI implementation remains explicitly unavailable.",
+  "verifier": "./Tests/IndependentEngine/run-portable.sh && ./Tests/RuntimeShell/run-portable.sh && ./Tests/Browser/run-portable.sh"
+}

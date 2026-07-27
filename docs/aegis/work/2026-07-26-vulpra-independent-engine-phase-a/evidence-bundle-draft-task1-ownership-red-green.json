@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task1-ownership-red-green",
+  "type": "test",
+  "source": "Tests/IndependentEngine/test_ownership.py; Configuration/engine-ownership.json",
+  "summary": "RED rejected the missing ownership manifest; GREEN passed the independent ownership runner, JSON parsing, and git diff check.",
+  "verifier": "./Tests/IndependentEngine/run-portable.sh && python3 -m json.tool Configuration/engine-ownership.json >/dev/null && git diff --check"
+}

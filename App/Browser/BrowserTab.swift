@@ -1,6 +1,6 @@
 import Foundation
-import GeckoView
 import UIKit
+import VulpraEngineKit
 
 struct BrowserTabRecord: Codable, Equatable {
     let id: UUID
@@ -10,33 +10,42 @@ struct BrowserTabRecord: Codable, Equatable {
     var lastAccess: Date
 }
 
+@MainActor
 protocol BrowserTabObserver: AnyObject {
     func browserTabDidChange(_ tab: BrowserTab)
     func browserTabDidRequestClose(_ tab: BrowserTab)
-    func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> GeckoSession?
-    func browserTab(_ tab: BrowserTab, requestedDownload response: ExternalResponseInfo) async -> Bool
+    func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> Bool
+    func browserTab(_ tab: BrowserTab, requestedDownload response: EngineDownloadResponse,
+                    completion: @escaping (Bool) -> Void)
     func browserTab(_ tab: BrowserTab, downloadAt path: String, received bytes: Int64) -> Bool
     func browserTab(_ tab: BrowserTab, completedDownloadAt path: String, succeeded: Bool)
-    func browserTab(_ tab: BrowserTab, requestedContextMenu element: ContextElement)
+    func browserTab(_ tab: BrowserTab, requestedContextMenu element: EngineContextMenuElement)
 }
 
-final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
+@MainActor
+final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
+    EngineContentObserver, EngineDownloadHandler {
     let id: UUID
     let isPrivate: Bool
     weak var observer: BrowserTabObserver?
-    private(set) var session: GeckoSession?
+    private let runtime: any EngineRuntime
+    private(set) var session: (any EngineSession)?
+    private var engineSurface: (any EngineView)?
     private(set) var url: URL?
     private(set) var title: String
     private(set) var canGoBack = false
     private(set) var canGoForward = false
     private(set) var progress = 0
     private(set) var isLoading = false
+    private(set) var lastFailure: EngineFailure?
+    private(set) var httpFallbackURL: URL?
     private(set) var lastAccess: Date
     private(set) var thumbnail: UIImage?
-    var permissionDelegate: PermissionEmbedderDelegate?
-    var promptDelegate: PromptDelegate?
+    weak var permissionHandler: (any EnginePermissionHandler)?
+    weak var promptHandler: (any EnginePromptHandler)?
 
-    init(record: BrowserTabRecord) {
+    init(record: BrowserTabRecord, runtime: any EngineRuntime) {
+        self.runtime = runtime
         id = record.id
         isPrivate = record.isPrivate
         url = record.url.flatMap(URL.init(string:))
@@ -44,11 +53,11 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
         lastAccess = record.lastAccess
     }
 
-    convenience init(url: URL?, isPrivate: Bool) {
+    convenience init(url: URL?, isPrivate: Bool, runtime: any EngineRuntime) {
         self.init(record: BrowserTabRecord(
             id: UUID(), url: url?.absoluteString, title: "New Tab",
             isPrivate: isPrivate, lastAccess: Date()
-        ))
+        ), runtime: runtime)
     }
 
     var record: BrowserTabRecord {
@@ -56,43 +65,43 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
                          isPrivate: isPrivate, lastAccess: lastAccess)
     }
 
-    var engineView: UIView? { session?.engineView }
+    var displayTitle: String {
+        url == nil && title == "New Tab" ? VulpraL10n.text("tab.new") : title
+    }
+
+    var engineView: UIView? { engineSurface?.contentView }
 
     @discardableResult
-    func activate(settings: BrowserSettings, windowID: String? = nil) -> GeckoSession {
+    func activate(settings: BrowserSettings, windowID: String? = nil) -> any EngineSession {
         lastAccess = Date()
-        if let session { return session }
-        let created = GeckoSession(settings: settings.geckoSettings, isPrivateMode: isPrivate)
-        created.navigationDelegate = self
-        created.progressDelegate = self
-        created.contentDelegate = self
-        created.permissionDelegate = permissionDelegate
-        created.promptDelegate = promptDelegate
-        session = created
-        // GeckoSession.open self-gates until GeckoEngineGate is ready.
-        created.open(windowId: windowID)
-        if created.isOpen() {
-            if windowID == nil, let url {
-                created.load(url.absoluteString)
-            }
-            observer?.browserTabDidChange(self)
-        } else {
-            // Open is pending on the engine gate; finish load when it becomes ready.
-            GeckoEngineGate.whenReady { [weak self] in
-                guard let self, self.session === created else { return }
-                if !created.isOpen() {
-                    created.open(windowId: windowID)
+        if let session {
+            if case .failed = session.state {
+                lastFailure = nil
+                session.open(windowID: windowID)
+                if windowID == nil, let url {
+                    session.load(EngineNavigationRequest(url: url, userInitiated: false))
                 }
-                guard created.isOpen() else { return }
-                if windowID == nil, let url = self.url {
-                    created.load(url.absoluteString)
-                }
-                self.observer?.browserTabDidChange(self)
             }
+            return session
         }
+        let created = runtime.makeSession(configuration: settings.engineConfiguration(isPrivate: isPrivate))
+        created.navigationObserver = self
+        created.progressObserver = self
+        created.contentObserver = self
+        created.permissionHandler = permissionHandler
+        created.promptHandler = promptHandler
+        created.downloadHandler = self
+        session = created
+        engineSurface = created.makeView()
+        created.open(windowID: windowID)
+        if windowID == nil, let url {
+            created.load(EngineNavigationRequest(url: url, userInitiated: false))
+        }
+        observer?.browserTabDidChange(self)
         return created
     }
 
+    @MainActor
     func captureThumbnail(maximumSize: CGSize = CGSize(width: 360, height: 480)) {
         guard !isPrivate, let view = engineView, view.bounds.width > 0, view.bounds.height > 0 else { return }
         let scale = min(maximumSize.width / view.bounds.width, maximumSize.height / view.bounds.height, 1)
@@ -105,97 +114,97 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
     }
 
     func suspend() {
-        session?.close()
-        session = nil
-        progress = 0
-        isLoading = false
+        session?.close(); session = nil; engineSurface = nil; progress = 0; isLoading = false
     }
 
-    func load(_ target: URL, settings: BrowserSettings) {
+    func retry(settings: BrowserSettings) {
+        lastFailure = nil
+        if let url { load(url, settings: settings, httpFallbackURL: httpFallbackURL) }
+        else { _ = activate(settings: settings); observer?.browserTabDidChange(self) }
+    }
+
+    func load(_ target: URL, settings: BrowserSettings, httpFallbackURL: URL? = nil) {
         url = target
-        let session = activate(settings: settings)
-        // Window open may still be pending behind GeckoEngineGate.
-        if session.isOpen() {
-            session.load(target.absoluteString)
+        lastFailure = nil
+        self.httpFallbackURL = httpFallbackURL
+        if let session, case .failed = session.state {
+            _ = activate(settings: settings)
+        } else if let session {
+            session.load(EngineNavigationRequest(url: target))
+        } else {
+            activate(settings: settings)
         }
         observer?.browserTabDidChange(self)
     }
 
+    func loadHTTPFallback(settings: BrowserSettings) {
+        guard let fallback = httpFallbackURL else { return }
+        load(fallback, settings: settings, httpFallbackURL: nil)
+    }
+
     func applySettings(_ settings: BrowserSettings) {
-        session?.updateSettings(settings.geckoSettings)
+        session?.update(configuration: settings.engineConfiguration(isPrivate: isPrivate))
     }
 
-    func setActive(_ active: Bool) {
-        session?.setActive(active)
-        session?.setFocused(active)
-    }
-
+    func setActive(_ active: Bool) { session?.setActive(active); session?.setFocused(active) }
     func goBack() { session?.goBack() }
     func goForward() { session?.goForward() }
     func reload() { session?.reload() }
     func stop() { session?.stop() }
 
-    func onLocationChange(session: GeckoSession, url: String?, permissions: [ContentPermission]) {
-        self.url = url.flatMap(URL.init(string:))
+    func engineSessionDidOpen(_ id: EngineSessionID) {
+        lastFailure = nil
         observer?.browserTabDidChange(self)
     }
 
-    func onCanGoBack(session: GeckoSession, canGoBack: Bool) {
-        self.canGoBack = canGoBack
+    func engineSession(_ id: EngineSessionID, didUpdate event: EngineNavigationEvent) {
+        url = event.url
+        title = event.title.isEmpty ? title : event.title
+        canGoBack = event.canGoBack
+        canGoForward = event.canGoForward
         observer?.browserTabDidChange(self)
     }
 
-    func onCanGoForward(session: GeckoSession, canGoForward: Bool) {
-        self.canGoForward = canGoForward
+    func engineSessionDidRequestClose(_ id: EngineSessionID) { observer?.browserTabDidRequestClose(self) }
+
+    func engineSession(_ id: EngineSessionID, requestedNewSessionFor url: URL, windowID: String) -> Bool {
+        observer?.browserTab(self, requestedNewTab: url, windowID: windowID) ?? false
+    }
+
+    func engineSession(_ id: EngineSessionID, didUpdate event: EngineProgressEvent) {
+        switch event {
+        case .started:
+            lastFailure = nil; isLoading = true; progress = 4
+        case .changed(_, let fraction):
+            progress = min(100, max(0, Int(fraction * 100)))
+        case .completed(_, let succeeded):
+            isLoading = false
+            if succeeded { progress = 100; httpFallbackURL = nil }
+        case .failed(_, let failure):
+            isLoading = false; lastFailure = failure
+        }
         observer?.browserTabDidChange(self)
     }
 
-    func onNewSession(session: GeckoSession, uri: String, windowId: String) async -> GeckoSession? {
-        guard let target = URL(string: uri) else { return nil }
-        return observer?.browserTab(self, requestedNewTab: target, windowID: windowId)
+    func engineSession(_ id: EngineSessionID, didTerminate reason: EngineTerminationReason) {
+        suspend(); observer?.browserTabDidChange(self)
     }
 
-    func onPageStart(session: GeckoSession, url: String) {
-        isLoading = true
-        progress = 4
-        observer?.browserTabDidChange(self)
-    }
-
-    func onPageStop(session: GeckoSession, success: Bool) {
-        isLoading = false
-        progress = success ? 100 : progress
-        observer?.browserTabDidChange(self)
-    }
-
-    func onProgressChange(session: GeckoSession, progress: Int) {
-        self.progress = min(100, max(0, progress))
-        observer?.browserTabDidChange(self)
-    }
-
-    func onTitleChange(session: GeckoSession, title: String) {
-        self.title = title.isEmpty ? "New Tab" : title
-        observer?.browserTabDidChange(self)
-    }
-
-    func onContextMenu(session: GeckoSession, screenX: Int, screenY: Int, element: ContextElement) {
+    func engineSession(_ id: EngineSessionID, requestedContextMenu element: EngineContextMenuElement) {
         observer?.browserTab(self, requestedContextMenu: element)
     }
 
-    func onCloseRequest(session: GeckoSession) { observer?.browserTabDidRequestClose(self) }
-    func onCrash(session: GeckoSession) { suspend(); observer?.browserTabDidChange(self) }
-    func onKill(session: GeckoSession) { suspend(); observer?.browserTabDidChange(self) }
-
-    func onExternalResponse(session: GeckoSession, response: ExternalResponseInfo) async -> Bool {
-        await observer?.browserTab(self, requestedDownload: response) ?? false
+    func engineSession(_ id: EngineSessionID, accept response: EngineDownloadResponse,
+                       completion: @escaping (Bool) -> Void) {
+        observer?.browserTab(self, requestedDownload: response, completion: completion)
     }
 
-    func onExternalResponseProgress(session: GeckoSession, localFilePath: String, bytesReceived: Int64) -> Bool {
-        observer?.browserTab(self, downloadAt: localFilePath, received: bytesReceived) ?? false
+    func engineSession(_ id: EngineSessionID, downloadAt path: String, received bytes: Int64) -> Bool {
+        observer?.browserTab(self, downloadAt: path, received: bytes) ?? false
     }
 
-    func onExternalResponseComplete(session: GeckoSession, localFilePath: String, succeeded: Bool) {
-        observer?.browserTab(self, completedDownloadAt: localFilePath, succeeded: succeeded)
+    func engineSession(_ id: EngineSessionID, completedDownloadAt path: String, succeeded: Bool) {
+        observer?.browserTab(self, completedDownloadAt: path, succeeded: succeeded)
     }
 
-    deinit { session?.close() }
 }

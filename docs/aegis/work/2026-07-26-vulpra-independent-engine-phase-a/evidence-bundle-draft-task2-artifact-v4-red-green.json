@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task2-artifact-v4-red-green",
+  "type": "test",
+  "source": "Configuration/engine-artifact-v4.json; Tools/Engine/verify-engine-artifact.py; Tests/IndependentEngine/test_artifact_contract.py",
+  "summary": "Artifact v4 fixture matrix passed twice deterministically; Python compilation, JSON parsing, diff checks, and existing RuntimeShell/Browser regressions passed.",
+  "verifier": "./Tests/IndependentEngine/run-portable.sh && ./Tests/RuntimeShell/run-portable.sh && ./Tests/Browser/run-portable.sh"
+}

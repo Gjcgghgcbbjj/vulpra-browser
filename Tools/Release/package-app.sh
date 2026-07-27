@@ -19,8 +19,8 @@ import sys
 app = Path(sys.argv[1])
 expected = {
     app: "com.vulpra.browser",
-    app / "Frameworks/GeckoView.framework": "com.vulpra.browser.geckoview",
-    app / "PlugIns/Vulpra Helper.appex": "com.vulpra.browser.helper",
+    app / "Frameworks/VulpraEngineKit.framework": "com.vulpra.browser.engine-kit",
+    app / "PlugIns/Vulpra Engine Process.appex": "com.vulpra.browser.engine-process",
     app / "PlugIns/OpenIn.appex": "com.vulpra.browser.open-in",
 }
 for bundle, bundle_id in expected.items():
@@ -38,10 +38,30 @@ for bundle, bundle_id in expected.items():
     if actual != bundle_id:
         raise SystemExit(f"Bundle identity mismatch for {bundle}: {actual}")
 
-if not (app / "Frameworks/XUL").is_file():
+frameworks = app / "Frameworks"
+engine_kit = frameworks / "VulpraEngineKit.framework"
+engine_runtime = frameworks / "VulpraEngineRuntime"
+if not (frameworks / "XUL").is_file():
     raise SystemExit(f"Missing packaged runtime: {app / 'Frameworks/XUL'}")
-if not any((app / "Frameworks").glob("*.dylib")):
+if not any(frameworks.glob("*.dylib")):
     raise SystemExit(f"Missing packaged runtime: {app / 'Frameworks/*.dylib'}")
+if not (engine_runtime / "Frameworks/application.ini").is_file():
+    raise SystemExit(f"Missing packaged resources: {engine_runtime / 'Frameworks/application.ini'}")
+if not any((engine_runtime / "Licenses").glob("*")):
+    raise SystemExit(f"Missing packaged licenses: {engine_runtime / 'Licenses'}")
+
+framework_bundles = {path.name for path in frameworks.glob("*.framework")}
+if framework_bundles != {"VulpraEngineKit.framework"}:
+    raise SystemExit(f"Unexpected embedded framework set: {sorted(framework_bundles)}")
+plugin_bundles = {path.name for path in (app / "PlugIns").glob("*.appex")}
+if plugin_bundles != {"Vulpra Engine Process.appex", "OpenIn.appex"}:
+    raise SystemExit(f"Unexpected app extension set: {sorted(plugin_bundles)}")
+unexpected_root_executables = [
+    path.name for path in app.iterdir()
+    if path.is_file() and path.name != "Vulpra" and path.stat().st_mode & 0o111
+]
+if unexpected_root_executables:
+    raise SystemExit(f"Unexpected app executable set: {sorted(unexpected_root_executables)}")
 PY
 
 python3 - "$STAGE" <<'PY'

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "retirement-boundary",
+  "type": "architecture-retirement",
+  "source": "Configuration/engine-ownership.json",
+  "summary": "One VulpraEngineKit adapter remains; GeckoView, Helper, JIT, Patches, Gecko source workflows, Firefox/idevice gitlinks, and fallbacks are retired without deleting user data.",
+  "verifier": "Ownership/internal-boundary tests, Xcode graph test, and repository scans."
+}

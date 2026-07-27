@@ -1,23 +1,48 @@
 #!/usr/bin/env python3
+"""Verify the precompiled-v4 package workflow contract."""
+
 from pathlib import Path
-import sys
+
+
 ROOT = Path(__file__).resolve().parents[2]
-workflow = ROOT / '.github/workflows/build-ios-packages.yml'
+WORKFLOW = ROOT / ".github/workflows/build-ios-packages.yml"
 
-def require(ok, message):
-    if not ok:
-        print('FAIL:', message, file=sys.stderr); raise SystemExit(1)
 
-def main():
-    require(workflow.is_file(), 'missing iOS package workflow')
-    text = workflow.read_text()
-    for token in ('workflow_dispatch:', 'runs-on: macos-26', 'runtime-substrate-key.sh',
-                  'actions/artifacts', 'gecko-artifact.sh restore', 'libidevice_ffi.a',
-                  'verify-runtime-artifacts.sh', 'xcodebuild -list', 'build-app.sh',
-                  'create-ipa.sh', 'Vulpra.ipa', 'Vulpra-TrollStore.tipa',
-                  'SHA256SUMS', 'actions/upload-artifact@v4'):
-        require(token in text, f'missing {token}')
-    require('build-runtime-substrate.sh' not in text, 'package workflow must not rebuild Gecko')
-    require('build-gecko.sh' not in text, 'package workflow must not rebuild Gecko')
-    print('PASS: GitHub iOS package workflow contracts')
-if __name__ == '__main__': main()
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(f"FAIL: {message}")
+
+
+def main() -> None:
+    text = WORKFLOW.read_text(encoding="utf-8")
+    for token in (
+        "workflow_dispatch:",
+        "runs-on: macos-26",
+        "engine_release_tag",
+        "verify-engine-artifact.py",
+        "xcodebuild -list",
+        "run-portable.sh",
+        "build-app.sh",
+        "create-ipa.sh",
+        "validate-ipa.py",
+        "Vulpra.ipa",
+        "Vulpra-TrollStore.tipa",
+        "actions/upload-artifact@v4",
+    ):
+        require(token in text, f"package workflow is missing {token}")
+    for forbidden in (
+        "Tools/Gecko",
+        "Tools/Runtime",
+        "Vendor/firefox",
+        "libidevice",
+        "Patches/",
+        "build-gecko",
+        "GeckoView.framework",
+        "Vulpra Helper",
+    ):
+        require(forbidden not in text, f"package workflow retains {forbidden}")
+    print("PASS: independent iOS package workflow")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Begin implementation of the approved binary-Gecko-only Vulpra architecture and complete the Phase A ownership, artifact, target, and retirement boundary.",
+  "goal": "Establish machine-verified independent engine owners and a staged, no-fallback cutover path from inherited GeckoView/Helper/JIT source.",
+  "successEvidence": [
+    "Approved specs, executable Phase A plan, ownership and artifact contract tests, VulpraEngineKit and process target skeletons, and explicit old-owner retirement gates."
+  ],
+  "stopCondition": "Stop as done when Phase A gates pass; as needs-verification when Mac/Xcode evidence is unavailable; as blocked on an unverified Gecko ABI requirement; or as scope-exceeded if App behavior migration is required before the planned cutover.",
+  "nonGoals": [
+    "Implement Gecko ABI calls, migrate browser feature delegates, delete user data, claim device performance, or ship a release in Phase A."
+  ],
+  "scope": "Phase A only: authority status, machine ownership map, binary artifact v4 verifier, independent target skeletons, staged Xcode graph, provenance gates, and retirement preparation.",
+  "changeKinds": [
+    "architecture"
+  ],
+  "riskHints": [
+    "High: replaces engine ownership and Xcode target boundaries; Linux cannot prove Xcode linkage or device behavior."
+  ]
+}

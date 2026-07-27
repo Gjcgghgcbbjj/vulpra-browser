@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-27-vulpra-chinese-first-brand-icon",
+  "taskIntentRef": "docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md"
+  ],
+  "scopeStatus": "Chinese-first Porcelain Native client, icon, package, and desktop delivery all remain inside the approved scope.",
+  "compatStatus": "Bundle identity, iOS 15, iPhone/iPad target families, OpenIn, Codable data, TabManager, BrowserTab, and VulpraEngineKit ownership remain unchanged.",
+  "retirementStatus": "Duplicate start-page search and crashing alternate Simulator artifact workflow branch are removed; no fallback or duplicate engine owner remains.",
+  "newRiskSignals": [
+    "Dark mode, iPad layouts, and physical-device visuals were not directly exercised in this delivery."
+  ],
+  "decision": "continue"
+}

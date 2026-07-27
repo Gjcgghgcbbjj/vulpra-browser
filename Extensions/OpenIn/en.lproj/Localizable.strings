@@ -1,0 +1,4 @@
+"error.no_url" = "No shared web URL was provided";
+"error.not_web_url" = "The shared item is not a web URL";
+"error.cannot_create_url" = "Unable to create the Vulpra URL";
+"error.open_rejected" = "Vulpra did not accept the shared URL";

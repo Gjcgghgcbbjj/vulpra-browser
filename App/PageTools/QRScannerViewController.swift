@@ -8,7 +8,7 @@ final class QRScannerViewController: UIViewController, AVCaptureMetadataOutputOb
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .black
-        title = "Scan QR Code"
+        title = VulpraL10n.text("page_tools.scan_qr")
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancel))
         configureCamera()
     }
@@ -41,7 +41,7 @@ final class QRScannerViewController: UIViewController, AVCaptureMetadataOutputOb
     }
 
     private func showUnavailable() {
-        let label = UILabel(); label.text = "Camera unavailable"; label.textColor = .white
+        let label = UILabel(); label.text = VulpraL10n.text("page_tools.camera_unavailable"); label.textColor = .white
         label.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(label)
         NSLayoutConstraint.activate([label.centerXAnchor.constraint(equalTo: view.centerXAnchor), label.centerYAnchor.constraint(equalTo: view.centerYAnchor)])
     }

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "formatVersion": 4,
+  "artifactIdPrefix": "vulpra-gecko-ios-simulator-arm64-v4-",
+  "manifestFile": "manifest.json",
+  "sourceRepository": "https://github.com/mozilla-firefox/firefox",
+  "platform": "iphonesimulator",
+  "architecture": "arm64",
+  "allowedRoots": [
+    "runtime/bin",
+    "runtime/lib",
+    "runtime/include",
+    "runtime/resources",
+    "licenses"
+  ],
+  "requiredKernel": "runtime/bin/XUL",
+  "requiredKernelToken": "_MainProcessInit",
+  "nonEmptyRoots": [
+    "runtime/include",
+    "runtime/resources",
+    "licenses"
+  ],
+  "forbiddenProductExtensions": [
+    ".framework",
+    ".appex",
+    ".app"
+  ],
+  "forbiddenSegments": [
+    "JIT",
+    "Patches",
+    "Sources"
+  ],
+  "forbiddenSourceExtensions": [
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cxx",
+    ".m",
+    ".mm",
+    ".swift",
+    ".rs",
+    ".patch",
+    ".diff"
+  ]
+}

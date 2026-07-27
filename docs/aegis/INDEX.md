@@ -59,3 +59,71 @@
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/drift-check-draft.json | Vulpra Modern Browser drift check draft |
 | 2026-07-22 | artifact | docs/aegis/work/2026-07-22-vulpra-modern-browser/gate-input-pack.json | 2026-07-22-vulpra-modern-browser gate input pack |
 | 2026-07-22 | work | docs/aegis/work/2026-07-22-vulpra-modern-browser/proof-bundle.md | 2026-07-22-vulpra-modern-browser proof bundle |
+| 2026-07-26 | spec | docs/aegis/specs/2026-07-26-vulpra-independent-engine-product-design.md | Vulpra Independent Engine Product Design |
+| 2026-07-26 | spec | docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md | Vulpra Client Experience Design |
+| 2026-07-26 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/10-intent.md | Vulpra Independent Engine Phase A intent |
+| 2026-07-26 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/20-checkpoint.md | Vulpra Independent Engine Phase A checkpoint |
+| 2026-07-26 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/90-evidence.md | Vulpra Independent Engine Phase A evidence |
+| 2026-07-26 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/99-reflection.md | Vulpra Independent Engine Phase A reflection |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/task-intent-draft.json | Vulpra Independent Engine Phase A task intent draft |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/baseline-read-set-hint.json | Vulpra Independent Engine Phase A baseline read-set hint |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/baseline-usage-draft.json | Vulpra Independent Engine Phase A baseline usage draft |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/impact-statement-draft.json | Vulpra Independent Engine Phase A impact statement draft |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/todo-checkpoint-draft.json | Vulpra Independent Engine Phase A todo checkpoint draft |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/drift-check-draft.json | Vulpra Independent Engine Phase A drift check draft |
+| 2026-07-26 | plan | docs/aegis/plans/2026-07-26-vulpra-independent-engine-phase-a.md | Vulpra Independent Engine Phase A Implementation Plan |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/evidence-bundle-draft-task1-ownership-red-green.json | 2026-07-26-vulpra-independent-engine-phase-a evidence task1-ownership-red-green |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/resume-state-hint.json | 2026-07-26-vulpra-independent-engine-phase-a resume state hint |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/evidence-bundle-draft-task2-artifact-v4-red-green.json | 2026-07-26-vulpra-independent-engine-phase-a evidence task2-artifact-v4-red-green |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/evidence-bundle-draft-task3-public-contract-red-green.json | 2026-07-26-vulpra-independent-engine-phase-a evidence task3-public-contract-red-green |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/evidence-bundle-draft-task4-internal-boundaries-red-green.json | 2026-07-26-vulpra-independent-engine-phase-a evidence task4-internal-boundaries-red-green |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/evidence-bundle-draft-task5-6-staging-readiness.json | 2026-07-26-vulpra-independent-engine-phase-a evidence task5-6-staging-readiness |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/gate-input-pack.json | 2026-07-26-vulpra-independent-engine-phase-a gate input pack |
+| 2026-07-26 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/proof-bundle.md | 2026-07-26-vulpra-independent-engine-phase-a proof bundle |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/evidence-bundle-draft-artifact-8512456239-abi-v4-candidate.json | 2026-07-26-vulpra-independent-engine-phase-a evidence artifact-8512456239-abi-v4-candidate |
+| 2026-07-26 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/10-intent.md | Vulpra Independent Engine Completion and IPA intent |
+| 2026-07-26 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/20-checkpoint.md | Vulpra Independent Engine Completion and IPA checkpoint |
+| 2026-07-26 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/90-evidence.md | Vulpra Independent Engine Completion and IPA evidence |
+| 2026-07-26 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/99-reflection.md | Vulpra Independent Engine Completion and IPA reflection |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/task-intent-draft.json | Vulpra Independent Engine Completion and IPA task intent draft |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/baseline-read-set-hint.json | Vulpra Independent Engine Completion and IPA baseline read-set hint |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/baseline-usage-draft.json | Vulpra Independent Engine Completion and IPA baseline usage draft |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/impact-statement-draft.json | Vulpra Independent Engine Completion and IPA impact statement draft |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/todo-checkpoint-draft.json | Vulpra Independent Engine Completion and IPA todo checkpoint draft |
+| 2026-07-26 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/drift-check-draft.json | Vulpra Independent Engine Completion and IPA drift check draft |
+| 2026-07-26 | plan | docs/aegis/plans/2026-07-26-vulpra-independent-engine-completion.md | Vulpra Independent Engine Completion and IPA Plan |
+| 2026-07-27 | adr | docs/aegis/adr/ADR-0004-independent-engine-runtime-and-distribution.md | ADR-0004 - Independent Engine Runtime and Distribution Boundary |
+| 2026-07-27 | baseline | docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md | Vulpra Independent Engine Package Baseline |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-simulator-visible-navigation-30213751790.json | 2026-07-26-vulpra-independent-engine-completion evidence simulator-visible-navigation-30213751790 |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-candidate-package-30214371123.json | 2026-07-26-vulpra-independent-engine-completion evidence candidate-package-30214371123 |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-portable-cutover-gates.json | 2026-07-26-vulpra-independent-engine-completion evidence portable-cutover-gates |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-retirement-boundary.json | 2026-07-26-vulpra-independent-engine-completion evidence retirement-boundary |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/resume-state-hint.json | 2026-07-26-vulpra-independent-engine-completion resume state hint |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-final-package-30215026323.json | 2026-07-26-vulpra-independent-engine-completion evidence final-package-30215026323 |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/gate-input-pack.json | 2026-07-26-vulpra-independent-engine-completion gate input pack |
+| 2026-07-27 | work | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/proof-bundle.md | 2026-07-26-vulpra-independent-engine-completion proof bundle |
+| 2026-07-27 | spec | docs/aegis/specs/2026-07-27-vulpra-chinese-first-brand-icon-brief.md | Vulpra Chinese-First Localization and Brand Icon Brief |
+| 2026-07-27 | plan | docs/aegis/plans/2026-07-27-vulpra-chinese-first-brand-icon.md | Vulpra Chinese-First Localization and Brand Icon Implementation Plan |
+| 2026-07-27 | work | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/10-intent.md | Vulpra Chinese-First Localization and Brand Icon intent |
+| 2026-07-27 | work | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/20-checkpoint.md | Vulpra Chinese-First Localization and Brand Icon checkpoint |
+| 2026-07-27 | work | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/90-evidence.md | Vulpra Chinese-First Localization and Brand Icon evidence |
+| 2026-07-27 | work | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/99-reflection.md | Vulpra Chinese-First Localization and Brand Icon reflection |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/task-intent-draft.json | Vulpra Chinese-First Localization and Brand Icon task intent draft |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/baseline-read-set-hint.json | Vulpra Chinese-First Localization and Brand Icon baseline read-set hint |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/baseline-usage-draft.json | Vulpra Chinese-First Localization and Brand Icon baseline usage draft |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/impact-statement-draft.json | Vulpra Chinese-First Localization and Brand Icon impact statement draft |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/todo-checkpoint-draft.json | Vulpra Chinese-First Localization and Brand Icon todo checkpoint draft |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/drift-check-draft.json | Vulpra Chinese-First Localization and Brand Icon drift check draft |
+| 2026-07-27 | spec | docs/aegis/specs/2026-07-27-vulpra-porcelain-native-ui-design.md | Vulpra Porcelain Native UI Design |
+| 2026-07-27 | plan | docs/aegis/plans/2026-07-27-vulpra-porcelain-native-ui.md | Vulpra Porcelain Native UI Implementation Plan |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/resume-state-hint.json | 2026-07-27-vulpra-chinese-first-brand-icon resume state hint |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/evidence-bundle-draft-local-porcelain-portable-gates.json | 2026-07-27-vulpra-chinese-first-brand-icon evidence local-porcelain-portable-gates |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/evidence-bundle-draft-final-porcelain-simulator-30219730768.json | 2026-07-27-vulpra-chinese-first-brand-icon evidence final-porcelain-simulator-30219730768 |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/evidence-bundle-draft-final-ios-packages-30220272887.json | 2026-07-27-vulpra-chinese-first-brand-icon evidence final-ios-packages-30220272887 |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/evidence-bundle-draft-windows-desktop-delivery.json | 2026-07-27-vulpra-chinese-first-brand-icon evidence windows-desktop-delivery |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/gate-input-pack.json | 2026-07-27-vulpra-chinese-first-brand-icon gate input pack |
+| 2026-07-27 | work | docs/aegis/work/2026-07-27-vulpra-chinese-first-brand-icon/proof-bundle.md | 2026-07-27-vulpra-chinese-first-brand-icon proof bundle |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-final-runtime-package-identity-simulator-30239461150.json | 2026-07-26-vulpra-independent-engine-completion evidence final-runtime-package-identity-simulator-30239461150 |
+| 2026-07-27 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-final-runtime-package-identity-package-30240301567.json | 2026-07-26-vulpra-independent-engine-completion evidence final-runtime-package-identity-package-30240301567 |
+| 2026-07-27 | plan | docs/aegis/plans/2026-07-27-vulpra-runtime-package-identity-repair.md | Vulpra Runtime and Package Identity Repair |
+| 2026-07-27 | plan | docs/aegis/plans/2026-07-27-vulpra-architecture-hardening.md | Vulpra Architecture Hardening Plan |

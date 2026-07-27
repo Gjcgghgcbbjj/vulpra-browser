@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "headers": [
+    "GeckoView/GeckoViewRuntimeSupport.h",
+    "GeckoView/GeckoViewSwiftSupport.h",
+    "GeckoView/IOSBootstrap.h"
+  ],
+  "questions": [
+    {
+      "id": "process-wide-startup",
+      "declarationTokens": ["MainProcessInit", "NS_InitXPCOM", "XRE_GetBootstrap"],
+      "exportedSymbols": ["_MainProcessInit", "_NS_InitXPCOM", "_XRE_GetBootstrap"]
+    },
+    {
+      "id": "process-wide-shutdown",
+      "declarationTokens": ["NS_ShutdownXPCOM", "XRE_ShutdownChildProcess"],
+      "exportedSymbols": ["_NS_ShutdownXPCOM", "__Z24XRE_ShutdownChildProcessv"]
+    },
+    {
+      "id": "session-window-creation",
+      "declarationTokens": ["GeckoViewOpenWindow", "GeckoViewWindow"],
+      "exportedSymbols": ["_GeckoViewOpenWindow", "__OBJC_PROTOCOL_$_GeckoViewWindow"]
+    },
+    {
+      "id": "event-bridge",
+      "declarationTokens": ["EventCallback", "GeckoEventDispatcher", "SwiftEventDispatcher"],
+      "exportedSymbols": [
+        "__OBJC_PROTOCOL_$_EventCallback",
+        "__OBJC_PROTOCOL_$_GeckoEventDispatcher",
+        "__OBJC_PROTOCOL_$_SwiftEventDispatcher"
+      ]
+    },
+    {
+      "id": "child-process-bootstrap",
+      "declarationTokens": ["ChildProcessInit", "GeckoProcessExtension", "XRE_InitChildProcess"],
+      "exportedSymbols": [
+        "_ChildProcessInit",
+        "__OBJC_PROTOCOL_$_GeckoProcessExtension",
+        "__Z20XRE_InitChildProcessiPPcPK12XREChildData"
+      ]
+    },
+    {
+      "id": "interpreter-mode-startup",
+      "declarationTokens": ["JITRuntimeInfo", "ReportJITStatusForChild"],
+      "exportedSymbols": ["_ReportJITStatusForChild"]
+    }
+  ]
+}

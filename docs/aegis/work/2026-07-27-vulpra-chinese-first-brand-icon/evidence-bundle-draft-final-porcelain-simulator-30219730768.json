@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "final-porcelain-simulator-30219730768",
+  "type": "simulator",
+  "source": "GitHub Actions run 30219730768",
+  "summary": "Xcode build passed; Chinese start page and loaded Example Domain screenshots reviewed; app survived 60 seconds; 40077 rendered dark pixels; all engine events present; no crash report.",
+  "verifier": "gh run view 30219730768; downloaded vulpra-independent-simulator-30219730768 artifact"
+}

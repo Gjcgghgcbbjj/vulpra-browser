@@ -5,19 +5,20 @@ final class PressableButton: UIButton {
         didSet {
             guard !UIAccessibility.isReduceMotionEnabled else { return }
             UIView.animate(
-                withDuration: 0.18, delay: 0,
-                usingSpringWithDamping: 0.72, initialSpringVelocity: 0.4,
+                withDuration: isHighlighted ? 0.08 : 0.12, delay: 0,
+                usingSpringWithDamping: 0.82, initialSpringVelocity: 0.25,
                 options: [.allowUserInteraction, .beginFromCurrentState]
-            ) { self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.88, y: 0.88) : .identity }
+            ) { self.transform = self.isHighlighted ? CGAffineTransform(scaleX: 0.94, y: 0.94) : .identity }
         }
     }
 
     convenience init(symbol: String, accessibilityLabel: String) {
         self.init(type: .system)
         setImage(UIImage(systemName: symbol), for: .normal)
+        setPreferredSymbolConfiguration(UIImage.SymbolConfiguration(pointSize: 20, weight: .regular), forImageIn: .normal)
         self.accessibilityLabel = accessibilityLabel
-        tintColor = .label
-        widthAnchor.constraint(equalToConstant: 42).isActive = true
-        heightAnchor.constraint(equalToConstant: 42).isActive = true
+        tintColor = VulpraAppearance.graphite
+        widthAnchor.constraint(equalToConstant: 44).isActive = true
+        heightAnchor.constraint(equalToConstant: 44).isActive = true
     }
 }

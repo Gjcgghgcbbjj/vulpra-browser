@@ -1,4 +1,4 @@
-name: Build Vulpra IPA and TIPA
+name: Build Vulpra Independent IPA
 
 on:
   workflow_dispatch:
@@ -8,29 +8,27 @@ on:
         required: true
         default: Xcode_26.4.1.app
         type: string
-      diagnostic_mode:
-        description: Optional Swift diagnostic compilation condition
-        required: false
-        default: ''
+      engine_release_tag:
+        description: Release containing the verified precompiled v4 engine
+        required: true
+        default: vulpra-engine-v4-candidate
         type: string
 
 permissions:
-  actions: read
   contents: read
 
 concurrency:
-  group: vulpra-packages-${{ github.ref }}
+  group: vulpra-independent-packages-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build:
-    name: Build Vulpra installable packages
+    name: Compile and package the independent browser
     runs-on: macos-26
     timeout-minutes: 180
     env:
       GH_TOKEN: ${{ github.token }}
       XCODE_APP: ${{ inputs.xcode_version }}
-      VULPRA_SWIFT_FLAGS: ${{ inputs.diagnostic_mode }}
 
     steps:
       - name: Checkout Vulpra source
@@ -49,62 +47,93 @@ jobs:
           xcodebuild -version | tee build-environment.log
           xcrun --sdk iphoneos --show-sdk-build-version | tee -a build-environment.log
 
-      - name: Resolve matching runtime identity
-        id: runtime
+      - name: Restore verified precompiled engine v4
         shell: bash
         run: |
           set -euo pipefail
-          name="$(./Tools/Runtime/runtime-substrate-key.sh "$XCODE_APP")"
-          echo "name=$name" >> "$GITHUB_OUTPUT"
-          echo "runtime=$name" | tee runtime-identity.log
-
-      - name: Download and restore runtime substrate
-        shell: bash
-        run: |
-          set -euo pipefail
-          name='${{ steps.runtime.outputs.name }}'
-          artifact_id="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
-            --jq '.artifacts[] | select(.expired == false) | [.created_at, .id, .name] | @tsv' \
-            | awk -F $'\t' -v name="$name" '$3 == name {print}' | LC_ALL=C sort -r | sed -n '1p' | cut -f 2)"
-          test -n "$artifact_id" || { echo "::error::Missing runtime artifact $name"; exit 1; }
+          python3 - '${{ inputs.engine_release_tag }}' <<'PY' > engine-lock.env
+          import json, shlex, sys
+          lock = json.load(open('Configuration/engine-artifact-lock.json'))
+          if sys.argv[1] != lock['releaseTag']:
+              raise SystemExit('workflow release tag does not match engine-artifact-lock.json')
+          values = {
+              'ENGINE_RELEASE_TAG': lock['releaseTag'],
+              'ENGINE_ARCHIVE': lock['device']['archive'],
+              'ENGINE_ARCHIVE_SHA256': lock['device']['archiveSHA256'],
+              'ENGINE_ARTIFACT_ID': lock['device']['artifactId'],
+              'ENGINE_SOURCE_COMMIT': lock['device']['sourceCommit'],
+          }
+          for key, value in values.items():
+              print(f'{key}={shlex.quote(value)}')
+          PY
+          set -a
+          source engine-lock.env
+          set +a
           stage="$(mktemp -d)"
-          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$stage/artifact.zip"
-          unzip -q "$stage/artifact.zip" -d "$stage/payload"
-          cd "$stage/payload"
-          shasum -a 256 -c SHA256SUMS
-          cd "$GITHUB_WORKSPACE"
-          export VULPRA_XCODE_BUILD="$(xcodebuild -version | awk '/Build version/ {print $3}')"
-          export VULPRA_SDK_BUILD="$(xcrun --sdk iphoneos --show-sdk-build-version)"
-          ./Tools/Gecko/gecko-artifact.sh restore "$stage/payload/gecko-runtime-v3.tar.gz" "$XCODE_APP"
-          mkdir -p .build/idevice/aarch64-apple-ios/release
-          cp "$stage/payload/libidevice_ffi.a" .build/idevice/aarch64-apple-ios/release/
-          ./Tools/Runtime/verify-runtime-artifacts.sh
+          gh release download "$ENGINE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ENGINE_ARCHIVE" \
+            --dir "$stage"
+          printf '%s  %s\n' "$ENGINE_ARCHIVE_SHA256" "$stage/$ENGINE_ARCHIVE" | shasum -a 256 -c -
+          mkdir -p .build/engine
+          tar -xzf "$stage/$ENGINE_ARCHIVE" -C .build/engine
+          python3 Tools/Engine/verify-engine-artifact.py \
+            --contract Configuration/engine-artifact-v4.json .build/engine \
+            | tee engine-verification.log
+          python3 - <<'PY'
+          import json, os
+          manifest = json.load(open('.build/engine/manifest.json'))
+          if manifest['artifactId'] != os.environ['ENGINE_ARTIFACT_ID']:
+              raise SystemExit('engine artifact ID does not match repository lock')
+          if manifest['source']['commit'] != os.environ['ENGINE_SOURCE_COMMIT']:
+              raise SystemExit('engine source commit does not match repository lock')
+          PY
 
-      - name: Install packaging dependency
+      - name: Run portable architecture gates
         shell: bash
-        run: brew install ldid
+        run: |
+          set -euo pipefail
+          python3 Tools/Build/generate-build-identity.py --check
+          ./Tests/IndependentEngine/run-portable.sh | tee portable-independent.log
+          ./Tests/RuntimeShell/run-portable.sh | tee portable-product.log
+          ./Tests/Browser/run-portable.sh | tee portable-browser.log
 
       - name: Validate Xcode graph
         shell: bash
         run: xcodebuild -list -project Vulpra.xcodeproj 2>&1 | tee xcode-project-list.log
 
+      - name: Install package signer
+        shell: bash
+        run: command -v ldid >/dev/null 2>&1 || brew install ldid
+
       - name: Build application archive
         shell: bash
         run: ./Tools/Release/build-app.sh 2>&1 | tee build-app.log
 
-      - name: Create IPA and TrollStore TIPA
+      - name: Create and validate packages
         shell: bash
         run: |
           set -euo pipefail
           ./Tools/Release/create-ipa.sh 2>&1 | tee create-ipa.log
-          test -s dist/Vulpra.ipa
-          test -s dist/Vulpra-TrollStore.tipa
-          test -s dist/SHA256SUMS
+          python3 Tools/Engine/validate-ipa.py dist/Vulpra.ipa | tee validate-ipa.log
+          python3 Tools/Engine/validate-ipa.py --require-signatures \
+            dist/Vulpra-TrollStore.tipa | tee validate-tipa.log
+          (cd dist && shasum -a 256 -c SHA256SUMS)
+          unzip -p dist/Vulpra.ipa Payload/Vulpra.app/Info.plist > packaged-app-info.plist
+          test "$(plutil -extract CFBundleShortVersionString raw packaged-app-info.plist)" = \
+            "$(python3 Tools/Build/generate-build-identity.py --print marketingVersion)"
+          test "$(plutil -extract CFBundleVersion raw packaged-app-info.plist)" = \
+            "$(python3 Tools/Build/generate-build-identity.py --print buildVersion)"
+          test "$(plutil -extract VulpraUIBuildFingerprint raw packaged-app-info.plist)" = \
+            "$(python3 Tools/Build/generate-build-identity.py --print uiFingerprint)"
+          test "$(plutil -extract VulpraDistributionProfile raw packaged-app-info.plist)" = 'external-signing'
+          unzip -p dist/Vulpra-TrollStore.tipa Payload/Vulpra.app/Info.plist > packaged-tipa-info.plist
+          test "$(plutil -extract VulpraDistributionProfile raw packaged-tipa-info.plist)" = 'trollstore'
 
       - name: Upload installable packages
         uses: actions/upload-artifact@v4
         with:
-          name: vulpra-ios-test-${{ github.run_id }}
+          name: vulpra-independent-ios-${{ github.run_id }}
           path: |
             dist/Vulpra.ipa
             dist/Vulpra-TrollStore.tipa
@@ -112,11 +141,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload package build logs
+      - name: Upload build evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: vulpra-package-logs-${{ github.run_id }}
+          name: vulpra-independent-logs-${{ github.run_id }}
           path: |
             *.log
             dist/Vulpra.xcarchive/Info.plist

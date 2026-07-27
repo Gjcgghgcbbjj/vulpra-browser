@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "simulator-visible-navigation-30213751790",
+  "type": "github-actions-runtime",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30213751790",
+  "summary": "Xcode 26.4.1 build, launch, one queued HTTPS LoadUri, native view attach before dispatch, visible Example Domain content with 40077 dark pixels, page completion, Engine Process connections, survival, and zero crashes.",
+  "verifier": "Workflow assertions plus downloaded logs and screenshot inspection."
+}

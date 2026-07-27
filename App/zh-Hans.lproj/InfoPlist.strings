@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Vulpra";
+"NSCameraUsageDescription" = "扫描包含网站地址的二维码。";
+"NSPhotoLibraryAddUsageDescription" = "将网页中选择的图像保存到照片图库。";

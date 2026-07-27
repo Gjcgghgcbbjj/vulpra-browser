@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "engine artifact, ABI bridge, process host, App engine contracts, Xcode graph, runtime workflows, release packaging"
+  ],
+  "owners": [
+    "Engine/VulpraEngineKit; Engine/VulpraEngineProcess; App; Tools/Engine; release workflows"
+  ],
+  "invariants": [
+    "Exactly one active engine adapter; no runtime fallback; no inherited integration source; preserved bundle identity and user data."
+  ],
+  "compatBoundary": "Preserve com.vulpra.browser, iOS 15, iPhone/iPad, OpenIn, Codable data, TabManager/BrowserTab ownership, and existing browser behavior.",
+  "nonGoals": [
+    "Rebuild or patch Gecko source, retain idevice/JIT/GeckoView/old Helper, delete user data, or claim App Store eligibility."
+  ]
+}

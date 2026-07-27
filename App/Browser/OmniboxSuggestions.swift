@@ -8,6 +8,7 @@ struct OmniboxSuggestion: Equatable {
 }
 
 enum OmniboxSuggestionProvider {
+    @MainActor
     static func suggestions(for query: String, tabs: [BrowserTab], limit: Int = 12) -> [OmniboxSuggestion] {
         let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return [] }

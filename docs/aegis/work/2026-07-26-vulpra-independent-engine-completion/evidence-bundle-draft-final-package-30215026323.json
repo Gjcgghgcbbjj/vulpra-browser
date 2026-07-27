@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "final-package-30215026323",
+  "type": "final-package",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30215026323",
+  "summary": "Metadata-complete snapshot 23dd018873ff64c696e0a4c05ee9095e406c01f0 archived and produced final Vulpra.ipa and Vulpra-TrollStore.tipa; workflow and local SHA256, ZIP, bundle, artifact, Mach-O content, and signature validations passed.",
+  "verifier": "dist/SHA256SUMS; Tools/Engine/validate-ipa.py; unzip -t; GitHub Actions run 30215026323."
+}

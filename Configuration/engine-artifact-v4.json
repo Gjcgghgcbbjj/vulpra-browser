@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "formatVersion": 4,
+  "artifactIdPrefix": "vulpra-gecko-ios-arm64-v4-",
+  "manifestFile": "manifest.json",
+  "platform": "iphoneos",
+  "architecture": "arm64",
+  "sourceRepository": "https://github.com/mozilla-firefox/firefox",
+  "allowedRoots": [
+    "runtime/bin",
+    "runtime/lib",
+    "runtime/include",
+    "runtime/resources",
+    "licenses"
+  ],
+  "requiredKernel": "runtime/bin/XUL",
+  "requiredKernelToken": "VulpraEngineRuntime",
+  "nonEmptyRoots": [
+    "runtime/include",
+    "runtime/resources",
+    "licenses"
+  ],
+  "forbiddenSourceExtensions": [
+    ".swift",
+    ".m",
+    ".mm",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cxx",
+    ".rs"
+  ],
+  "forbiddenProductExtensions": [
+    ".app",
+    ".appex",
+    ".framework"
+  ],
+  "forbiddenSegments": [
+    "JIT",
+    "Patches",
+    "Sources"
+  ]
+}

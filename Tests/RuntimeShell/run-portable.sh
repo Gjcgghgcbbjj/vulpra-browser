@@ -6,13 +6,9 @@ cd "$ROOT"
 
 python3 Tests/RuntimeShell/test-xcode-graph.py
 python3 Tests/RuntimeShell/test-product-contracts.py
-python3 Tests/RuntimeShell/test-runtime-shell.py
-python3 Tests/RuntimeShell/test-jit-orchestration.py
 python3 Tests/RuntimeShell/test-open-in.py
-Tests/RuntimeShell/test-runtime-artifacts.sh
 Tests/RuntimeShell/test-release-packaging.sh
-Tools/Gecko/test-gecko-artifact.sh
-python3 Tests/Browser/test-runtime-workflow.py
+python3 Tests/RuntimeShell/test-package-validator.py
 python3 Tests/Browser/test-package-workflow.py
 python3 Tests/Browser/test-browser-client.py
 
@@ -35,7 +31,7 @@ from pathlib import Path
 import plistlib
 import xml.etree.ElementTree as ET
 
-for root in (Path("App"), Path("Extensions"), Path("Modules")):
+for root in (Path("App"), Path("Engine"), Path("Extensions")):
     for path in sorted(root.rglob("*")):
         if path.suffix in (".plist", ".entitlements"):
             with path.open("rb") as source:

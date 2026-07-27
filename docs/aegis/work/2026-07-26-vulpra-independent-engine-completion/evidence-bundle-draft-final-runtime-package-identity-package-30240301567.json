@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "final-runtime-package-identity-package-30240301567",
+  "type": "final-package",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30240301567",
+  "summary": "The same snapshot produced validated Vulpra.ipa and Vulpra-TrollStore.tipa at 0.2.0 (2) with porcelain-zh-v2-20260727 in plist and executable; desktop and dist hashes match.",
+  "verifier": "Tools/Engine/validate-ipa.py; unzip -t; SHA256SUMS; structured plist and ZIP inspection."
+}

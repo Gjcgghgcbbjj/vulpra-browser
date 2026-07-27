@@ -1,0 +1,224 @@
+{
+  "assessment": "observed-not-runtime-verified",
+  "headers": [
+    {
+      "path": "GeckoView/GeckoViewRuntimeSupport.h",
+      "sha256": "44598acdcc08d064619a22c05aa5028d51fe9d779e32c26ca71e93e16e341a48",
+      "size": 1224
+    },
+    {
+      "path": "GeckoView/GeckoViewSwiftSupport.h",
+      "sha256": "02e95e3992a1e590ac091cfa0c0c0bd760e206114f1c23847e51d23c598ba8a8",
+      "size": 2649
+    },
+    {
+      "path": "GeckoView/IOSBootstrap.h",
+      "sha256": "8157d33637237ceb70165e857cd12347dca4419d1d37e1d1db24e658491fb006",
+      "size": 1285
+    }
+  ],
+  "kernel": {
+    "exportedSymbolCount": 6,
+    "machO": {
+      "architecture": "arm64",
+      "fileType": "dylib"
+    },
+    "path": "runtime/bin/XUL",
+    "sha256": "5f713a9bdc77dbd4fdf994dd5a8e654150f329b5ff3e1f75b2a02f3e8ce5d237",
+    "size": 232319144
+  },
+  "limitations": [
+    "Symbol and declaration presence does not prove a valid startup or shutdown sequence.",
+    "Objective-C protocol presence does not prove an independently implemented event or process host.",
+    "JIT status reporting does not prove interpreter-only startup."
+  ],
+  "questions": [
+    {
+      "declarations": [
+        {
+          "headers": [
+            "GeckoView/IOSBootstrap.h"
+          ],
+          "token": "MainProcessInit"
+        },
+        {
+          "headers": [],
+          "token": "NS_InitXPCOM"
+        },
+        {
+          "headers": [],
+          "token": "XRE_GetBootstrap"
+        }
+      ],
+      "id": "process-wide-startup",
+      "symbols": [
+        {
+          "name": "_MainProcessInit",
+          "state": "exported"
+        },
+        {
+          "name": "_NS_InitXPCOM",
+          "state": "defined-not-exported"
+        },
+        {
+          "name": "_XRE_GetBootstrap",
+          "state": "exported"
+        }
+      ]
+    },
+    {
+      "declarations": [
+        {
+          "headers": [],
+          "token": "NS_ShutdownXPCOM"
+        },
+        {
+          "headers": [],
+          "token": "XRE_ShutdownChildProcess"
+        }
+      ],
+      "id": "process-wide-shutdown",
+      "symbols": [
+        {
+          "name": "_NS_ShutdownXPCOM",
+          "state": "defined-not-exported"
+        },
+        {
+          "name": "__Z24XRE_ShutdownChildProcessv",
+          "state": "defined-not-exported"
+        }
+      ]
+    },
+    {
+      "declarations": [
+        {
+          "headers": [
+            "GeckoView/GeckoViewSwiftSupport.h"
+          ],
+          "token": "GeckoViewOpenWindow"
+        },
+        {
+          "headers": [
+            "GeckoView/GeckoViewSwiftSupport.h"
+          ],
+          "token": "GeckoViewWindow"
+        }
+      ],
+      "id": "session-window-creation",
+      "symbols": [
+        {
+          "name": "_GeckoViewOpenWindow",
+          "state": "exported"
+        },
+        {
+          "name": "__OBJC_PROTOCOL_$_GeckoViewWindow",
+          "state": "defined-not-exported"
+        }
+      ]
+    },
+    {
+      "declarations": [
+        {
+          "headers": [
+            "GeckoView/GeckoViewSwiftSupport.h"
+          ],
+          "token": "EventCallback"
+        },
+        {
+          "headers": [
+            "GeckoView/GeckoViewSwiftSupport.h"
+          ],
+          "token": "GeckoEventDispatcher"
+        },
+        {
+          "headers": [
+            "GeckoView/GeckoViewSwiftSupport.h"
+          ],
+          "token": "SwiftEventDispatcher"
+        }
+      ],
+      "id": "event-bridge",
+      "symbols": [
+        {
+          "name": "__OBJC_PROTOCOL_$_EventCallback",
+          "state": "defined-not-exported"
+        },
+        {
+          "name": "__OBJC_PROTOCOL_$_GeckoEventDispatcher",
+          "state": "defined-not-exported"
+        },
+        {
+          "name": "__OBJC_PROTOCOL_$_SwiftEventDispatcher",
+          "state": "absent"
+        }
+      ]
+    },
+    {
+      "declarations": [
+        {
+          "headers": [
+            "GeckoView/IOSBootstrap.h"
+          ],
+          "token": "ChildProcessInit"
+        },
+        {
+          "headers": [
+            "GeckoView/GeckoViewSwiftSupport.h",
+            "GeckoView/IOSBootstrap.h"
+          ],
+          "token": "GeckoProcessExtension"
+        },
+        {
+          "headers": [],
+          "token": "XRE_InitChildProcess"
+        }
+      ],
+      "id": "child-process-bootstrap",
+      "symbols": [
+        {
+          "name": "_ChildProcessInit",
+          "state": "exported"
+        },
+        {
+          "name": "__OBJC_PROTOCOL_$_GeckoProcessExtension",
+          "state": "absent"
+        },
+        {
+          "name": "__Z20XRE_InitChildProcessiPPcPK12XREChildData",
+          "state": "defined-not-exported"
+        }
+      ]
+    },
+    {
+      "declarations": [
+        {
+          "headers": [
+            "GeckoView/GeckoViewRuntimeSupport.h",
+            "GeckoView/IOSBootstrap.h"
+          ],
+          "token": "JITRuntimeInfo"
+        },
+        {
+          "headers": [
+            "GeckoView/GeckoViewRuntimeSupport.h",
+            "GeckoView/IOSBootstrap.h"
+          ],
+          "token": "ReportJITStatusForChild"
+        }
+      ],
+      "id": "interpreter-mode-startup",
+      "symbols": [
+        {
+          "name": "_ReportJITStatusForChild",
+          "state": "exported"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 1,
+  "sourceArchive": {
+    "sha256": "3919792d79f06969b210532bbca88ec4c822f7dba5b9fdae1741a4e8b11b1e75",
+    "size": 280583298
+  },
+  "sourceArtifactId": "8512456239"
+}

@@ -1,0 +1,118 @@
+import Foundation
+
+public struct EngineContextMenuElement: Equatable, Sendable {
+    public let title: String?
+    public let linkURL: URL?
+    public let imageURL: URL?
+
+    public init(title: String?, linkURL: URL?, imageURL: URL?) {
+        self.title = title
+        self.linkURL = linkURL
+        self.imageURL = imageURL
+    }
+}
+
+public struct EngineDownloadResponse: Equatable, Sendable {
+    public let sourceURL: URL?
+    public let suggestedFilename: String?
+    public let contentType: String?
+    public let contentLength: Int64
+    public let localFilePath: String
+
+    public init(sourceURL: URL?, suggestedFilename: String?, contentType: String?, contentLength: Int64,
+                localFilePath: String) {
+        self.sourceURL = sourceURL
+        self.suggestedFilename = suggestedFilename
+        self.contentType = contentType
+        self.contentLength = contentLength
+        self.localFilePath = localFilePath
+    }
+}
+
+public enum EnginePermissionKind: String, Codable, Sendable {
+    case camera, microphone, location, notifications, persistentStorage, unknown
+}
+
+public struct EnginePermissionRequest: Equatable, Sendable {
+    public let origin: URL?
+    public let kind: EnginePermissionKind
+    public let isPrivate: Bool
+
+    public init(origin: URL?, kind: EnginePermissionKind, isPrivate: Bool) {
+        self.origin = origin
+        self.kind = kind
+        self.isPrivate = isPrivate
+    }
+}
+
+public enum EnginePermissionDecision: Int, Codable, Sendable {
+    case deny = 0
+    case allow = 1
+}
+
+public enum EnginePromptKind: String, Codable, Sendable {
+    case alert, confirm, text, authentication, file, unknown
+}
+
+public struct EnginePromptRequest: Equatable, Sendable {
+    public let id: String
+    public let kind: EnginePromptKind
+    public let title: String
+    public let message: String
+    public let defaultValue: String?
+
+    public init(id: String, kind: EnginePromptKind, title: String, message: String, defaultValue: String?) {
+        self.id = id
+        self.kind = kind
+        self.title = title
+        self.message = message
+        self.defaultValue = defaultValue
+    }
+}
+
+public struct EnginePromptResponse: Equatable, Sendable {
+    public let accepted: Bool
+    public let text: String?
+    public let files: [URL]
+
+    public init(accepted: Bool, text: String? = nil, files: [URL] = []) {
+        self.accepted = accepted
+        self.text = text
+        self.files = files
+    }
+}
+
+public struct EngineStorageClearOptions: OptionSet, Sendable {
+    public let rawValue: Int64
+    public init(rawValue: Int64) { self.rawValue = rawValue }
+    public static let cookies = Self(rawValue: 1 << 1)
+    public static let webStorage = Self(rawValue: 1 << 2)
+    public static let cache = Self(rawValue: 1 << 8)
+    public static let authentication = Self(rawValue: 1 << 10)
+    public static let all: Self = [.cookies, .webStorage, .cache, .authentication]
+}
+
+@MainActor
+public protocol EnginePromptHandler: AnyObject {
+    func engineSession(_ id: EngineSessionID, handle prompt: EnginePromptRequest,
+                       completion: @escaping (EnginePromptResponse?) -> Void)
+}
+
+@MainActor
+public protocol EnginePermissionHandler: AnyObject {
+    func engineSession(_ id: EngineSessionID, decide request: EnginePermissionRequest,
+                       completion: @escaping (EnginePermissionDecision) -> Void)
+}
+
+@MainActor
+public protocol EngineDownloadHandler: AnyObject {
+    func engineSession(_ id: EngineSessionID, accept response: EngineDownloadResponse,
+                       completion: @escaping (Bool) -> Void)
+    func engineSession(_ id: EngineSessionID, downloadAt path: String, received bytes: Int64) -> Bool
+    func engineSession(_ id: EngineSessionID, completedDownloadAt path: String, succeeded: Bool)
+}
+
+@MainActor
+public protocol EngineContentObserver: AnyObject {
+    func engineSession(_ id: EngineSessionID, requestedContextMenu element: EngineContextMenuElement)
+}
