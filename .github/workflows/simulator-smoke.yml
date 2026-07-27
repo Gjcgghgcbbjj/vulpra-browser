@@ -146,65 +146,63 @@ jobs:
           print((preferred or values)[-1]["identifier"])
           ')"
           test_udid="$(xcrun simctl create "Vulpra-Tests-$GITHUB_RUN_ID" "$test_device_type" "$test_runtime")"
-          trap 'xcrun simctl delete "$test_udid" >/dev/null 2>&1 || true' EXIT
+          collect_test_diagnostics() {
+            xcrun simctl spawn "$test_udid" log show --last 15m --style compact --info --debug \
+              --predicate 'process == "Vulpra" OR process == "xctest" OR process == "testmanagerd" OR senderImagePath CONTAINS[c] "Vulpra" OR eventMessage CONTAINS[c] "Vulpra"' \
+              > simulator-native-tests-system.log 2>&1 || true
+            : > simulator-native-tests-crash-paths.log
+            for crash_root in \
+              "$HOME/Library/Logs/DiagnosticReports" \
+              "$HOME/Library/Developer/CoreSimulator/Devices/$test_udid/data"; do
+              test -d "$crash_root" || continue
+              find "$crash_root" -type f \
+                \( -name 'Vulpra*.crash' -o -name 'Vulpra*.ips' -o \
+                   -name 'xctest*.crash' -o -name 'xctest*.ips' \) -mmin -20 \
+                -print -exec cp {} . \; 2>/dev/null \
+                | tee -a simulator-native-tests-crash-paths.log || true
+            done
+          }
+          cleanup_test_device() {
+            collect_test_diagnostics
+            xcrun simctl shutdown "$test_udid" >/dev/null 2>&1 || true
+            xcrun simctl delete "$test_udid" >/dev/null 2>&1 || true
+          }
+          trap cleanup_test_device EXIT
           xcrun simctl boot "$test_udid"
           xcrun simctl bootstatus "$test_udid" -b
           test_deadline=$((SECONDS + 600))
-          test_result=running
+          rm -rf simulator-native-tests.xcresult
           xcodebuild \
             -project Vulpra.xcodeproj \
             -scheme Vulpra \
             -configuration Debug \
             -destination "platform=iOS Simulator,id=$test_udid" \
             -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$PWD/simulator-native-tests.xcresult" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             test > simulator-native-tests.log 2>&1 &
           test_pid=$!
           while kill -0 "$test_pid" >/dev/null 2>&1; do
-            if grep -Fq "** TEST FAILED **" simulator-native-tests.log; then
-              test_result=failed
-              break
-            fi
-            if grep -Fq "** TEST SUCCEEDED **" simulator-native-tests.log; then
-              test_result=succeeded
-              break
-            fi
             if (( SECONDS >= test_deadline )); then
-              test_result=timed-out
-              break
+              kill "$test_pid" >/dev/null 2>&1 || true
+              sleep 2
+              kill -9 "$test_pid" >/dev/null 2>&1 || true
+              wait "$test_pid" >/dev/null 2>&1 || true
+              collect_test_diagnostics
+              cat simulator-native-tests.log
+              echo "native EngineKit tests exceeded 600 seconds" >&2
+              exit 1
             fi
             sleep 5
           done
-
-          if [[ "$test_result" == running ]]; then
-            set +e
-            wait "$test_pid"
-            test_exit=$?
-            set -e
-            test_result=completed
-          else
-            sleep 10
-            if kill -0 "$test_pid" >/dev/null 2>&1; then
-              kill "$test_pid" >/dev/null 2>&1 || true
-              sleep 2
-            fi
-            if kill -0 "$test_pid" >/dev/null 2>&1; then
-              kill -9 "$test_pid" >/dev/null 2>&1 || true
-            fi
-            wait "$test_pid" >/dev/null 2>&1 || true
-          fi
-
+          set +e
+          wait "$test_pid"
+          test_exit=$?
+          set -e
+          collect_test_diagnostics
           cat simulator-native-tests.log
-          if [[ "$test_result" == timed-out ]]; then
-            echo "native EngineKit tests exceeded 600 seconds" >&2
-            exit 1
-          fi
-          if [[ "$test_result" == failed ]]; then
-            echo "native EngineKit tests reported failure" >&2
-            exit 1
-          fi
-          if [[ "$test_result" == completed && "$test_exit" -ne 0 ]]; then
+          if [[ "$test_exit" -ne 0 ]]; then
             echo "native EngineKit test process exited with $test_exit" >&2
             exit "$test_exit"
           fi
@@ -389,7 +387,10 @@ jobs:
             simulator-*.log
             simulator-start-page.png
             simulator-navigation.png
+            simulator-native-tests.xcresult
             Vulpra*.crash
             Vulpra*.ips
+            xctest*.crash
+            xctest*.ips
           if-no-files-found: warn
           retention-days: 14
