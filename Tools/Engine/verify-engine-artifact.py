@@ -68,6 +68,11 @@ def validate_contract(contract: dict[str, object]) -> None:
     token = contract.get("requiredKernelToken")
     if not isinstance(token, str) or not KERNEL_TOKEN_PATTERN.fullmatch(token):
         fail("contract requiredKernelToken is invalid")
+    resource_container = normalized_path(
+        contract.get("runtimeResourceContainer"), "contract runtimeResourceContainer"
+    )
+    if len(PurePosixPath(resource_container).parts) != 1:
+        fail("contract runtimeResourceContainer must be a single directory name")
     roots = contract.get("allowedRoots")
     if not isinstance(roots, list) or not roots:
         fail("contract allowedRoots must be a non-empty list")

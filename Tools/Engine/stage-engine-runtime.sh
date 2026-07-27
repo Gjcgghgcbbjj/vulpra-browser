@@ -6,10 +6,19 @@ ENGINE_ROOT=${VULPRA_ENGINE_ROOT:-$ROOT/.build/engine}
 APP_BUNDLE=${TARGET_BUILD_DIR:?}/${WRAPPER_NAME:?}
 FRAMEWORKS=$APP_BUNDLE/Frameworks
 ENGINE_FRAMEWORK=$FRAMEWORKS/VulpraEngineKit.framework
-ENGINE_RUNTIME=$FRAMEWORKS/VulpraEngineRuntime
+CONTRACT=${VULPRA_ENGINE_CONTRACT:-$ROOT/Configuration/engine-artifact-v4.json}
 
 python3 "$ROOT/Tools/Engine/verify-engine-artifact.py" \
-  --contract "${VULPRA_ENGINE_CONTRACT:-$ROOT/Configuration/engine-artifact-v4.json}" "$ENGINE_ROOT"
+  --contract "$CONTRACT" "$ENGINE_ROOT"
+RESOURCE_CONTAINER=$(python3 - "$CONTRACT" <<'PY'
+import json
+import sys
+
+print(json.load(open(sys.argv[1], encoding="utf-8"))["runtimeResourceContainer"])
+PY
+)
+ENGINE_RUNTIME=$FRAMEWORKS/$RESOURCE_CONTAINER
+
 test -d "$ENGINE_FRAMEWORK"
 mkdir -p "$FRAMEWORKS" "$ENGINE_RUNTIME/Frameworks" "$ENGINE_RUNTIME/Licenses"
 cp -fL "$ENGINE_ROOT/runtime/bin/XUL" "$FRAMEWORKS/XUL"

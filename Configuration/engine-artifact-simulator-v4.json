@@ -15,6 +15,7 @@
   ],
   "requiredKernel": "runtime/bin/XUL",
   "requiredKernelToken": "_MainProcessInit",
+  "runtimeResourceContainer": "GeckoView.framework",
   "nonEmptyRoots": [
     "runtime/include",
     "runtime/resources",

@@ -147,9 +147,6 @@ jobs:
           ')"
           test_udid="$(xcrun simctl create "Vulpra-Tests-$GITHUB_RUN_ID" "$test_device_type" "$test_runtime")"
           collect_test_diagnostics() {
-            xcrun simctl spawn "$test_udid" log show --last 15m --style compact --info --debug \
-              --predicate 'process == "Vulpra" OR process == "xctest" OR process == "testmanagerd" OR senderImagePath CONTAINS[c] "Vulpra" OR eventMessage CONTAINS[c] "Vulpra"' \
-              > simulator-native-tests-system.log 2>&1 || true
             : > simulator-native-tests-crash-paths.log
             for crash_root in \
               "$HOME/Library/Logs/DiagnosticReports" \

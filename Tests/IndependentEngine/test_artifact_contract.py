@@ -126,11 +126,15 @@ def main() -> None:
     require(contract.get("architecture") == "arm64", "artifact architecture must be arm64")
     require(contract.get("requiredKernelToken") == "VulpraEngineRuntime",
             "independent runtime layout token is wrong")
+    require(contract.get("runtimeResourceContainer") == "VulpraEngineRuntime",
+            "device runtime resource container is wrong")
     simulator_contract = json.loads(SIMULATOR_CONTRACT.read_text(encoding="utf-8"))
     require(simulator_contract.get("platform") == "iphonesimulator",
             "Simulator artifact platform is wrong")
     require(simulator_contract.get("requiredKernelToken") == "_MainProcessInit",
             "Simulator artifact does not verify the real process startup ABI")
+    require(simulator_contract.get("runtimeResourceContainer") == "GeckoView.framework",
+            "Simulator runtime resource container does not match its immutable XUL layout")
     require(
         contract.get("allowedRoots")
         == ["runtime/bin", "runtime/lib", "runtime/include", "runtime/resources", "licenses"],

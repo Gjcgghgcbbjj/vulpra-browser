@@ -47,6 +47,10 @@ def main() -> None:
     staging = (ROOT / "Tools/Engine/stage-engine-runtime.sh").read_text(encoding="utf-8")
     require('codesign --force --sign - {}' in staging,
             "simulator runtime does not repair the precompiled Mach-O signature")
+    require('json.load(open(sys.argv[1]' in staging and '["runtimeResourceContainer"]' in staging,
+            "runtime staging does not use the platform artifact contract resource container")
+    require("ENGINE_RUNTIME=$FRAMEWORKS/VulpraEngineRuntime" not in staging,
+            "runtime staging still hard-codes the device resource container")
     require(not (ROOT / "Configuration/GeckoView.xcconfig").exists(), "old framework config remains")
     require(not (ROOT / "Configuration/Helper.xcconfig").exists(), "old helper config remains")
 
