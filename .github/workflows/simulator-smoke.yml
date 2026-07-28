@@ -272,12 +272,14 @@ jobs:
           done
           test "$fixture_ready" -eq 1
           app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          simulator_runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'
           runtime="$(xcrun simctl list runtimes -j | python3 -c '
           import json, sys
-          values = [item for item in json.load(sys.stdin)["runtimes"] if item.get("isAvailable") and item.get("name", "").startswith("iOS")]
-          if not values: raise SystemExit("no iOS Simulator runtime")
-          print(values[-1]["identifier"])
-          ')"
+          requested = sys.argv[1]
+          values = [item for item in json.load(sys.stdin)["runtimes"] if item.get("isAvailable") and item.get("identifier") == requested]
+          if not values: raise SystemExit(f"requested Simulator runtime is unavailable: {requested}")
+          print(values[0]["identifier"])
+          ' "$simulator_runtime")"
           device_types="$(xcrun simctl list devicetypes -j | python3 -c '
           import json, sys
           values = [item for item in json.load(sys.stdin)["devicetypes"] if item.get("name", "").startswith("iPhone")]

@@ -115,6 +115,7 @@ def main() -> None:
         "simulator-start-page.png",
         "simulator-navigation.png",
         "AppleLanguages -array zh-Hans",
+        "simulator_runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'",
         "smoke_url='http://127.0.0.1:8765/'",
         'SIMCTL_CHILD_VULPRA_SMOKE_URL="$smoke_url"',
         "main { padding-top: 32vh; }",
