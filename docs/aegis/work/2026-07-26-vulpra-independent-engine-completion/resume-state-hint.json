@@ -2,13 +2,12 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-26-vulpra-independent-engine-completion",
   "lastCheckpointRef": "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/todo-checkpoint-draft.json",
-  "resumeInstruction": "Re-run final hashes and workspace check only if delivery files or work records change.",
+  "resumeInstruction": "Treat IPA/TIPA delivery as verified and Simulator as needs-verification; rerun only the hosted Simulator gate unless source, package inputs, or artifacts change.",
   "knownPartialWork": [
-    "Repaired runtime/session actor ownership, ready transition, dependency injection, ABI lifetime, and Engine Process cleanup.",
-    "Pinned engine artifact identity and enforced package version/UI fingerprint.",
-    "Passed final simulator run 30239461150 and package run 30240301567 from snapshot 95338aad.",
-    "Validated and copied IPA/TIPA/SHA256SUMS to dist and the Windows desktop.",
-    "Removed every temporary runtime-package-identity CI ref while preserving user HEAD and index."
+    "Final snapshot ac5e6ff passed package run 30398876901 and produced validated IPA/TIPA artifacts.",
+    "Validated hashes, ZIP integrity, package metadata, signatures, artifact identity, executable fingerprint, and absence of retired payloads; copied matching artifacts to dist and the Windows desktop.",
+    "Retained executable loopback rendering evidence from runs 30388203550, 30389904599, and 30389908011; run 30389904599 visibly rendered Vulpra Engine Ready and completed the page.",
+    "Ran three bounded formal Simulator retries 30393594180, 30395172252, and 30397230869; all built, passed seven native tests, kept the App alive, and produced no crash, but none closed the hosted rendering gate."
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/10-intent.md",
@@ -16,6 +15,6 @@
     "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Do not claim physical-device or public-distribution validation from simulator/package evidence."
+    "Do not treat the historical visible loopback screenshot or successful package workflow as a green current hosted Simulator gate."
   ]
 }

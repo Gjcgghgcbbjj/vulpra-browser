@@ -5,11 +5,11 @@
   "baselineRefs": [
     "docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md"
   ],
-  "scopeStatus": "The performance, compatibility, and icon-first presentation work remains inside the approved independent-engine, Chinese-first UI, and IPA/TIPA delivery scope.",
-  "compatStatus": "com.vulpra.browser, iOS 15, iPhone/iPad, OpenIn, Codable data, and TabManager/BrowserTab ownership remain preserved.",
-  "retirementStatus": "GeckoView, Helper, JIT, client source-build, alternate artifact, and fallback paths remain retired; PageToolsController remains the sole page-tools coordinator.",
+  "scopeStatus": "The final fixture/workflow calibration and package delivery stayed inside the approved independent-engine, Chinese-first UI, and IPA/TIPA scope.",
+  "compatStatus": "com.vulpra.browser, iOS 15, iPhone/iPad, OpenIn, Codable data, build identity 0.2.0 (4), and TabManager/BrowserTab/VulpraEngineKit ownership remain preserved.",
+  "retirementStatus": "GeckoView, Helper, JIT, source-build client paths, alternate artifacts, duplicate owners, and runtime fallbacks remain retired; no compatibility exception was introduced.",
   "newRiskSignals": [
-    "The patched Simulator artifact, seventh native test, centered brand screenshot, and final IPA/TIPA still need fresh macOS evidence.",
+    "The package gate is verified, but current GitHub-hosted Simulator reruns do not reproduce the earlier visible loopback page completion.",
     "Physical-device installation and public distribution remain outside this evidence boundary."
   ],
   "decision": "needs-verification"

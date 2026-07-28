@@ -139,3 +139,31 @@
 - Retirement status: `PageToolsController` remains the sole page-tools coordinator; no parallel UI owner or fallback renderer was introduced.
 - New risk signals: The new sheet and centered brand still require a fresh Xcode build and simulator screenshot.
 - Advisory decision: needs-verification
+
+## Checkpoint Update
+
+- Current todo: Preserve the verified IPA/TIPA delivery while externalizing the current hosted Simulator rerun as needs-verification.
+- Active slice: Final evidence, ADR/baseline sync, and temporary CI ref cleanup.
+- Completed todos:
+- Final snapshot ac5e6ff passed package run 30398876901 and produced validated IPA/TIPA artifacts.
+- Validated hashes, ZIP integrity, package metadata, signatures, artifact identity, executable fingerprint, and absence of retired payloads; copied matching artifacts to dist and the Windows desktop.
+- Retained executable loopback rendering evidence from runs 30388203550, 30389904599, and 30389908011; run 30389904599 visibly rendered Vulpra Engine Ready and completed the page.
+- Ran three bounded formal Simulator retries 30393594180, 30395172252, and 30397230869; all built, passed seven native tests, kept the App alive, and produced no crash, but none closed the hosted rendering gate.
+- Evidence refs:
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30398876901
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30389904599
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30397230869
+- dist/SHA256SUMS
+- /mnt/c/Users/niting/Desktop/Vulpra/SHA256SUMS
+- Blocked on: The current GitHub-hosted Simulator rerun is not green: run 30393594180 timed out during Simulator boot, while runs 30395172252 and 30397230869 fetched the loopback fixture but remained about:blank.
+- Next step: Run a fresh hosted macOS Simulator gate after the runner/runtime drift is understood; do not claim full Simulator completion from the historical executable evidence alone.
+
+## DriftCheckDraft
+
+- Scope status: The final fixture/workflow calibration and package delivery stayed inside the approved independent-engine, Chinese-first UI, and IPA/TIPA scope.
+- Compatibility status: com.vulpra.browser, iOS 15, iPhone/iPad, OpenIn, Codable data, build identity 0.2.0 (4), and TabManager/BrowserTab/VulpraEngineKit ownership remain preserved.
+- Retirement status: GeckoView, Helper, JIT, source-build client paths, alternate artifacts, duplicate owners, and runtime fallbacks remain retired; no compatibility exception was introduced.
+- New risk signals:
+- The package gate is verified, but current GitHub-hosted Simulator reruns do not reproduce the earlier visible loopback page completion.
+- Physical-device installation and public distribution remain outside this evidence boundary.
+- Advisory decision: needs-verification

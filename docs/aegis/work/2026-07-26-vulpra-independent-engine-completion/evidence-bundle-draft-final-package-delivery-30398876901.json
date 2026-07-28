@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "final-package-delivery-30398876901",
+  "type": "final-package",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30398876901; dist/SHA256SUMS; /mnt/c/Users/niting/Desktop/Vulpra/SHA256SUMS",
+  "summary": "Snapshot ac5e6ff passed all portable gates and the Xcode archive/package workflow, producing Vulpra.ipa and Vulpra-TrollStore.tipa at 0.2.0 (4) with porcelain-zh-v4-20260728. Local validation confirmed 2671 files per package, correct bundle/artifact/profile/signatures/fingerprint, no retired payload, and SHA-256 c61435d2bd196cc49ec9cf054b318191a12d7fa7944c8b02e2bba7f0a53f553b for IPA and 2228d83ba84feee717fccf5704110b9b4030b5a1cb0edd1458952b8aa1de5484 for TIPA.",
+  "verifier": "GitHub Actions run 30398876901; Tools/Engine/validate-ipa.py including --require-signatures for TIPA; unzip -t; sha256sum -c; structured ZIP, plist, Mach-O, and payload inspection."
+}

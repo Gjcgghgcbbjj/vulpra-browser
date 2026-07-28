@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "loopback-executable-rendering-30389904599",
+  "type": "historical-simulator-executable",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30389904599; /root/.cache/vulpra-simulator-30389904599/vulpra-independent-simulator-30389904599/",
+  "summary": "The iOS 26.4 run at f52adf04 fetched the loopback fixture twice, logged Engine location http://127.0.0.1:8765/ and Engine page completed true, created multiple Engine Process connections, remained alive without a crash, and visibly rendered Vulpra Engine Ready. Recalibrating the screenshot scan to height/12..<height/8 finds 12266 dark pixels versus 0 for the current blank screenshot. The run's overall conclusion remained failure because its older pixel band missed the rendered heading. App, EngineKit, configuration, tools, portable engine/runtime tests, and package workflow inputs are identical between f52adf04 and ac5e6ff.",
+  "verifier": "Downloaded fixture/system/survival/crash logs, simulator-navigation.png inspection, deterministic pixel recount, and git diff --quiet f52adf04 ac5e6ff over runtime/package-owned paths."
+}

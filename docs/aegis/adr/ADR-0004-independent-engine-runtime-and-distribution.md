@@ -83,3 +83,39 @@ No fallback or duplicate runtime owner was added; GeckoView, Helper, JIT, source
 ### Boundary
 
 This amendment is an advisory Aegis Method Pack record. It does not grant completion authority or replace project-authoritative architecture sources.
+
+## Amendment - 2026-07-29 - Final distribution is verified at snapshot ac5e6ff with package identity 0.2.0 (4) / porcelain-zh-v4-20260728. The Simulator evidence boundary now distinguishes historical same-runtime-tree executable rendering from the current GitHub-hosted rerun gate: the historical loopback page completed and rendered visibly, but three formal reruns did not close the hosted gate, so Simulator status remains needs-verification.
+
+- Status: amended
+
+### Source Evidence
+
+- Package run 30398876901; historical loopback runs 30388203550, 30389904599, and 30389908011; formal hosted Simulator reruns 30393594180, 30395172252, and 30397230869; snapshot ac5e6ff and local artifact validation.
+### Change Summary
+
+Final distribution is verified at snapshot ac5e6ff with package identity 0.2.0 (4) / porcelain-zh-v4-20260728. The Simulator evidence boundary now distinguishes historical same-runtime-tree executable rendering from the current GitHub-hosted rerun gate: the historical loopback page completed and rendered visibly, but three formal reruns did not close the hosted gate, so Simulator status remains needs-verification.
+
+### Compatibility Boundary
+
+Preserve com.vulpra.browser, iOS 15, iPhone/iPad, OpenIn, Codable data, TabManager/BrowserTab/VulpraEngineKit ownership, the pinned v4 artifact, and standard IPA plus TrollStore TIPA outputs.
+
+### Retirement Impact
+
+No fallback, duplicate runtime owner, GeckoView, Helper, JIT, source-build client path, or alternate artifact was restored. Hosted runner drift is recorded as a verification gap, not as a compatibility path.
+
+### Baseline Sync
+
+- Needed: needed
+- Target: docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md
+- Action: update baseline
+- Reason: The final package version, UI fingerprint, hashes, package run, historical executable evidence, and current hosted Simulator needs-verification state replace the prior simulator-and-package-verified snapshot claim.
+
+### Evidence References
+
+- docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/90-evidence.md
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30398876901
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30389904599
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30397230869
+### Boundary
+
+This amendment is an advisory Aegis Method Pack record. It does not grant completion authority or replace project-authoritative architecture sources.

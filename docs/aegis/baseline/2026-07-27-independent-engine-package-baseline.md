@@ -1,9 +1,12 @@
 # Vulpra Independent Engine Package Baseline
 
 Date: `2026-07-27`
-Status: `simulator-and-package-verified`
+Last amended: `2026-07-29`
+Status: `package-verified-simulator-needs-verification`
 ArchitectureReviewRequired: `yes`
 Independent engine cutover: `complete`
+Historical loopback executable evidence: `available`
+Current hosted Simulator gate: `needs-verification`
 Physical-device validation: `needs-verification`
 
 ## Evidence Boundary
@@ -14,18 +17,37 @@ This snapshot records the completed dependency direction:
 Precompiled Gecko Runtime -> VulpraEngineKit -> Vulpra App
 ```
 
-It is supported by final Xcode archive/package run `30240301567` and visible HTTPS
-simulator navigation run `30239461150`, both from snapshot
-`95338aadf837906c8baa8b3f4896d8f7acdee997`. The simulator evidence contains the
-Chinese Porcelain start page and rendered Example Domain page, passed a `40077`
-dark-pixel content check, and passed both native EngineKit XCTest cases. The run
-recorded native view attachment, successful page completion, connected Engine
-Process instances, 60-second process survival, and no crash report.
+Final Xcode archive/package run `30398876901` passed from snapshot
+`ac5e6ffddcd135a540af5fdbc49ee14a150527b7`. The workflow and local validation
+proved the standard IPA and TrollStore TIPA, including ZIP integrity, 2671-file
+payloads, bundle/version/UI identity, pinned engine artifact, distribution
+profile and signatures, executable fingerprint, and absence of retired
+GeckoView/Helper payloads. Matching artifacts are present in `dist/` and on the
+Windows desktop.
 
-Xcode 16.4 was requested again in run `30214000855`, but the current
-`macos-26` runner did not contain `/Applications/Xcode_16.4.app`. This is an
-environment availability gap, not a compile or runtime failure. Xcode 26.4.1
-and the iOS 26.4 simulator supplied the current executable evidence.
+Historical loopback runs `30388203550`, `30389904599`, and `30389908011`
+provide executable rendering evidence across iOS 26.5, 26.4, and 26.2. In run
+`30389904599` at snapshot `f52adf04e2fdb49c37a0f0584d88f71c51782e67`,
+the fixture received a second `GET /` with status 200, the App logged the
+loopback engine location and successful page completion, multiple Engine
+Process connections were active, the App survived without a crash, and the
+screenshot visibly rendered `Vulpra Engine Ready`. The recalibrated
+`height / 12 ..< height / 8` content band contains 12266 dark pixels; the
+corresponding blank screenshot contains zero. Runtime/package-owned paths are
+identical between `f52adf04` and `ac5e6ff`; only Simulator workflow/test
+calibration differs in the compared validation surface. These runs retain an
+overall workflow conclusion of failure because their earlier pixel band missed
+the visible heading, so they are executable evidence rather than a green final
+gate.
+
+Three formal hosted reruns did not close that gate. Run `30393594180` timed out
+during migration/boot of the second iOS 26.5 Simulator. Runs `30395172252` and
+`30397230869` pinned iOS 26.4 and received the loopback `GET /` response, but
+the engine remained `about:blank` and the screenshot content band stayed at
+zero. All three builds succeeded, all seven native EngineKit tests passed, the
+App stayed alive, and no crash was produced. After the bounded three workflow
+adjustments, the current GitHub-hosted Simulator result is therefore
+`needs-verification`, not passed.
 
 ## Compatibility And Products
 
@@ -38,13 +60,13 @@ and the iOS 26.4 simulator supplied the current executable evidence.
 - Preserved state: existing Codable tab/settings/library data; private tabs
   remain excluded from restoration
 - Distribution outputs: standard IPA and TrollStore TIPA
-- Installed package identity: `0.2.0 (2)`, Chinese development region
-  `zh-Hans`, and UI fingerprint `porcelain-zh-v2-20260727` in both
+- Installed package identity: `0.2.0 (4)`, Chinese development region
+  `zh-Hans`, and UI fingerprint `porcelain-zh-v4-20260728` in both
   `Info.plist` and the App executable
 - `Vulpra.ipa` SHA-256:
-  `77dbc62795c5f2adee8f259e3e62f4f326b0590f8a4bb399af5b99cacd34063f`
+  `c61435d2bd196cc49ec9cf054b318191a12d7fa7944c8b02e2bba7f0a53f553b`
 - `Vulpra-TrollStore.tipa` SHA-256:
-  `1d1391fc7e11a4f0091e468034e2df402b71e3dc02e6e0a36ea2ed8b527e947f`
+  `2228d83ba84feee717fccf5704110b9b4030b5a1cb0edd1458952b8aa1de5484`
 
 No user-data deletion or migration was introduced.
 
@@ -97,17 +119,24 @@ exception and no persistent-state deletion.
 ./Tests/RuntimeShell/run-portable.sh
 ./Tests/Browser/run-portable.sh
 python3 Tests/IndependentEngine/test_cutover_readiness.py --require-cutover
-GitHub simulator run 30239461150
-GitHub package run 30240301567
+GitHub package run 30398876901
+GitHub historical loopback executable run 30389904599
+GitHub hosted Simulator reruns 30393594180, 30395172252, 30397230869
+sha256sum -c dist/SHA256SUMS
+unzip -t Vulpra.ipa and Vulpra-TrollStore.tipa
 git diff --check
 ```
 
 ## Remaining External Validation
 
 - Installation and launch on physical iOS 15.8 and iOS 16.7 devices
+- A fresh green GitHub-hosted Simulator navigation run from the final source
+  and workflow snapshot
 - Physical-device OpenIn, permission, download, background-media, memory, and
   60/120 Hz performance evidence
 - Public distribution and third-party notice review
 
-These are device/product-release gates outside the verified independent-engine
-source, simulator navigation, and IPA/TIPA package boundary.
+The IPA/TIPA package boundary is verified. Historical visible Simulator
+rendering remains valid executable evidence, but it does not substitute for the
+current hosted gate. Physical-device and public-release checks remain separate
+external gates.

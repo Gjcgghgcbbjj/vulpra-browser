@@ -1,29 +1,22 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-26-vulpra-independent-engine-completion",
-  "currentTodo": "Assemble and verify the patched Simulator artifact, then run the final integrated simulator/package delivery.",
+  "currentTodo": "Preserve the verified IPA/TIPA delivery while externalizing the current hosted Simulator rerun as needs-verification.",
   "completedTodos": [
-    "Repaired runtime/session actor ownership, ready transition, dependency injection, ABI lifetime, and Engine Process cleanup.",
-    "Pinned engine artifact identity and enforced package version/UI fingerprint.",
-    "Passed final simulator run 30239461150 and package run 30240301567 from snapshot 95338aad.",
-    "Validated and copied IPA/TIPA/SHA256SUMS to dist and the Windows desktop.",
-    "Removed every temporary runtime-package-identity CI ref while preserving user HEAD and index.",
-    "Completed performance, website-compatibility, and icon-first Porcelain client repairs.",
-    "Advanced the final integrated package identity to 0.2.0 (4) / porcelain-zh-v4-20260728.",
-    "Passed all three portable suites, build-identity generation/check, compileall, and diff check."
+    "Final snapshot ac5e6ff passed package run 30398876901 and produced validated IPA/TIPA artifacts.",
+    "Validated hashes, ZIP integrity, package metadata, signatures, artifact identity, executable fingerprint, and absence of retired payloads; copied matching artifacts to dist and the Windows desktop.",
+    "Retained executable loopback rendering evidence from runs 30388203550, 30389904599, and 30389908011; run 30389904599 visibly rendered Vulpra Engine Ready and completed the page.",
+    "Ran three bounded formal Simulator retries 30393594180, 30395172252, and 30397230869; all built, passed seven native tests, kept the App alive, and produced no crash, but none closed the hosted rendering gate."
   ],
-  "activeSlice": "Awaiting patched Simulator Gecko producer run 30277909573.",
+  "activeSlice": "Final evidence, ADR/baseline sync, and temporary CI ref cleanup.",
   "evidenceRefs": [
-    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30239461150",
-    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30240301567",
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30398876901",
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30389904599",
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30397230869",
     "dist/SHA256SUMS",
-    "/mnt/c/Users/niting/Desktop/Vulpra/SHA256SUMS",
-    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30287131207",
-    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30277909573",
-    "Tests/Browser/test-porcelain-ui.py",
-    "Tests/Browser/test-localization-and-icon.py"
+    "/mnt/c/Users/niting/Desktop/Vulpra/SHA256SUMS"
   ],
-  "blockedOn": "Patched Simulator Gecko producer run 30277909573 remains in Build Simulator Gecko.",
-  "nextStep": "Download and assemble the canonical 2654-file simulator v4 archive, update the release lock, then run the integrated simulator and package workflows.",
-  "updatedAt": "2026-07-28"
+  "blockedOn": "The current GitHub-hosted Simulator rerun is not green: run 30393594180 timed out during Simulator boot, while runs 30395172252 and 30397230869 fetched the loopback fixture but remained about:blank.",
+  "nextStep": "Run a fresh hosted macOS Simulator gate after the runner/runtime drift is understood; do not claim full Simulator completion from the historical executable evidence alone.",
+  "updatedAt": "2026-07-29"
 }

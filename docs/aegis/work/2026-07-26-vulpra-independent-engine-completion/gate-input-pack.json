@@ -5,12 +5,15 @@
   ],
   "impactStatement": "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/impact-statement-draft.json",
   "compatPlan": "Preserve com.vulpra.browser, iOS 15, iPhone/iPad, OpenIn, Codable data, TabManager/BrowserTab ownership, and existing browser behavior.",
-  "retirementPlan": "GeckoView, Helper, JIT, source-build, alternate artifact, and fallback paths remain retired; no duplicate owner was introduced.",
+  "retirementPlan": "GeckoView, Helper, JIT, source-build client paths, alternate artifacts, duplicate owners, and runtime fallbacks remain retired; no compatibility exception was introduced.",
   "evidenceBundle": [
     "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-candidate-package-30214371123.json",
     "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-final-package-30215026323.json",
+    "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-final-package-delivery-30398876901.json",
     "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-final-runtime-package-identity-package-30240301567.json",
     "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-final-runtime-package-identity-simulator-30239461150.json",
+    "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-hosted-simulator-rerun-drift-30393594180-30397230869.json",
+    "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-loopback-executable-rendering-30389904599.json",
     "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-portable-cutover-gates.json",
     "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-retirement-boundary.json",
     "docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-simulator-visible-navigation-30213751790.json"

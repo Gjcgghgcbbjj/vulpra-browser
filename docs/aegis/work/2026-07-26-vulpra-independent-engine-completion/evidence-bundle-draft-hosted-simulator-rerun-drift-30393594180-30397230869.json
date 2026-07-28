@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "hosted-simulator-rerun-drift-30393594180-30397230869",
+  "type": "needs-verification",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30393594180; https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30395172252; https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30397230869",
+  "summary": "Three bounded formal reruns all built successfully, passed seven native EngineKit tests, kept Vulpra alive, and produced no crash. Run 30393594180 timed out during migration/boot of the second iOS 26.5 Simulator. Runs 30395172252 and 30397230869 pinned iOS 26.4 and received loopback GET 200 responses, but the engine remained about:blank and the screenshot content band had zero dark pixels. After three workflow adjustments, the current hosted Simulator gate remains needs-verification.",
+  "verifier": "GitHub run conclusions and downloaded build, native-test, fixture, navigation, system, survival, rendering, and crash logs; screenshot inspection."
+}
