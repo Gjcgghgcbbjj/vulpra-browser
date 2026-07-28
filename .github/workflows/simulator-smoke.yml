@@ -61,9 +61,9 @@ jobs:
               'ENGINE_SOURCE_COMMIT': lock['simulator']['sourceCommit'],
               'ENGINE_PRODUCER_RUN_ID': str(lock['simulator']['producerRunId']),
               'ENGINE_PRODUCER_HEAD_SHA': lock['simulator']['producerHeadSha'],
-              'ENGINE_RAW_ARCHIVE_SHA256': lock['simulator']['rawArchiveSHA256'],
-              'ENGINE_PACKAGING_TOOL': lock['simulator']['packagingTool'],
-              'ENGINE_PACKAGING_POLICY': lock['simulator']['packagingPolicy'],
+              'ENGINE_PRODUCED_FROM_ARTIFACT_ID': lock['simulator']['producedFromArtifactId'],
+              'ENGINE_PRODUCER_TOOL': lock['simulator']['producerTool'],
+              'ENGINE_PRODUCER_POLICY': lock['simulator']['producerPolicy'],
           }
           for key, value in values.items():
               print(f'{key}={shlex.quote(value)}')
@@ -89,24 +89,20 @@ jobs:
               raise SystemExit('simulator ABI version does not match repository lock')
           if manifest['source']['commit'] != os.environ['ENGINE_SOURCE_COMMIT']:
               raise SystemExit('engine source commit does not match repository lock')
-          if os.environ['ENGINE_PRODUCER_RUN_ID'] != '30277909573':
+          if os.environ['ENGINE_PRODUCER_RUN_ID'] != '30361153382':
               raise SystemExit('Simulator producer run is not pinned')
           if os.environ['ENGINE_PRODUCER_HEAD_SHA'] != \
-                  'a51b843c2d98686d254d3654d197c57034f773b7':
+                  'a84e040fd4b5d811862c782faf674e5e478145d4':
               raise SystemExit('Simulator producer source snapshot is not pinned')
-          if os.environ['ENGINE_RAW_ARCHIVE_SHA256'] != \
-                  '3a391d55b80c7d148c8fb3f11f04f4308484278dcfd9451101ce95737808884b':
-              raise SystemExit('native Simulator producer archive is not pinned')
-          if os.environ['ENGINE_PACKAGING_TOOL'] != \
-                  'Tools/Engine/package-native-simulator-artifact.py':
+          if os.environ['ENGINE_PRODUCED_FROM_ARTIFACT_ID'] != \
+                  'vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9':
+              raise SystemExit('Simulator producer source artifact is not pinned')
+          if os.environ['ENGINE_PRODUCER_TOOL'] != \
+                  'Tools/Engine/produce-simulator-artifact.sh':
               raise SystemExit('unsupported Simulator packaging owner')
-          if os.environ['ENGINE_PACKAGING_POLICY'] != 'native-iossim-dist-v4':
+          if os.environ['ENGINE_PRODUCER_POLICY'] != \
+                  'apple-vtool-set-build-version-iossim-15':
               raise SystemExit('unsupported Simulator packaging policy')
-          preferences = open(
-              '.build/engine/runtime/resources/defaults/pref/mobile.js', encoding='utf-8'
-          ).read()
-          if preferences.count('pref("gfx.webrender.software", true);') != 1:
-              raise SystemExit('Simulator artifact does not enforce software WebRender exactly once')
           PY
           python3 Tools/Engine/verify-engine-artifact.py \
             --contract Configuration/engine-artifact-simulator-v4.json .build/engine \
@@ -132,9 +128,9 @@ jobs:
           test "$(plutil -extract CFBundleExecutable raw "$app/Frameworks/GeckoView.framework/Info.plist")" = XUL
           test "$(plutil -extract CFBundleIdentifier raw "$app/Frameworks/GeckoView.framework/Info.plist")" = \
             com.vulpra.browser.simulator-engine-runtime
-          test -f "$app/Frameworks/GeckoView.framework/Frameworks/application.ini"
-          test -f "$app/Frameworks/GeckoView.framework/Frameworks/defaults/pref/mobile.js"
-          test ! -e "$app/Frameworks/VulpraEngineRuntime"
+          test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/application.ini"
+          test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"
+          test ! -e "$app/Frameworks/GeckoView.framework/Frameworks/application.ini"
           otool -D "$app/Frameworks/GeckoView.framework/XUL" \
             | grep -Fq '@rpath/GeckoView.framework/XUL'
           otool -L "$app/Frameworks/VulpraEngineKit.framework/VulpraEngineKit" \

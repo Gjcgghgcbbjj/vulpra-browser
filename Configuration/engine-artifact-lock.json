@@ -8,15 +8,15 @@
     "sourceCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932"
   },
   "simulator": {
-    "archive": "vulpra-engine-ios-simulator-native-arm64-v4.tar.gz",
-    "archiveSHA256": "8a6d60b08bbcd6128c35b3b029560d00ee166a3490a0db9e602af88087aa0d2a",
-    "artifactId": "vulpra-gecko-ios-simulator-arm64-v4-177f4384d75233fc0fde240583db27d3058a2a34ab83e7657aeb675eec83aad8",
+    "archive": "vulpra-engine-ios-simulator-vtool-arm64-v4.tar.gz",
+    "archiveSHA256": "5f5f68d9ca9757348806ba2a8f67e39f836a9351105547ae5446720fdc616adc",
+    "artifactId": "vulpra-gecko-ios-simulator-arm64-v4-1789137b7a44f05988751fe76ecd9ed44016207bd1e34a39b3778283766e7d5d",
     "abiVersion": "firefox-152.0.6-ios-abi-1",
     "sourceCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932",
-    "producerRunId": 30277909573,
-    "producerHeadSha": "a51b843c2d98686d254d3654d197c57034f773b7",
-    "rawArchiveSHA256": "3a391d55b80c7d148c8fb3f11f04f4308484278dcfd9451101ce95737808884b",
-    "packagingTool": "Tools/Engine/package-native-simulator-artifact.py",
-    "packagingPolicy": "native-iossim-dist-v4"
+    "producerRunId": 30361153382,
+    "producerHeadSha": "a84e040fd4b5d811862c782faf674e5e478145d4",
+    "producedFromArtifactId": "vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9",
+    "producerTool": "Tools/Engine/produce-simulator-artifact.sh",
+    "producerPolicy": "apple-vtool-set-build-version-iossim-15"
   }
 }

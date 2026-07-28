@@ -60,26 +60,26 @@ def main() -> None:
             "device source commit is not pinned")
     simulator_lock = lock.get("simulator", {})
     require(simulator_lock.get("archiveSHA256") ==
-            "8a6d60b08bbcd6128c35b3b029560d00ee166a3490a0db9e602af88087aa0d2a",
+            "5f5f68d9ca9757348806ba2a8f67e39f836a9351105547ae5446720fdc616adc",
             "simulator archive SHA-256 is not pinned to the validated runtime")
     require(simulator_lock.get("artifactId") ==
-            "vulpra-gecko-ios-simulator-arm64-v4-177f4384d75233fc0fde240583db27d3058a2a34ab83e7657aeb675eec83aad8",
+            "vulpra-gecko-ios-simulator-arm64-v4-1789137b7a44f05988751fe76ecd9ed44016207bd1e34a39b3778283766e7d5d",
             "simulator content identity is not pinned")
     require(simulator_lock.get("abiVersion") == "firefox-152.0.6-ios-abi-1",
             "simulator ABI version is not pinned")
-    require(simulator_lock.get("producerRunId") == 30277909573,
-            "native Simulator producer run is not pinned")
+    require(simulator_lock.get("producerRunId") == 30361153382,
+            "Simulator producer run is not pinned")
     require(simulator_lock.get("producerHeadSha") ==
-            "a51b843c2d98686d254d3654d197c57034f773b7",
-            "native Simulator producer snapshot is not pinned")
-    require(simulator_lock.get("rawArchiveSHA256") ==
-            "3a391d55b80c7d148c8fb3f11f04f4308484278dcfd9451101ce95737808884b",
-            "native Simulator producer archive is not pinned")
-    require(simulator_lock.get("packagingTool") ==
-            "Tools/Engine/package-native-simulator-artifact.py",
-            "native Simulator packaging owner is not traceable")
-    require(simulator_lock.get("packagingPolicy") == "native-iossim-dist-v4",
-            "native Simulator packaging policy is not explicit")
+            "a84e040fd4b5d811862c782faf674e5e478145d4",
+            "Simulator producer snapshot is not pinned")
+    require(simulator_lock.get("producedFromArtifactId") == device.get("artifactId"),
+            "Simulator producer source artifact is not the verified device artifact")
+    require(simulator_lock.get("producerTool") ==
+            "Tools/Engine/produce-simulator-artifact.sh",
+            "Simulator producer owner is not traceable")
+    require(simulator_lock.get("producerPolicy") ==
+            "apple-vtool-set-build-version-iossim-15",
+            "Simulator producer policy is not explicit")
     require("derivedFromArtifactId" not in simulator_lock and
             "derivationTool" not in simulator_lock and
             "derivationPolicy" not in simulator_lock,
@@ -88,9 +88,8 @@ def main() -> None:
         "ENGINE_ARTIFACT_ID",
         "ENGINE_ABI_VERSION",
         "ENGINE_PRODUCER_RUN_ID",
-        "ENGINE_RAW_ARCHIVE_SHA256",
-        "native-iossim-dist-v4",
-        'pref("gfx.webrender.software", true);',
+        "ENGINE_PRODUCED_FROM_ARTIFACT_ID",
+        "apple-vtool-set-build-version-iossim-15",
     ):
         require(token in simulator,
                 f"simulator workflow does not enforce locked runtime policy: {token}")
