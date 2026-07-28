@@ -111,9 +111,18 @@ def main() -> None:
         require(key in settings, f"settings does not expose {key}")
 
     workflow = source(".github/workflows/simulator-smoke.yml")
-    for token in ("simulator-start-page.png", "simulator-navigation.png", "AppleLanguages -array zh-Hans",
-                  "SIMCTL_CHILD_VULPRA_SMOKE_URL='https://example.com/'"):
+    for token in (
+        "simulator-start-page.png",
+        "simulator-navigation.png",
+        "AppleLanguages -array zh-Hans",
+        "smoke_url='http://127.0.0.1:8765/'",
+        'SIMCTL_CHILD_VULPRA_SMOKE_URL="$smoke_url"',
+        "main { padding-top: 32vh; }",
+        'curl --max-time 2 --fail --silent --show-error "$smoke_url"',
+    ):
         require(token in workflow, f"simulator workflow is missing {token}")
+    require("example.com" not in workflow,
+            "simulator workflow still depends on mutable external networking")
     require(workflow.count("AppleLanguages -array zh-Hans") == 2,
             "both simulator visual states must use the Chinese language preference")
     require(workflow.index("simulator-start-page.png") < workflow.index("SIMCTL_CHILD_VULPRA_SMOKE_URL"),
