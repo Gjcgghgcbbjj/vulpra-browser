@@ -36,7 +36,10 @@ def write_payload(root: Path, payload: dict[str, bytes] = PAYLOAD) -> None:
 
 def manifest_files(root: Path) -> list[dict[str, object]]:
     entries = []
-    for path in sorted(item for item in root.rglob("*") if item.is_file() and item.name != "manifest.json"):
+    for path in sorted(
+        item for item in root.rglob("*")
+        if item.is_file() and item.relative_to(root).as_posix() != "manifest.json"
+    ):
         content = path.read_bytes()
         entries.append(
             {
@@ -135,15 +138,15 @@ def main() -> None:
             "Simulator artifact platform is wrong")
     require(simulator_contract.get("requiredKernelToken") == "_MainProcessInit",
             "Simulator artifact does not verify the real process startup ABI")
-    require(simulator_contract.get("runtimeResourceContainer") == "VulpraEngineRuntime",
-            "Simulator resource container does not match the immutable XUL lookup")
+    require(simulator_contract.get("runtimeResourceContainer") == "GeckoView.framework",
+            "Simulator resource container does not match the native XUL lookup")
     require(simulator_contract.get("runtimeKernelInstallPath") == "GeckoView.framework/XUL",
             "Simulator runtime must install exactly one XUL inside its compatibility carrier")
     require(simulator_contract.get("runtimeKernelBundleIdentifier")
             == "com.vulpra.browser.simulator-engine-runtime",
             "Simulator runtime carrier bundle identity is missing")
     require("runtimeResourceBundleIdentifier" not in simulator_contract,
-            "Simulator contract still conflates resource and kernel containers")
+            "Simulator contract has a duplicate resource bundle identity")
     require(
         contract.get("allowedRoots")
         == ["runtime/bin", "runtime/lib", "runtime/include", "runtime/resources", "licenses"],
@@ -155,6 +158,13 @@ def main() -> None:
 
         valid, _ = make_fixture(fixtures, "valid")
         expect_valid(valid)
+
+        nested_manifest, _ = make_fixture(fixtures, "nested-resource-manifest")
+        nested_resource = nested_manifest / "runtime/resources/extensions/schemas/manifest.json"
+        nested_resource.parent.mkdir(parents=True, exist_ok=True)
+        nested_resource.write_bytes(b"nested-resource-manifest")
+        write_manifest(nested_manifest)
+        expect_valid(nested_manifest)
 
         unbound, unbound_manifest = make_fixture(fixtures, "unbound-artifact-id")
         unbound_manifest["artifactId"] = f"vulpra-gecko-ios-arm64-v4-{'0' * 64}"

@@ -60,26 +60,36 @@ def main() -> None:
             "device source commit is not pinned")
     simulator_lock = lock.get("simulator", {})
     require(simulator_lock.get("archiveSHA256") ==
-            "5a5f8af884cb2ad8b944d533b772797f8eb06b642c94f170c9a27b562dbb5f55",
+            "8a6d60b08bbcd6128c35b3b029560d00ee166a3490a0db9e602af88087aa0d2a",
             "simulator archive SHA-256 is not pinned to the validated runtime")
     require(simulator_lock.get("artifactId") ==
-            "vulpra-gecko-ios-simulator-arm64-v4-062a961ea95993c14803f70cf1a51408969df80f77b69fffa64d51066ac5b566",
+            "vulpra-gecko-ios-simulator-arm64-v4-177f4384d75233fc0fde240583db27d3058a2a34ab83e7657aeb675eec83aad8",
             "simulator content identity is not pinned")
     require(simulator_lock.get("abiVersion") == "firefox-152.0.6-ios-abi-1",
             "simulator ABI version is not pinned")
-    require(simulator_lock.get("derivedFromArtifactId") == device.get("artifactId"),
-            "simulator derivation source is not the verified device artifact")
-    require(simulator_lock.get("derivationTool") ==
-            "Tools/Engine/derive-simulator-artifact.py",
-            "simulator derivation tool is not traceable")
-    require(simulator_lock.get("derivationPolicy") ==
-            "rewrite-lc-build-version-to-iossim-and-force-software-webrender",
-            "simulator derivation policy is not explicit")
+    require(simulator_lock.get("producerRunId") == 30277909573,
+            "native Simulator producer run is not pinned")
+    require(simulator_lock.get("producerHeadSha") ==
+            "a51b843c2d98686d254d3654d197c57034f773b7",
+            "native Simulator producer snapshot is not pinned")
+    require(simulator_lock.get("rawArchiveSHA256") ==
+            "3a391d55b80c7d148c8fb3f11f04f4308484278dcfd9451101ce95737808884b",
+            "native Simulator producer archive is not pinned")
+    require(simulator_lock.get("packagingTool") ==
+            "Tools/Engine/package-native-simulator-artifact.py",
+            "native Simulator packaging owner is not traceable")
+    require(simulator_lock.get("packagingPolicy") == "native-iossim-dist-v4",
+            "native Simulator packaging policy is not explicit")
+    require("derivedFromArtifactId" not in simulator_lock and
+            "derivationTool" not in simulator_lock and
+            "derivationPolicy" not in simulator_lock,
+            "retired device-to-Simulator derivation remains in the lock")
     for token in (
         "ENGINE_ARTIFACT_ID",
         "ENGINE_ABI_VERSION",
-        "ENGINE_DERIVED_FROM_ARTIFACT_ID",
-        "rewrite-lc-build-version-to-iossim-and-force-software-webrender",
+        "ENGINE_PRODUCER_RUN_ID",
+        "ENGINE_RAW_ARCHIVE_SHA256",
+        "native-iossim-dist-v4",
         'pref("gfx.webrender.software", true);',
     ):
         require(token in simulator,

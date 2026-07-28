@@ -59,8 +59,11 @@ jobs:
               'ENGINE_ARTIFACT_ID': lock['simulator']['artifactId'],
               'ENGINE_ABI_VERSION': lock['simulator']['abiVersion'],
               'ENGINE_SOURCE_COMMIT': lock['simulator']['sourceCommit'],
-              'ENGINE_DERIVED_FROM_ARTIFACT_ID': lock['simulator']['derivedFromArtifactId'],
-              'ENGINE_DERIVATION_POLICY': lock['simulator']['derivationPolicy'],
+              'ENGINE_PRODUCER_RUN_ID': str(lock['simulator']['producerRunId']),
+              'ENGINE_PRODUCER_HEAD_SHA': lock['simulator']['producerHeadSha'],
+              'ENGINE_RAW_ARCHIVE_SHA256': lock['simulator']['rawArchiveSHA256'],
+              'ENGINE_PACKAGING_TOOL': lock['simulator']['packagingTool'],
+              'ENGINE_PACKAGING_POLICY': lock['simulator']['packagingPolicy'],
           }
           for key, value in values.items():
               print(f'{key}={shlex.quote(value)}')
@@ -86,12 +89,19 @@ jobs:
               raise SystemExit('simulator ABI version does not match repository lock')
           if manifest['source']['commit'] != os.environ['ENGINE_SOURCE_COMMIT']:
               raise SystemExit('engine source commit does not match repository lock')
-          if os.environ['ENGINE_DERIVED_FROM_ARTIFACT_ID'] != \
-                  'vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9':
-              raise SystemExit('Simulator derivation source does not match the verified device artifact')
-          if os.environ['ENGINE_DERIVATION_POLICY'] != \
-                  'rewrite-lc-build-version-to-iossim-and-force-software-webrender':
-              raise SystemExit('unsupported Simulator derivation policy')
+          if os.environ['ENGINE_PRODUCER_RUN_ID'] != '30277909573':
+              raise SystemExit('Simulator producer run is not pinned')
+          if os.environ['ENGINE_PRODUCER_HEAD_SHA'] != \
+                  'a51b843c2d98686d254d3654d197c57034f773b7':
+              raise SystemExit('Simulator producer source snapshot is not pinned')
+          if os.environ['ENGINE_RAW_ARCHIVE_SHA256'] != \
+                  '3a391d55b80c7d148c8fb3f11f04f4308484278dcfd9451101ce95737808884b':
+              raise SystemExit('native Simulator producer archive is not pinned')
+          if os.environ['ENGINE_PACKAGING_TOOL'] != \
+                  'Tools/Engine/package-native-simulator-artifact.py':
+              raise SystemExit('unsupported Simulator packaging owner')
+          if os.environ['ENGINE_PACKAGING_POLICY'] != 'native-iossim-dist-v4':
+              raise SystemExit('unsupported Simulator packaging policy')
           preferences = open(
               '.build/engine/runtime/resources/defaults/pref/mobile.js', encoding='utf-8'
           ).read()
@@ -122,9 +132,9 @@ jobs:
           test "$(plutil -extract CFBundleExecutable raw "$app/Frameworks/GeckoView.framework/Info.plist")" = XUL
           test "$(plutil -extract CFBundleIdentifier raw "$app/Frameworks/GeckoView.framework/Info.plist")" = \
             com.vulpra.browser.simulator-engine-runtime
-          test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/application.ini"
-          test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"
-          test ! -e "$app/Frameworks/GeckoView.framework/Frameworks/application.ini"
+          test -f "$app/Frameworks/GeckoView.framework/Frameworks/application.ini"
+          test -f "$app/Frameworks/GeckoView.framework/Frameworks/defaults/pref/mobile.js"
+          test ! -e "$app/Frameworks/VulpraEngineRuntime"
           otool -D "$app/Frameworks/GeckoView.framework/XUL" \
             | grep -Fq '@rpath/GeckoView.framework/XUL'
           otool -L "$app/Frameworks/VulpraEngineKit.framework/VulpraEngineKit" \
