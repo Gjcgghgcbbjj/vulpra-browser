@@ -1,0 +1,60 @@
+name: Produce Vulpra Simulator Artifact
+
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  produce:
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+      - name: Select Xcode
+        run: sudo xcode-select --switch /Applications/Xcode_26.4.1.app/Contents/Developer
+      - name: Restore verified device engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(python3 - <<'PY'
+          import json, shlex
+          lock = json.load(open('Configuration/engine-artifact-lock.json'))
+          for key, value in {
+              'TAG': lock['releaseTag'],
+              'ARCHIVE': lock['device']['archive'],
+              'SHA256': lock['device']['archiveSHA256'],
+          }.items():
+              print(f'export {key}={shlex.quote(value)}')
+          PY
+          )"
+          mkdir -p .build/device
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ARCHIVE" --dir .build
+          printf '%s  %s\n' "$SHA256" ".build/$ARCHIVE" | shasum -a 256 -c -
+          tar -xzf ".build/$ARCHIVE" -C .build/device
+      - name: Produce content-bound Simulator artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Tools/Engine/produce-simulator-artifact.sh \
+            .build/device .build/simulator
+          test "$(python3 -c 'import json; print(json.load(open(".build/simulator/manifest.json"))["artifactId"])')" = \
+            'vulpra-gecko-ios-simulator-arm64-v4-1789137b7a44f05988751fe76ecd9ed44016207bd1e34a39b3778283766e7d5d'
+          tar --format pax -czf vulpra-engine-ios-simulator-vtool-arm64-v4.tar.gz \
+            -C .build/simulator .
+          shasum -a 256 vulpra-engine-ios-simulator-vtool-arm64-v4.tar.gz \
+            | tee simulator-archive.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-simulator-vtool-${{ github.run_id }}
+          path: |
+            vulpra-engine-ios-simulator-vtool-arm64-v4.tar.gz
+            simulator-archive.sha256
+          compression-level: 0
+          retention-days: 7

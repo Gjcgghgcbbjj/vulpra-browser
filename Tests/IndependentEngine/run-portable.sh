@@ -5,7 +5,7 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 
 python3 "$ROOT/Tests/IndependentEngine/test_ownership.py"
 python3 "$ROOT/Tests/IndependentEngine/test_artifact_contract.py"
-python3 "$ROOT/Tests/IndependentEngine/test_native_simulator_packaging.py"
+python3 "$ROOT/Tests/IndependentEngine/test_simulator_producer.py"
 python3 "$ROOT/Tests/IndependentEngine/test_abi_inventory.py"
 python3 "$ROOT/Tests/IndependentEngine/test_message_contract.py"
 python3 "$ROOT/Tests/IndependentEngine/test_public_contract.py"
