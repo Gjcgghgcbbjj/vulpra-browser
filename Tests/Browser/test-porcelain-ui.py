@@ -118,12 +118,14 @@ def main() -> None:
         "simulator_runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'",
         "smoke_url='http://127.0.0.1:8765/'",
         'SIMCTL_CHILD_VULPRA_SMOKE_URL="$smoke_url"',
-        "main { padding-top: 32vh; }",
+        "for y in (height / 12)..<(height / 8)",
         'curl --max-time 2 --fail --silent --show-error "$smoke_url"',
     ):
         require(token in workflow, f"simulator workflow is missing {token}")
     require("example.com" not in workflow,
             "simulator workflow still depends on mutable external networking")
+    require("32vh" not in workflow,
+            "simulator fixture still changes proven page layout for pixel detection")
     require(workflow.count("AppleLanguages -array zh-Hans") == 2,
             "both simulator visual states must use the Chinese language preference")
     require(workflow.index("simulator-start-page.png") < workflow.index("SIMCTL_CHILD_VULPRA_SMOKE_URL"),

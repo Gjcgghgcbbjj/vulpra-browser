@@ -248,8 +248,7 @@ jobs:
           }
           fixture_dir="$(mktemp -d)"
           printf '%s\n' \
-            '<!doctype html><html><head><meta charset="utf-8"><title>Vulpra Engine Fixture</title>' \
-            '<style>main { padding-top: 32vh; }</style></head>' \
+            '<!doctype html><html><head><meta charset="utf-8"><title>Vulpra Engine Fixture</title></head>' \
             '<body><main><h1>Vulpra Engine Ready</h1><p>Independent Gecko navigation rendered this page.</p></main></body></html>' \
             > "$fixture_dir/index.html"
           python3 -m http.server 8765 --bind 127.0.0.1 --directory "$fixture_dir" \
@@ -402,7 +401,7 @@ jobs:
               exit(1)
           }
           var darkPixels = 0
-          for y in (height / 8)..<(height * 3 / 4) {
+          for y in (height / 12)..<(height / 8) {
               for x in 0..<width {
                   let offset = (y * width + x) * 4
                   if pixels[offset] < 220 && pixels[offset + 1] < 220 && pixels[offset + 2] < 220 {
