@@ -77,10 +77,16 @@ def main() -> None:
     require(progress_handler is not None, "BrowserTab progress handler is missing")
     require("browserTabPersistableStateDidChange" not in progress_handler.group(0),
             "transient progress events still enter tab persistence")
-    require("didReassertActivationForLoad" in tab and
-            "func reassertActivationIfNeeded(_ active: Bool)" in tab and
-            progress_handler.group(0).count("didReassertActivationForLoad = false") == 2,
-            "BrowserTab does not bound Gecko activation reassertion to load start/stop boundaries")
+    activation_helper = re.search(
+        r"func reassertActivationIfNeeded\(_ active: Bool\) \{.+?\n    \}",
+        tab,
+        flags=re.DOTALL,
+    )
+    require("private var didReassertActivationForLoad = false" in tab and
+            activation_helper is not None and
+            "guard isLoading, !didReassertActivationForLoad else { return }" in activation_helper.group(0) and
+            progress_handler.group(0).count("didReassertActivationForLoad = false") == 1,
+            "BrowserTab does not rearm Gecko activation exactly once at each load start")
     manager = source("App/Browser/TabManager.swift")
     require("lastPersistedTabs" in manager and "snapshot != lastPersistedTabs" in manager,
             "transient page events still enqueue redundant full tab-store writes")

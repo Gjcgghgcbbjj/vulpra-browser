@@ -461,7 +461,7 @@ jobs:
           print(f"set_focused_dispatches={focused_dispatches}")
           if min(load_to_location_ms, location_to_complete_ms, load_to_complete_ms) < 0:
               raise SystemExit("performance events are out of order")
-          if active_dispatches > 6 or focused_dispatches > 6:
+          if active_dispatches > 4 or focused_dispatches > 4:
               raise SystemExit("engine activation churn exceeded the navigation lifecycle budget")
           PY
 

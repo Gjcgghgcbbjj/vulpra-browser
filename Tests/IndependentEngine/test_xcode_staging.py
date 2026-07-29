@@ -98,7 +98,7 @@ def main() -> None:
         "set_active_dispatches=", "set_focused_dispatches=",
     ):
         require(token in simulator, f"simulator evidence does not verify visible content: {token}")
-    require("active_dispatches > 6" in simulator and "focused_dispatches > 6" in simulator,
+    require("active_dispatches > 4" in simulator and "focused_dispatches > 4" in simulator,
             "simulator evidence does not reject repeated engine activation churn")
     require("lock['simulator']['archive']" in simulator,
             "simulator evidence does not use the pinned simulator engine")
