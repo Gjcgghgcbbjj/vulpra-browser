@@ -1,6 +1,11 @@
 name: Produce Native Gecko v5 Runtimes
 
 on:
+  push:
+    branches:
+      - fix/browser-performance-20260729
+    paths:
+      - .github/workflows/produce-gecko-v5.yml
   workflow_dispatch:
     inputs:
       release_tag:
