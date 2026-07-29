@@ -4,6 +4,7 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 
 python3 "$ROOT/Tests/IndependentEngine/test_ownership.py"
+python3 "$ROOT/Tests/IndependentEngine/test_gecko_producer_v5.py"
 python3 "$ROOT/Tests/IndependentEngine/test_artifact_contract.py"
 python3 "$ROOT/Tests/IndependentEngine/test_simulator_producer.py"
 python3 "$ROOT/Tests/IndependentEngine/test_abi_inventory.py"

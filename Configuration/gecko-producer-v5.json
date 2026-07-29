@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "artifactFormatVersion": 5,
+  "upstream": {
+    "repository": "https://github.com/mozilla-firefox/firefox",
+    "commit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932"
+  },
+  "patchSeries": "Engine/GeckoPatches/v5/series.json",
+  "deploymentTarget": "15.0",
+  "targets": {
+    "iphoneos": "aarch64-apple-ios",
+    "iphonesimulator": "aarch64-apple-ios-sim"
+  },
+  "requiredExports": [
+    "_MainProcessInit",
+    "_GeckoViewOpenWindow",
+    "_ChildProcessInit"
+  ],
+  "forbiddenRuntimeTokens": [
+    "jit-ready-fd",
+    "ReportJITStatusForChild",
+    "WaitForJITReadySignal"
+  ]
+}
