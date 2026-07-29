@@ -93,19 +93,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo install cbindgen --version 0.29.1 --locked
-          test "$(cbindgen --version)" = 'cbindgen 0.29.1'
           {
             command -v python3
             command -v clang
             command -v rustc
             command -v cargo
-            command -v cbindgen
             python3 --version
             clang --version
             rustc --version
             cargo --version
-            cbindgen --version
           } 2>&1 | tee gecko-${{ matrix.platform }}-bootstrap.log
 
       - name: Build native runtime

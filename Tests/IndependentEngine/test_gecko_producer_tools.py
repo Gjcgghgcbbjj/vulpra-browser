@@ -146,6 +146,7 @@ def test_build(base: Path) -> None:
         require(f"--target={triple}" in contents and
                 "--enable-application=mobile/ios" in contents and
                 "--enable-ios-target=15.0" in contents and
+                "--enable-bootstrap=cbindgen,clang,sysroot-wasm32-wasi" in contents and
                 "--enable-linker=ld64" in contents and
                 "--enable-optimize" in contents and
                 "--disable-debug" in contents and
@@ -248,8 +249,6 @@ def main() -> None:
         "runs-on: macos-26",
         "platform: [iphoneos, iphonesimulator]",
         "/Applications/Xcode_26.4.1.app",
-        "cargo install cbindgen --version 0.29.1 --locked",
-        "test \"$(cbindgen --version)\" = 'cbindgen 0.29.1'",
         "fetch-source.sh",
         "apply-series.py",
         "build-runtime.sh",
