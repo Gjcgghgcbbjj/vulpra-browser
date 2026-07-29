@@ -2,24 +2,6 @@ import Foundation
 import os
 import UIKit
 
-struct EngineInitialNavigationGate {
-    private(set) var isReady = false
-    private var pendingRequest: EngineNavigationRequest?
-
-    mutating func stage(_ request: EngineNavigationRequest) -> EngineNavigationRequest? {
-        guard !isReady else { return request }
-        pendingRequest = request
-        return nil
-    }
-
-    mutating func becomeReady() -> EngineNavigationRequest? {
-        guard !isReady else { return nil }
-        isReady = true
-        defer { pendingRequest = nil }
-        return pendingRequest
-    }
-}
-
 @MainActor
 public final class VulpraEngineSession: EngineSession {
     private static let logger = Logger(subsystem: "com.vulpra.browser.engine-kit", category: "session")
@@ -38,9 +20,6 @@ public final class VulpraEngineSession: EngineSession {
     private var readinessObservation: UUID?
     private var requestedWindowID: String?
     private var pendingCommands: [(type: String, message: [String: Any])] = []
-    private var initialNavigationGate = EngineInitialNavigationGate()
-    private var requestedActive: Bool?
-    private var requestedFocused: Bool?
     private var stoppedByUser = false
     private var navigationFailureReported = false
     private var navigation = EngineNavigationEvent(
@@ -124,7 +103,6 @@ public final class VulpraEngineSession: EngineSession {
         readinessObservation = nil
         requestedWindowID = nil
         pendingCommands.removeAll()
-        initialNavigationGate = EngineInitialNavigationGate()
         guard lifecycle.beginClose() else { return }
         guard let window else { lifecycle.finishClose(); return }
         self.window = nil
@@ -136,24 +114,14 @@ public final class VulpraEngineSession: EngineSession {
         Self.logger.notice(
             "Engine load requested: \(request.url.absoluteString, privacy: .public), open: \(self.isOpen, privacy: .public)"
         )
-        guard let readyRequest = initialNavigationGate.stage(request) else {
-            Self.logger.notice("Engine initial navigation staged until the first document is ready")
-            return
-        }
-        dispatchLoad(readyRequest)
+        send("GeckoView:LoadUri", ["uri": request.url.absoluteString, "flags": 0])
     }
     public func goBack() { send("GeckoView:GoBack", ["userInteraction": true]) }
     public func goForward() { send("GeckoView:GoForward", ["userInteraction": true]) }
     public func reload() { send("GeckoView:Reload", ["flags": 0]) }
     public func stop() { stoppedByUser = true; send("GeckoView:Stop") }
-    public func setActive(_ active: Bool) {
-        requestedActive = active
-        send("GeckoView:SetActive", ["active": active])
-    }
-    public func setFocused(_ focused: Bool) {
-        requestedFocused = focused
-        send("GeckoView:SetFocused", ["focused": focused])
-    }
+    public func setActive(_ active: Bool) { send("GeckoView:SetActive", ["active": active]) }
+    public func setFocused(_ focused: Bool) { send("GeckoView:SetFocused", ["focused": focused]) }
 
     public func update(configuration: EngineSessionConfiguration) {
         self.configuration = configuration
@@ -236,10 +204,6 @@ public final class VulpraEngineSession: EngineSession {
                 progressObserver?.engineSession(id, didUpdate: .completed(sessionID: id, succeeded: succeeded))
             } else if !navigationFailureReported { reportNavigationFailure(payload) }
             stoppedByUser = false
-            if let request = initialNavigationGate.becomeReady() {
-                Self.logger.notice("Engine initial document ready; dispatching staged navigation")
-                dispatchLoad(request, reassertActivity: true)
-            }
         case "GeckoView:ProgressChanged":
             let value = (payload["progress"] as? NSNumber)?.doubleValue ?? 0
             progressObserver?.engineSession(id, didUpdate: .changed(sessionID: id, fraction: max(0, min(1, value / 100))))
@@ -295,13 +259,6 @@ public final class VulpraEngineSession: EngineSession {
         progressObserver?.engineSession(id, didUpdate: .failed(
             sessionID: id, failure: EngineFailure(code: "navigation-failed", message: message, isRecoverable: true)
         ))
-    }
-
-    private func dispatchLoad(_ request: EngineNavigationRequest, reassertActivity: Bool = false) {
-        send("GeckoView:LoadUri", ["uri": request.url.absoluteString, "flags": 0])
-        guard reassertActivity else { return }
-        if let requestedActive { send("GeckoView:SetActive", ["active": requestedActive]) }
-        if let requestedFocused { send("GeckoView:SetFocused", ["focused": requestedFocused]) }
     }
     private func handlePrompt(_ payload: [String: Any], callback: EngineABICallbackLease?) {
         let value = payload["prompt"] as? [String: Any] ?? payload
