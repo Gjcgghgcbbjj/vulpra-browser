@@ -92,8 +92,14 @@ def main() -> None:
     require("GeckoView" not in scheme and "Vulpra Helper" not in scheme, "scheme retains old targets")
 
     simulator = SIMULATOR_WORKFLOW.read_text(encoding="utf-8")
-    for token in ("Engine view attached", "rendered_dark_pixels=", "simulator-rendering.log"):
+    for token in (
+        "Engine view attached", "rendered_dark_pixels=", "simulator-rendering.log",
+        "simulator-performance.log", "load_to_location_ms=", "location_to_complete_ms=",
+        "set_active_dispatches=", "set_focused_dispatches=",
+    ):
         require(token in simulator, f"simulator evidence does not verify visible content: {token}")
+    require("active_dispatches > 4" in simulator and "focused_dispatches > 4" in simulator,
+            "simulator evidence does not reject repeated engine activation churn")
     require("lock['simulator']['archive']" in simulator,
             "simulator evidence does not use the pinned simulator engine")
     require("xcrun vtool" not in simulator and "derive_simulator_from_device" not in simulator,

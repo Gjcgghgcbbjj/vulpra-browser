@@ -12,7 +12,9 @@ struct BrowserTabRecord: Codable, Equatable {
 
 @MainActor
 protocol BrowserTabObserver: AnyObject {
-    func browserTabDidChange(_ tab: BrowserTab)
+    func browserTabPresentationDidChange(_ tab: BrowserTab)
+    func browserTabPersistableStateDidChange(_ tab: BrowserTab)
+    func browserTabContentDidChange(_ tab: BrowserTab)
     func browserTabDidRequestClose(_ tab: BrowserTab)
     func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> Bool
     func browserTab(_ tab: BrowserTab, requestedDownload response: EngineDownloadResponse,
@@ -97,7 +99,6 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         if windowID == nil, let url {
             created.load(EngineNavigationRequest(url: url, userInitiated: false))
         }
-        observer?.browserTabDidChange(self)
         return created
     }
 
@@ -120,7 +121,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     func retry(settings: BrowserSettings) {
         lastFailure = nil
         if let url { load(url, settings: settings, httpFallbackURL: httpFallbackURL) }
-        else { _ = activate(settings: settings); observer?.browserTabDidChange(self) }
+        else { _ = activate(settings: settings) }
     }
 
     func load(_ target: URL, settings: BrowserSettings, httpFallbackURL: URL? = nil) {
@@ -134,7 +135,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         } else {
             activate(settings: settings)
         }
-        observer?.browserTabDidChange(self)
+        observer?.browserTabPersistableStateDidChange(self)
     }
 
     func loadHTTPFallback(settings: BrowserSettings) {
@@ -154,7 +155,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
 
     func engineSessionDidOpen(_ id: EngineSessionID) {
         lastFailure = nil
-        observer?.browserTabDidChange(self)
+        observer?.browserTabContentDidChange(self)
     }
 
     func engineSession(_ id: EngineSessionID, didUpdate event: EngineNavigationEvent) {
@@ -162,7 +163,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         title = event.title.isEmpty ? title : event.title
         canGoBack = event.canGoBack
         canGoForward = event.canGoForward
-        observer?.browserTabDidChange(self)
+        observer?.browserTabPersistableStateDidChange(self)
     }
 
     func engineSessionDidRequestClose(_ id: EngineSessionID) { observer?.browserTabDidRequestClose(self) }
@@ -183,11 +184,14 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         case .failed(_, let failure):
             isLoading = false; lastFailure = failure
         }
-        observer?.browserTabDidChange(self)
+        switch event {
+        case .failed: observer?.browserTabContentDidChange(self)
+        default: observer?.browserTabPresentationDidChange(self)
+        }
     }
 
     func engineSession(_ id: EngineSessionID, didTerminate reason: EngineTerminationReason) {
-        suspend(); observer?.browserTabDidChange(self)
+        suspend(); observer?.browserTabContentDidChange(self)
     }
 
     func engineSession(_ id: EngineSessionID, requestedContextMenu element: EngineContextMenuElement) {

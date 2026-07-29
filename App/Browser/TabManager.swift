@@ -5,6 +5,9 @@ import VulpraEngineKit
 @MainActor
 protocol TabManagerDelegate: AnyObject {
     func tabManagerDidChange(_ manager: TabManager)
+    func tabManager(_ manager: TabManager, didUpdatePresentationFor tab: BrowserTab)
+    func tabManager(_ manager: TabManager, didUpdatePersistableStateFor tab: BrowserTab)
+    func tabManager(_ manager: TabManager, didUpdateContentFor tab: BrowserTab)
     func tabManager(_ manager: TabManager, requestedDownload response: EngineDownloadResponse,
                     completion: @escaping (Bool) -> Void)
     func tabManager(_ manager: TabManager, downloadAt path: String, received bytes: Int64) -> Bool
@@ -102,7 +105,7 @@ final class TabManager: BrowserTabObserver {
         tab.observer = self; tab.permissionHandler = permissionHandler; tab.promptHandler = promptHandler
     }
 
-    private func changed() {
+    private func persistTabs() {
         let normal = tabs.filter { !$0.isPrivate }.map(\.record)
         let snapshot = SavedTabs(
             selectedID: normal.contains(where: { $0.id == selectedID }) ? selectedID : normal.first?.id,
@@ -112,10 +115,23 @@ final class TabManager: BrowserTabObserver {
             lastPersistedTabs = snapshot
             store.save(snapshot)
         }
+    }
+
+    private func changed() {
+        persistTabs()
         delegate?.tabManagerDidChange(self)
     }
 
-    func browserTabDidChange(_ tab: BrowserTab) { changed() }
+    func browserTabPresentationDidChange(_ tab: BrowserTab) {
+        delegate?.tabManager(self, didUpdatePresentationFor: tab)
+    }
+    func browserTabPersistableStateDidChange(_ tab: BrowserTab) {
+        persistTabs()
+        delegate?.tabManager(self, didUpdatePersistableStateFor: tab)
+    }
+    func browserTabContentDidChange(_ tab: BrowserTab) {
+        delegate?.tabManager(self, didUpdateContentFor: tab)
+    }
     func browserTabDidRequestClose(_ tab: BrowserTab) { close(tab) }
     func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> Bool {
         newTab(url: url, privateMode: tab.isPrivate, windowID: windowID).session != nil

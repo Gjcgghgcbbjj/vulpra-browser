@@ -2,6 +2,7 @@
 """Portable ownership contracts for the Vulpra browser client."""
 
 from pathlib import Path
+import re
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -60,17 +61,50 @@ def main() -> None:
             "BrowserTab does not forward engine view readiness")
     require("activate(settings: settings).load" not in tab,
             "BrowserTab still duplicates session-open and navigation ownership")
+    for token in (
+        "browserTabPresentationDidChange",
+        "browserTabPersistableStateDidChange",
+        "browserTabContentDidChange",
+    ):
+        require(token in tab, f"BrowserTab performance contract is missing {token}")
+    require("browserTabDidChange" not in tab,
+            "BrowserTab retains the unified transient/persisted/content event owner")
+    progress_handler = re.search(
+        r"func engineSession\(_ id: EngineSessionID, didUpdate event: EngineProgressEvent\) \{.+?\n    \}",
+        tab,
+        flags=re.DOTALL,
+    )
+    require(progress_handler is not None, "BrowserTab progress handler is missing")
+    require("browserTabPersistableStateDidChange" not in progress_handler.group(0),
+            "transient progress events still enter tab persistence")
     manager = source("App/Browser/TabManager.swift")
     require("lastPersistedTabs" in manager and "snapshot != lastPersistedTabs" in manager,
             "transient page events still enqueue redundant full tab-store writes")
+    require("func browserTabPresentationDidChange" in manager and
+            "func browserTabContentDidChange" in manager and
+            "browserTabDidChange" not in manager,
+            "TabManager does not route presentation and content events separately")
     controller = source("App/Browser/BrowserViewController.swift")
-    require("if attachedEngineView === engineView" in controller,
-            "browser repeatedly detaches the active engine view during navigation events")
+    require("guard attachedEngineView !== engineView else { return }" in controller,
+            "browser repeatedly reactivates or detaches the active engine view")
     require("DispatchQueue.main.async { [weak self, weak tab] in" in controller,
             "browser activates a newly attached view before queued navigation is flushed")
     require("suggestionWorkItem?.cancel()" in controller and
             "asyncAfter(deadline: .now() + 0.09" in controller,
             "omnibox suggestions are not coalesced before scanning local history")
+    suggestions = source("App/Browser/OmniboxSuggestions.swift")
+    library = source("App/Library/BrowserLibrary.swift")
+    require("BookmarkStore.shared.matches(value, limit: 6)" in suggestions and
+            "HistoryStore.shared.matches(value, limit: 8)" in suggestions,
+            "omnibox suggestions still materialize unbounded local search results")
+    require(library.count("func matches(_ query: String, limit: Int)") == 2,
+            "bounded bookmark/history query owners are missing")
+    chrome = source("App/UI/BrowserChromeView.swift")
+    require("private struct RenderState: Equatable" in chrome and
+            "guard state != renderedState else { return }" in chrome,
+            "browser chrome still redraws duplicate engine progress state")
+    require("addressField.text = renderedState?.address" in chrome,
+            "address field does not reconcile deferred URL state after editing")
     progress = source("App/UI/BrowserProgressView.swift")
     require("updateGeneration" in progress and "generation == self.updateGeneration" in progress,
             "stale progress completion animations can hide a newer page load")

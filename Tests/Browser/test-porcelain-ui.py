@@ -59,7 +59,8 @@ def main() -> None:
             "start-page brand remains visually oversized")
 
     require("tabCountLabel" in chrome and '"magnifyingglass"' in chrome and
-            "lockView.image = UIImage(systemName: symbol)" in chrome,
+            "let addressSymbol: String" in chrome and
+            "lockView.image = UIImage(systemName: state.addressSymbol)" in chrome,
             "browser chrome lacks compact address state and tab-count icon detail")
     require('PressableButton(symbol: "ellipsis.circle"' in chrome and
             "browserChromeDidRequestPageTools" in chrome,

@@ -425,6 +425,45 @@ jobs:
           grep -Fq 'Engine page completed: true' simulator-system.log
           grep -Fq 'Vulpra Engine Process connected' simulator-system.log
           grep -Fq 'Engine view attached' simulator-system.log
+          python3 - "$smoke_url" simulator-system.log <<'PY' | tee simulator-performance.log
+          from datetime import datetime
+          from pathlib import Path
+          import re
+          import sys
+
+          smoke_url, log_path = sys.argv[1:]
+          lines = Path(log_path).read_text(encoding="utf-8", errors="replace").splitlines()
+          timestamp = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})")
+
+          def find_event(marker, start=0):
+              for index in range(start, len(lines)):
+                  if marker not in lines[index]:
+                      continue
+                  match = timestamp.match(lines[index])
+                  if not match:
+                      raise SystemExit(f"performance event lacks timestamp: {marker}")
+                  return index, datetime.fromisoformat(match.group(1))
+              raise SystemExit(f"missing performance event: {marker}")
+
+          load_index, load_time = find_event(f"Engine load requested: {smoke_url}")
+          location_index, location_time = find_event(f"Engine location: {smoke_url}", load_index + 1)
+          _, complete_time = find_event("Engine page completed: true", location_index + 1)
+          active_dispatches = sum("Engine command dispatched: GeckoView:SetActive" in line for line in lines)
+          focused_dispatches = sum("Engine command dispatched: GeckoView:SetFocused" in line for line in lines)
+          load_to_location_ms = round((location_time - load_time).total_seconds() * 1_000)
+          location_to_complete_ms = round((complete_time - location_time).total_seconds() * 1_000)
+          load_to_complete_ms = round((complete_time - load_time).total_seconds() * 1_000)
+
+          print(f"load_to_location_ms={load_to_location_ms}")
+          print(f"location_to_complete_ms={location_to_complete_ms}")
+          print(f"load_to_complete_ms={load_to_complete_ms}")
+          print(f"set_active_dispatches={active_dispatches}")
+          print(f"set_focused_dispatches={focused_dispatches}")
+          if min(load_to_location_ms, location_to_complete_ms, load_to_complete_ms) < 0:
+              raise SystemExit("performance events are out of order")
+          if active_dispatches > 4 or focused_dispatches > 4:
+              raise SystemExit("engine activation churn exceeded the navigation lifecycle budget")
+          PY
 
       - name: Upload Simulator evidence
         if: always()

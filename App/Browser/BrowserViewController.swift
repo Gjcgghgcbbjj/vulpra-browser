@@ -127,7 +127,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         forwardEdge.edges = .right
         contentContainer.addGestureRecognizer(forwardEdge)
     }
-
     private func showSelectedTab() {
         guard isViewLoaded, let tab = tabManager.selectedTab else { return }
         chrome.update(tab: tab, tabCount: tabManager.tabs.count)
@@ -139,10 +138,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             showStartPage()
             return
         }
-        if attachedEngineView === engineView {
-            tab.setActive(isSceneActive)
-            return
-        }
+        guard attachedEngineView !== engineView else { return }
         attachedEngineView?.removeFromSuperview()
         attachedEngineView = nil
         clearFailureView()
@@ -167,7 +163,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             tab?.setActive(self.isSceneActive)
         }
     }
-
     private func showStartPage() {
         attachedEngineView?.removeFromSuperview()
         attachedEngineView = nil
@@ -184,7 +179,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         ])
         startPage.didMove(toParent: self)
     }
-
     private func showFailure(for tab: BrowserTab) {
         guard let failure = tab.lastFailure else { return }
         showFailure(failure, url: tab.url, retry: { [weak self, weak tab] in
@@ -195,7 +189,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             tab.loadHTTPFallback(settings: BrowserSettingsStore.shared.value); self.showSelectedTab()
         })
     }
-
     private func showFailure(_ failure: EngineFailure, url: URL? = nil,
                              retry: @escaping () -> Void, useHTTP: (() -> Void)? = nil) {
         logger.error("\(failure.code, privacy: .public): \(failure.message, privacy: .public)")
@@ -226,12 +219,10 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         ])
         failureView = state
     }
-
     private func clearFailureView() {
         failureView?.removeFromSuperview()
         failureView = nil
     }
-
     private func presentLibrary(_ section: LibrarySection) {
         let controller = LibraryViewController(section: section)
         controller.onOpenURL = { [weak self] in self?.open($0) }
@@ -279,9 +270,18 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     func browserChrome(_ chrome: BrowserChromeView, requestedAdjacentTab offset: Int) {
         tabManager.selectAdjacent(offset: offset); showSelectedTab()
     }
-    func tabManagerDidChange(_ manager: TabManager) {
-        showSelectedTab()
-        guard let tab = manager.selectedTab, let url = tab.url, !tab.isLoading,
+    func tabManagerDidChange(_ manager: TabManager) { showSelectedTab(); recordHistoryIfNeeded(for: manager.selectedTab) }
+    func tabManager(_ manager: TabManager, didUpdatePresentationFor tab: BrowserTab) { updatePresentation(for: tab, in: manager) }
+    func tabManager(_ manager: TabManager, didUpdatePersistableStateFor tab: BrowserTab) { updatePresentation(for: tab, in: manager) }
+    func tabManager(_ manager: TabManager, didUpdateContentFor tab: BrowserTab) {
+        guard tab === manager.selectedTab else { return }; showSelectedTab()
+    }
+    private func updatePresentation(for tab: BrowserTab, in manager: TabManager) {
+        guard tab === manager.selectedTab else { return }; chrome.update(tab: tab, tabCount: manager.tabs.count)
+        if !tab.isLoading { recordHistoryIfNeeded(for: tab) }
+    }
+    private func recordHistoryIfNeeded(for tab: BrowserTab?) {
+        guard let tab, let url = tab.url, !tab.isLoading,
               recordedURLs[tab.id] != url.absoluteString else { return }
         recordedURLs[tab.id] = url.absoluteString
         HistoryStore.shared.record(title: tab.title, url: url, privateMode: tab.isPrivate)
