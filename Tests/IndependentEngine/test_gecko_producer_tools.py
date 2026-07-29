@@ -153,6 +153,17 @@ def test_build(base: Path) -> None:
         require(str(mozconfig) in mach_log.read_text(encoding="utf-8"),
                 "build did not pass the generated MOZCONFIG to mach")
 
+    source_mach = source / "mach"
+    write(source_mach,
+          "#!/bin/sh\nprintf '%s|%s\\n' \"$MOZCONFIG\" \"$*\" > \"$VULPRA_MACH_LOG\"\n",
+          executable=True)
+    relative_environment = environment.copy()
+    relative_environment.pop("VULPRA_MACH")
+    result = run([str(BUILD), "iphoneos", source.name], env=relative_environment, cwd=base)
+    require(result.returncode == 0, result.stderr or result.stdout)
+    require(str(source / ".mozconfig-vulpra-iphoneos") in mach_log.read_text(encoding="utf-8"),
+            "build did not canonicalize a relative source checkout")
+
 
 def test_package(base: Path) -> None:
     source = base / "package-source"

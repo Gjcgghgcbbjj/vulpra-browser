@@ -7,9 +7,14 @@ if [[ $# -ne 2 ]]; then
 fi
 
 PLATFORM=$1
-SOURCE=$2
 ROOT=$(CDPATH='' cd -- "$(dirname -- "$0")/../.." && pwd)
 CONTRACT=${VULPRA_GECKO_CONTRACT:-$ROOT/Configuration/gecko-producer-v5.json}
+
+[[ -d "$2" ]] || {
+  echo "gecko-build-error: source checkout does not exist: $2" >&2
+  exit 1
+}
+SOURCE=$(CDPATH='' cd -- "$2" && pwd)
 
 case "$PLATFORM" in
   iphoneos)
