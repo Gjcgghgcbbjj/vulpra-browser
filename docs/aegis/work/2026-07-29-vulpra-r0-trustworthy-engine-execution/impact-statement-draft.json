@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "Engine producer, Gecko lifecycle ABI, EngineKit, App workaround retirement, CI, package distribution, ADR/baseline."
+  ],
+  "owners": [
+    "GeckoChildProcessHost / VulpraEngineProcess / VulpraEngineKit / repository producer contracts"
+  ],
+  "invariants": [
+    "Every requested launch reaches exactly one ipcConnected or typed failed outcome; normal App builds consume one verified precompiled v5 runtime with no fallback."
+  ],
+  "compatBoundary": "Preserve bundle ID, iOS 15 arm64, App/OpenIn/EngineKit/Engine Process products, Codable data, user retry, IPA/TIPA, and persistent user data.",
+  "nonGoals": [
+    "R1-R3 feature implementation, physical-device runtime claims, App Store release, or persistent user-data deletion."
+  ]
+}

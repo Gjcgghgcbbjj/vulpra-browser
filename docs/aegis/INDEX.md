@@ -132,3 +132,13 @@
 | 2026-07-29 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-hosted-simulator-rerun-drift-30393594180-30397230869.json | 2026-07-26-vulpra-independent-engine-completion evidence hosted-simulator-rerun-drift-30393594180-30397230869 |
 | 2026-07-29 | spec | docs/aegis/specs/2026-07-29-vulpra-power-browser-architecture-design.md | Vulpra Power Browser Product and Platform Architecture |
 | 2026-07-29 | plan | docs/aegis/plans/2026-07-29-vulpra-r0-trustworthy-engine.md | Vulpra R0 Trustworthy Engine Implementation Plan |
+| 2026-07-29 | work | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/10-intent.md | Vulpra R0 Trustworthy Engine Execution intent |
+| 2026-07-29 | work | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/20-checkpoint.md | Vulpra R0 Trustworthy Engine Execution checkpoint |
+| 2026-07-29 | work | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/90-evidence.md | Vulpra R0 Trustworthy Engine Execution evidence |
+| 2026-07-29 | work | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/99-reflection.md | Vulpra R0 Trustworthy Engine Execution reflection |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/task-intent-draft.json | Vulpra R0 Trustworthy Engine Execution task intent draft |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/baseline-read-set-hint.json | Vulpra R0 Trustworthy Engine Execution baseline read-set hint |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/baseline-usage-draft.json | Vulpra R0 Trustworthy Engine Execution baseline usage draft |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/impact-statement-draft.json | Vulpra R0 Trustworthy Engine Execution impact statement draft |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/todo-checkpoint-draft.json | Vulpra R0 Trustworthy Engine Execution todo checkpoint draft |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/drift-check-draft.json | Vulpra R0 Trustworthy Engine Execution drift check draft |

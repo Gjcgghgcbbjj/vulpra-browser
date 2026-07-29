@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-29-vulpra-r0-trustworthy-engine-execution",
+  "currentTodo": "Task 1: define v5 producer contract",
+  "completedTodos": [],
+  "activeSlice": "Create failing contract tests, contract JSON, verifier, portable registration, and commit.",
+  "evidenceRefs": [],
+  "blockedOn": null,
+  "nextStep": "Read current portable test patterns and implement Task 1 test-first.",
+  "updatedAt": "2026-07-29"
+}
