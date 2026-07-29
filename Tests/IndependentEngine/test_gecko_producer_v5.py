@@ -159,7 +159,11 @@ def verify_lifecycle_source_contract() -> None:
         require(forbidden not in combined, f"retired lifecycle token remains: {forbidden}")
 
     toolchain = checked_in_patch("build/moz.configure/toolchain.configure")
-    for token in ('linker == "ld64"', 'target.kernel == "Darwin"', '"--version" in stderr'):
+    for token in (
+        'linker in (None, "ld64")',
+        'target.kernel == "Darwin"',
+        '"--version" in stderr',
+    ):
         require(token in toolchain, f"Xcode 26 ld64 compatibility patch is missing {token!r}")
 
 

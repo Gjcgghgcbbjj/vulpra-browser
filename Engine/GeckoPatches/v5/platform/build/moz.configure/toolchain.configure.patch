@@ -9,7 +9,7 @@ index 2f97afdb3615acd25be512edda69af955cfb3823..c7a9411aadef6e98da5b7743ba7b7922
 +            # Xcode 26 ld no longer emits the LD_PRINT_OPTIONS marker above,
 +            # but still identifies itself while rejecting GNU --version.
 +            elif (
-+                linker == "ld64"
++                linker in (None, "ld64")
 +                and target.kernel == "Darwin"
 +                and retcode != 0
 +                and "--version" in stderr
