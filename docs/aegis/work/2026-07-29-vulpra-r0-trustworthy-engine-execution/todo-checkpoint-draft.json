@@ -1,11 +1,15 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-29-vulpra-r0-trustworthy-engine-execution",
-  "currentTodo": "Task 1: define v5 producer contract",
-  "completedTodos": [],
-  "activeSlice": "Create failing contract tests, contract JSON, verifier, portable registration, and commit.",
-  "evidenceRefs": [],
+  "currentTodo": "Task 2: materialize and audit the iOS patch series",
+  "completedTodos": [
+    "Task 1: v5 producer contract committed at d5577c3"
+  ],
+  "activeSlice": "Extract historical patch candidates, establish the minimal buildable series, remove JIT coordination, and bind every patch by digest.",
+  "evidenceRefs": [
+    "commit:d5577c3"
+  ],
   "blockedOn": null,
-  "nextStep": "Read current portable test patterns and implement Task 1 test-first.",
+  "nextStep": "Inspect historical patch inventory and dependencies, add failing full-series fixtures, then implement strict series verification.",
   "updatedAt": "2026-07-29"
 }

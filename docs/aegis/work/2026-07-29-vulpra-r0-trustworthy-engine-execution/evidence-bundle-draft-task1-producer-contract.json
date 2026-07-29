@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task1-producer-contract",
+  "type": "test",
+  "source": "commit:d5577c3; Tests/IndependentEngine/test_gecko_producer_v5.py; Tests/IndependentEngine/run-portable.sh",
+  "summary": "Task 1 contract fixtures and the complete portable independent-engine gate passed; strict JSON keys, pinned upstream, dual iOS triples, exports, and forbidden runtime tokens are enforced.",
+  "verifier": "python3 Tests/IndependentEngine/test_gecko_producer_v5.py && ./Tests/IndependentEngine/run-portable.sh && git diff --check"
+}
