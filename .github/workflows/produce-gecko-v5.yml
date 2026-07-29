@@ -92,9 +92,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          .build/gecko-source/mach --no-interactive bootstrap \
-            --application-choice=browser 2>&1 \
-            | tee gecko-${{ matrix.platform }}-bootstrap.log
+          {
+            command -v python3
+            command -v clang
+            command -v rustc
+            command -v cargo
+            python3 --version
+            clang --version
+            rustc --version
+            cargo --version
+          } 2>&1 | tee gecko-${{ matrix.platform }}-bootstrap.log
 
       - name: Build native runtime
         shell: bash
