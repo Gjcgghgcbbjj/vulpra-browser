@@ -2264,9 +2264,9 @@
     {
       "order": 227,
       "path": "platform/widget/uikit/moz.build.patch",
-      "sha256": "745b703de56bc17c6a13469067b01ea013bab786cc809d186e61092564ec8e76",
+      "sha256": "7946d7ab7e658b131c08c79db465b31c8708f7da6ad0b92bd427466ddd5a01fc",
       "owner": "engine-platform",
-      "purpose": "Configure the standalone iOS Gecko build through widget/uikit/moz.build.",
+      "purpose": "Configure lifecycle-only standalone iOS exports and sources through widget/uikit/moz.build.",
       "upstreamPaths": [
         "widget/uikit/moz.build"
       ]

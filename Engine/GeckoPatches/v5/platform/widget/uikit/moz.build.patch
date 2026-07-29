@@ -2,7 +2,7 @@ diff --git a/widget/uikit/moz.build b/widget/uikit/moz.build
 index f5d8821773c006810d4e87dbb39207ceb0f61a2f..5ead3454cf7ebb4761a628a36ed696348e1aa580 100644
 --- a/widget/uikit/moz.build
 +++ b/widget/uikit/moz.build
-@@ -8,35 +8,50 @@ with Files("**"):
+@@ -8,35 +8,48 @@ with Files("**"):
  with Files("*TextInput*"):
      BUG_COMPONENT = ("Core", "DOM: UI Events & Focus Handling")
  
@@ -17,7 +17,6 @@ index f5d8821773c006810d4e87dbb39207ceb0f61a2f..5ead3454cf7ebb4761a628a36ed69634
 +    "CompositorWidgetChild.h",
 +    "CompositorWidgetParent.h",
      "EventDispatcher.h",
-+    "GeckoViewRuntimeSupport.h",
      "GeckoViewSupport.h",
      "IOSView.h",
      "nsWindow.h",
@@ -25,7 +24,6 @@ index f5d8821773c006810d4e87dbb39207ceb0f61a2f..5ead3454cf7ebb4761a628a36ed69634
  ]
  
  EXPORTS.GeckoView += [
-+    "GeckoViewRuntimeSupport.h",
      "GeckoViewSwiftSupport.h",
  ]
  

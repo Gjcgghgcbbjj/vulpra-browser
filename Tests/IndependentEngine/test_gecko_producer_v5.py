@@ -166,6 +166,10 @@ def verify_lifecycle_source_contract() -> None:
     ):
         require(token in toolchain, f"Xcode 26 ld64 compatibility patch is missing {token!r}")
 
+    uikit_build = checked_in_patch("widget/uikit/moz.build")
+    require("GeckoViewRuntimeSupport.h" not in uikit_build,
+            "retired JIT runtime-support header remains in the iOS export graph")
+
 
 def main() -> None:
     require(VERIFIER.is_file(), "missing Tools/GeckoProducer/verify-producer.py")

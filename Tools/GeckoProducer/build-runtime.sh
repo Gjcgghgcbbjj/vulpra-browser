@@ -67,12 +67,22 @@ MACH=${VULPRA_MACH:-$SOURCE/mach}
   exit 1
 }
 
+MOZBUILD_STATE_PATH=${MOZBUILD_STATE_PATH:-$ROOT/.build/gecko-toolchains}
+TARGET_CC=${VULPRA_TARGET_CC:-/usr/bin/clang}
+TARGET_CXX=${VULPRA_TARGET_CXX:-/usr/bin/clang++}
+WASM_CC=${VULPRA_WASM_CC:-$MOZBUILD_STATE_PATH/clang/bin/clang}
+WASM_CXX=${VULPRA_WASM_CXX:-$MOZBUILD_STATE_PATH/clang/bin/clang++}
+
 if command -v rustup >/dev/null 2>&1; then
   if ! rustup target list --installed | grep -Fxq "$TARGET"; then
     rustup target add "$TARGET"
   fi
 fi
 
-(cd "$SOURCE" && MOZCONFIG="$MOZCONFIG" "$MACH" build)
+(cd "$SOURCE" && \
+  MOZCONFIG="$MOZCONFIG" MOZBUILD_STATE_PATH="$MOZBUILD_STATE_PATH" \
+  CC="$TARGET_CC" CXX="$TARGET_CXX" HOST_CC="$TARGET_CC" HOST_CXX="$TARGET_CXX" \
+  WASM_CC="$WASM_CC" WASM_CXX="$WASM_CXX" \
+  "$MACH" build)
 printf 'PASS: built Gecko runtime platform=%s target=%s mozconfig=%s\n' \
   "$PLATFORM" "$TARGET" "$MOZCONFIG"

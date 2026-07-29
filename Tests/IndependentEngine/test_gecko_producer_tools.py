@@ -126,13 +126,18 @@ def test_build(base: Path) -> None:
     (source / ".git").mkdir(parents=True)
     mach_log = base / "mach.log"
     fake_mach = base / "fake-mach"
-    write(fake_mach, "#!/bin/sh\nprintf '%s|%s\\n' \"$MOZCONFIG\" \"$*\" > \"$VULPRA_MACH_LOG\"\n",
-          executable=True)
+    write(fake_mach, """#!/bin/sh
+printf '%s|%s|%s|%s|%s|%s\\n' \
+  "$MOZCONFIG" "$*" "$CC" "$HOST_CC" "$WASM_CC" "$MOZBUILD_STATE_PATH" \
+  > "$VULPRA_MACH_LOG"
+""", executable=True)
     environment = os.environ.copy()
     environment.update({
         "PATH": "/usr/bin:/bin",
         "VULPRA_MACH": str(fake_mach),
         "VULPRA_MACH_LOG": str(mach_log),
+        "VULPRA_TARGET_CC": "/fixture/xcode/clang",
+        "VULPRA_TARGET_CXX": "/fixture/xcode/clang++",
     })
     expected = {
         "iphoneos": "aarch64-apple-ios",
@@ -154,6 +159,11 @@ def test_build(base: Path) -> None:
                 f"{platform} mozconfig is incomplete")
         require(str(mozconfig) in mach_log.read_text(encoding="utf-8"),
                 "build did not pass the generated MOZCONFIG to mach")
+        mach_invocation = mach_log.read_text(encoding="utf-8")
+        require("|/fixture/xcode/clang|/fixture/xcode/clang|" in mach_invocation,
+                "build did not keep target and host compilation on Xcode clang")
+        require("/.build/gecko-toolchains/clang/bin/clang|" in mach_invocation,
+                "build did not isolate WASI compilation to the bootstrapped Gecko clang")
 
     source_mach = source / "mach"
     write(source_mach,
@@ -178,7 +188,7 @@ def test_package(base: Path) -> None:
     write(dist / "bin/libmozglue.dylib", b"native-simulator-dylib", executable=True)
     write(dist / "bin/application.ini", "[App]\nName=Vulpra\n")
     for header in (
-        "GeckoViewRuntimeSupport.h", "GeckoViewSwiftSupport.h", "IOSBootstrap.h"
+        "GeckoViewSwiftSupport.h", "IOSBootstrap.h"
     ):
         write(dist / f"include/GeckoView/{header}", f"// {header}\n")
 

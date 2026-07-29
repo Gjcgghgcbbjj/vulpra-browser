@@ -22,7 +22,6 @@ from typing import Iterable
 ROOT = Path(__file__).resolve().parents[2]
 PRODUCER_REPOSITORY = "https://github.com/Gjcgghgcbbjj/vulpra-browser"
 HEADERS = (
-    "GeckoView/GeckoViewRuntimeSupport.h",
     "GeckoView/GeckoViewSwiftSupport.h",
     "GeckoView/IOSBootstrap.h",
 )
