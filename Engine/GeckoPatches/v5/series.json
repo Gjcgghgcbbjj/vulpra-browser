@@ -1274,7 +1274,7 @@
     {
       "order": 128,
       "path": "platform/ipc/glue/GeckoChildProcessHost.cpp.patch",
-      "sha256": "00dcbd2d7bb34077cb536500d20978013160c905fdfc69101211935ee41c2e76",
+      "sha256": "04466239773cefc9c2954c2a05b02fb662685ed0658ab02dfbffebfdecea6f29",
       "owner": "engine-platform",
       "purpose": "Implement standalone iOS Gecko platform behavior in ipc/glue/GeckoChildProcessHost.cpp.",
       "upstreamPaths": [
@@ -1294,7 +1294,7 @@
     {
       "order": 130,
       "path": "platform/ipc/glue/NSExtensionUtils.h.patch",
-      "sha256": "1532d8b81597194b760255c37f67791a33f36d100356ea135679935fec1a2d9e",
+      "sha256": "9ccf2ca51c01630904b64bd097b12dc000f2ab5f8e869c652a02164a6ed99834",
       "owner": "engine-platform",
       "purpose": "Define the iOS-compatible runtime contract in ipc/glue/NSExtensionUtils.h.",
       "upstreamPaths": [
@@ -1304,7 +1304,7 @@
     {
       "order": 131,
       "path": "platform/ipc/glue/NSExtensionUtils.mm.patch",
-      "sha256": "cb9661e6315eb237f07c326663738f93a8e2545200d5703c293a4c322753c8ab",
+      "sha256": "0d56f46f23942de1d1d0fd2e380ffb2e28097da2b9751ed45354a4b9337c90fa",
       "owner": "engine-platform",
       "purpose": "Implement standalone iOS Gecko platform behavior in ipc/glue/NSExtensionUtils.mm.",
       "upstreamPaths": [

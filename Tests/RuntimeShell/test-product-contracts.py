@@ -48,7 +48,7 @@ def main() -> None:
     require(extension.get("NSExtensionPrincipalClass") == "VulpraEngineProcessMain",
             "engine process principal class is wrong")
     require(process.get("CFBundlePackageType") == "XPC!", "engine process package type is wrong")
-    require(process.get("VulpraEngineProcessProtocolVersion") == 1, "engine process protocol is wrong")
+    require(process.get("VulpraEngineProcessProtocolVersion") == 2, "engine process protocol is wrong")
 
     open_in = load("Extensions/OpenIn/Info.plist")
     require(open_in.get("CFBundleDisplayName") == "Open in Vulpra",

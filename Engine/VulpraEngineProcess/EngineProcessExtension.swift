@@ -12,11 +12,12 @@ final class VulpraEngineProcessMain: NSObject, NSExtensionRequestHandling {
     private struct RequestOwner {
         let connection: NSXPCConnection
         let context: NSExtensionContext
+        let launchID: UInt64
+        let childID: Int32
     }
     private static var requests: [ObjectIdentifier: RequestOwner] = [:]
 
     func beginRequest(with context: NSExtensionContext) {
-        Self.logger.notice("Vulpra Engine Process request received")
         DispatchQueue.main.async {
             do {
                 try Self.start(context: context)
@@ -36,27 +37,31 @@ final class VulpraEngineProcessMain: NSObject, NSExtensionRequestHandling {
                 userInfo: [NSLocalizedDescriptionKey: "Missing process extension input"]
             )
         }
-        guard let endpoint = input.userInfo?["VulpraXPCListenerEndpoint"] as? NSXPCListenerEndpoint else {
-            throw NSError(
-                domain: "Vulpra.EngineProcess", code: 2,
-                userInfo: [NSLocalizedDescriptionKey: "Missing native process listener endpoint"]
-            )
-        }
-        let connection = NSXPCConnection(listenerEndpoint: endpoint)
+        let request = try EngineProcessRequest(userInfo: input.userInfo)
+        logger.notice(
+            "Engine process request received launch=\(request.launchID) child=\(request.childID) type=\(request.processType, privacy: .public)"
+        )
+        let connection = NSXPCConnection(listenerEndpoint: request.endpoint)
         let identifier = ObjectIdentifier(connection)
         connection.remoteObjectInterface = NSXPCInterface(with: EngineBootstrapPing.self)
         connection.interruptionHandler = { Self.finish(identifier: identifier) }
         connection.invalidationHandler = { Self.finish(identifier: identifier) }
         connection.resume()
-        guard VulpraEngineProcessHost.start(connection: connection) else {
+        do {
+            try VulpraEngineProcessHost.start(connection: connection)
+        } catch {
             connection.invalidate()
-            throw NSError(
-                domain: "Vulpra.EngineProcess", code: 2,
-                userInfo: [NSLocalizedDescriptionKey: "Unable to start engine child process"]
-            )
+            throw error
         }
-        logger.notice("Vulpra Engine Process connected")
-        requests[identifier] = RequestOwner(connection: connection, context: context)
+        logger.notice(
+            "Engine process connected launch=\(request.launchID) child=\(request.childID)"
+        )
+        requests[identifier] = RequestOwner(
+            connection: connection,
+            context: context,
+            launchID: request.launchID,
+            childID: request.childID
+        )
         (connection.remoteObjectProxyWithErrorHandler { _ in } as? EngineBootstrapPing)?.ping()
     }
 
@@ -64,7 +69,9 @@ final class VulpraEngineProcessMain: NSObject, NSExtensionRequestHandling {
         DispatchQueue.main.async {
             guard let request = requests.removeValue(forKey: identifier) else { return }
             request.context.completeRequest(returningItems: nil)
-            logger.notice("Vulpra Engine Process connection released")
+            logger.notice(
+                "Engine process connection released launch=\(request.launchID) child=\(request.childID)"
+            )
         }
     }
 }

@@ -1,5 +1,5 @@
 diff --git a/ipc/glue/GeckoChildProcessHost.cpp b/ipc/glue/GeckoChildProcessHost.cpp
-index 8bfc08afb169a3528623629ebc15f8089a527bd2..d76c01e7fd4816d7fc493c247f5d6c44440b14b7 100644
+index 8bfc08afb169a3528623629ebc15f8089a527bd2..2e87ce65f53ceeb28fc41fc3668f43080b3df195 100644
 --- a/ipc/glue/GeckoChildProcessHost.cpp
 +++ b/ipc/glue/GeckoChildProcessHost.cpp
 @@ -98,6 +98,8 @@
@@ -292,7 +292,7 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..d76c01e7fd4816d7fc493c247f5d6c44
      xpc_dictionary_set_mach_send(sendRightWrapper.get(), "port",
                                   sendRight.get());
      xpc_array_set_value(sendRightsArray.get(), XPC_ARRAY_APPEND,
-@@ -1450,34 +1565,38 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1450,34 +1565,40 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
                             sendRightsArray.get());
  
    auto promise = MakeRefPtr<ProcessLaunchPromise::Private>(__func__);
@@ -302,9 +302,11 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..d76c01e7fd4816d7fc493c247f5d6c44
 -                                              Result<ExtensionKitProcess,
 -                                                     LaunchError>&& result) {
 +  auto didSettle = std::make_shared<std::atomic<bool>>(false);
-+  NSExtensionProcess::StartProcess([self = RefPtr{this}, promise, didSettle,
-+                                    bootstrapMessage =
-+                                        std::move(bootstrapMessage)](
++  NSExtensionProcess::StartProcess(
++      mHost->mLaunchID, static_cast<int32_t>(mHost->mChildID),
++      ChildProcessType(),
++      [self = RefPtr{this}, promise, didSettle,
++       bootstrapMessage = std::move(bootstrapMessage)](
 +                                       Result<NSExtensionProcess, LaunchError>&&
 +                                           result) {
      if (result.isErr()) {
@@ -350,7 +352,7 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..d76c01e7fd4816d7fc493c247f5d6c44
  
      // Send our bootstrap message to the content and wait for it to reply with
      // the task port before resolving.
-@@ -1487,22 +1606,28 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1487,22 +1608,28 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
      xpc_connection_send_message_with_reply(
          self->mResults.mXPCConnection.get(), bootstrapMessage.get(), nullptr,
          ^(xpc_object_t reply) {
@@ -388,7 +390,7 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..d76c01e7fd4816d7fc493c247f5d6c44
              return;
            }
  
-@@ -1515,10 +1640,22 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1515,12 +1642,24 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
            // this point, so we should be able to trust it.
            pid_t pid =
                static_cast<pid_t>(xpc_dictionary_get_int64(reply, "pid"));
@@ -412,9 +414,12 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..d76c01e7fd4816d7fc493c247f5d6c44
 +            promise->Resolve(std::move(self->mResults), __func__);
 +          }
          });
-   });
+-  });
++      });
  
-@@ -1788,9 +1925,15 @@ void GeckoChildProcessHost::OnChannelConnected(base::ProcessId peer_pid) {
+   return promise;
+ }
+@@ -1788,9 +1927,15 @@ void GeckoChildProcessHost::OnChannelConnected(base::ProcessId peer_pid) {
        MOZ_CRASH("can't open handle to child process");
      }
    }

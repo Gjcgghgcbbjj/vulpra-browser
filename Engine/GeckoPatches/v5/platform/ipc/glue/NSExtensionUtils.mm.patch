@@ -1,9 +1,9 @@
 diff --git a/ipc/glue/NSExtensionUtils.mm b/ipc/glue/NSExtensionUtils.mm
 new file mode 100644
-index 0000000000000000000000000000000000000000..3ed39d17051aa649b4134567bbde3fda26941544
+index 0000000000000000000000000000000000000000..4906cf88099345e3b630898ef01a32cc2dc10eef
 --- /dev/null
 +++ b/ipc/glue/NSExtensionUtils.mm
-@@ -0,0 +1,559 @@
+@@ -0,0 +1,597 @@
 +/* This Source Code Form is subject to the terms of the Mozilla Public
 + * License, v. 2.0. If a copy of the MPL was not distributed with this
 + * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -218,8 +218,11 @@ index 0000000000000000000000000000000000000000..3ed39d17051aa649b4134567bbde3fda
 +}
 +
 +- (nullable instancetype)init;
-+- (void)startWithCompletion:
-+    (void (^_Nonnull)(NSError* _Nullable error))aCompletion;
++- (void)startWithLaunchID:(uint64_t)aLaunchID
++                  childID:(int32_t)aChildID
++              processType:(const char*)aProcessType
++               completion:
++                   (void (^_Nonnull)(NSError* _Nullable error))aCompletion;
 +- (xpc_connection_t _Nullable)copyLibXPCConnection;
 +- (void)invalidate;
 +
@@ -245,9 +248,34 @@ index 0000000000000000000000000000000000000000..3ed39d17051aa649b4134567bbde3fda
 +  return self;
 +}
 +
-+- (void)startWithCompletion:
-+    (void (^_Nonnull)(NSError* _Nullable error))aCompletion {
++- (void)startWithLaunchID:(uint64_t)aLaunchID
++                  childID:(int32_t)aChildID
++              processType:(const char*)aProcessType
++               completion:
++                   (void (^_Nonnull)(NSError* _Nullable error))aCompletion {
 +  void (^completion)(NSError* _Nullable) = [aCompletion copy];
++
++  if (aLaunchID == 0 || aChildID <= 0 || !aProcessType || !aProcessType[0]) {
++    completion([NSError errorWithDomain:@"VulpraExtension"
++                                   code:109
++                               userInfo:@{
++                                 NSLocalizedDescriptionKey :
++                                     @"Invalid Gecko child launch identity"
++                               }]);
++    [completion release];
++    return;
++  }
++  NSString* processType = [NSString stringWithUTF8String:aProcessType];
++  if (!processType || [processType length] > 64) {
++    completion([NSError errorWithDomain:@"VulpraExtension"
++                                   code:109
++                               userInfo:@{
++                                 NSLocalizedDescriptionKey :
++                                     @"Invalid Gecko child process type"
++                               }]);
++    [completion release];
++    return;
++  }
 +
 +  if (mStarted) {
 +    completion([NSError errorWithDomain:@"VulpraExtension"
@@ -388,8 +416,14 @@ index 0000000000000000000000000000000000000000..3ed39d17051aa649b4134567bbde3fda
 +
 +    NSExtensionItem* input = [[[NSExtensionItem alloc] init] autorelease];
 +    NSMutableDictionary* userInfo = [NSMutableDictionary dictionary];
++    [userInfo setObject:@2 forKey:@"VulpraEngineProcessProtocolVersion"];
 +    [userInfo setObject:[mListener endpoint]
 +                 forKey:@"VulpraXPCListenerEndpoint"];
++    [userInfo setObject:[NSNumber numberWithUnsignedLongLong:aLaunchID]
++                 forKey:@"VulpraChildLaunchID"];
++    [userInfo setObject:[NSNumber numberWithInt:aChildID]
++                 forKey:@"VulpraGeckoChildID"];
++    [userInfo setObject:processType forKey:@"VulpraGeckoProcessType"];
 +    [input setUserInfo:userInfo];
 +
 +    mRequestIdentifier = [BeginExtensionRequest(mExtension, @[ input ]) retain];
@@ -493,6 +527,7 @@ index 0000000000000000000000000000000000000000..3ed39d17051aa649b4134567bbde3fda
 +}
 +
 +void NSExtensionProcess::StartProcess(
++    uint64_t aLaunchID, int32_t aChildID, const char* aProcessType,
 +    const std::function<void(Result<NSExtensionProcess, LaunchError>&&)>&
 +        aCompletion) {
 +  // VULPRA: Launch child process via NSExtension and bridge its
@@ -508,7 +543,10 @@ index 0000000000000000000000000000000000000000..3ed39d17051aa649b4134567bbde3fda
 +    return;
 +  }
 +
-+  [process startWithCompletion:^(NSError* error) {
++  [process startWithLaunchID:aLaunchID
++                     childID:aChildID
++                 processType:aProcessType
++                  completion:^(NSError* error) {
 +    if (error) {
 +      [process release];
 +      (*ownedCompletion)(Err(LaunchError("NSExtensionProcess::StartProcess")));
