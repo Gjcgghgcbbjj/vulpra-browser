@@ -19,6 +19,7 @@ FETCH = ROOT / "Tools/GeckoProducer/fetch-source.sh"
 APPLY = ROOT / "Tools/GeckoProducer/apply-series.py"
 BUILD = ROOT / "Tools/GeckoProducer/build-runtime.sh"
 PACKAGE = ROOT / "Tools/GeckoProducer/package-runtime.py"
+WORKFLOW = ROOT / ".github/workflows/produce-gecko-v5.yml"
 PINNED_COMMIT = "27b462b22705a8860f7ab0d33aa5b4b658ae5932"
 
 
@@ -221,6 +222,30 @@ def main() -> None:
     forbidden_transform = "v" + "tool"
     require(forbidden_transform not in source and "set-build-version" not in source,
             "native producer retains a Mach-O platform transform")
+
+    require(WORKFLOW.is_file(), "missing dual-platform Gecko v5 workflow")
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    for token in (
+        "workflow_dispatch:",
+        "release_tag:",
+        "publish_release:",
+        "default: vulpra-engine-v5-candidate",
+        "default: false",
+        "runs-on: macos-26",
+        "platform: [iphoneos, iphonesimulator]",
+        "/Applications/Xcode_26.4.1.app",
+        "fetch-source.sh",
+        "apply-series.py",
+        "build-runtime.sh",
+        "package-runtime.py",
+        "Verify cross-target identity and native distinction",
+        "retention-days: 30",
+        "gh release upload",
+    ):
+        require(token in workflow, f"Gecko v5 workflow is missing {token!r}")
+    require("produce-simulator-artifact.sh" not in workflow and
+            forbidden_transform not in workflow and "--clobber" not in workflow,
+            "Gecko v5 workflow retains an old or destructive producer path")
 
     with tempfile.TemporaryDirectory(prefix="vulpra-gecko-producer-tools-") as temporary:
         base = Path(temporary)
