@@ -1,5 +1,5 @@
 diff --git a/ipc/glue/GeckoChildProcessHost.cpp b/ipc/glue/GeckoChildProcessHost.cpp
-index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b95d1975d 100644
+index 8bfc08afb169a3528623629ebc15f8089a527bd2..d76c01e7fd4816d7fc493c247f5d6c44440b14b7 100644
 --- a/ipc/glue/GeckoChildProcessHost.cpp
 +++ b/ipc/glue/GeckoChildProcessHost.cpp
 @@ -98,6 +98,8 @@
@@ -11,7 +11,19 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
  using mozilla::MonitorAutoLock;
  using mozilla::Preferences;
  using mozilla::StaticMutexAutoLock;
-@@ -133,7 +135,7 @@ struct LaunchResults {
+@@ -122,6 +124,11 @@ static bool ShouldHaveDirectoryService() {
+ #ifdef XP_IOS
+ // Hack to ensure environment variables are copied into child processes on iOS.
+ extern char** environ;
++
++extern "C" void GeckoChildProcessDidChange(
++    uint64_t aLaunchID, int32_t aChildID, int32_t aPid,
++    const char* aProcessType, int32_t aStage, int32_t aFailureCode,
++    const char* aReason);
+ #endif
+ 
+ namespace mozilla {
+@@ -133,7 +140,7 @@ struct LaunchResults {
    task_t mChildTask = MACH_PORT_NULL;
  #endif
  #ifdef XP_IOS
@@ -20,7 +32,62 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
    DarwinObjectPtr<xpc_connection_t> mXPCConnection;
    UniqueBEProcessCapabilityGrant mForegroundCapabilityGrant;
  #endif
-@@ -434,8 +436,8 @@ GeckoChildProcessHost::~GeckoChildProcessHost() {
+@@ -148,12 +155,33 @@ typedef mozilla::MozPromise<LaunchResults, LaunchError, true>
+ // created. The parent process is given the ChildID of `0`, and each child
+ // process is given a non-zero ID.
+ static Atomic<int32_t> gChildCounter;
++#ifdef XP_IOS
++static Atomic<uint64_t> gLaunchCounter;
++
++enum : int32_t {
++  kChildRequested = 1,
++  kChildExtensionConnected = 2,
++  kChildBootstrapAcknowledged = 3,
++  kChildIPCConnected = 4,
++  kChildFailed = 5,
++  kChildTerminated = 6,
++};
++
++enum : int32_t {
++  kFailureNone = 0,
++  kFailureExtensionStart = 1,
++  kFailureXPCTransport = 2,
++  kFailureBootstrapReply = 3,
++  kFailureProcessLaunch = 4,
++};
++#endif
+ 
+ class BaseProcessLauncher {
+  public:
+   BaseProcessLauncher(GeckoChildProcessHost* aHost,
+                       geckoargs::ChildProcessArgs&& aExtraOpts)
+-      : mProcessType(aHost->mProcessType),
++      : mHost(aHost),
++        mProcessType(aHost->mProcessType),
+         mLaunchOptions(std::move(aHost->mLaunchOptions)),
+         mChildArgs(std::move(aExtraOpts)),
+ #ifdef XP_WIN
+@@ -221,6 +249,7 @@ class BaseProcessLauncher {
+   }
+ 
+   nsCOMPtr<nsISerialEventTarget> mLaunchThread;
++  GeckoChildProcessHost* mHost;
+   GeckoProcessType mProcessType;
+   UniquePtr<base::LaunchOptions> mLaunchOptions;
+ #ifdef ALLOW_GECKO_CHILD_PROCESS_ARCH
+@@ -423,6 +452,11 @@ GeckoChildProcessHost::~GeckoChildProcessHost() {
+ 
+   MOZ_COUNT_DTOR(GeckoChildProcessHost);
+ 
++#if defined(XP_IOS)
++  NotifyChildLifecycle(kChildTerminated, kFailureNone,
++                       static_cast<int32_t>(GetChildProcessId()), nullptr);
++#endif
++
+   {
+     mozilla::AutoWriteLock hLock(mHandleLock);
+ #if defined(XP_MACOSX)
+@@ -434,8 +468,8 @@ GeckoChildProcessHost::~GeckoChildProcessHost() {
      if (mForegroundCapabilityGrant) {
        mForegroundCapabilityGrant.reset();
      }
@@ -31,7 +98,61 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
      }
      if (mXPCConnection) {
        xpc_connection_cancel(mXPCConnection.get());
-@@ -787,7 +789,7 @@ bool GeckoChildProcessHost::AsyncLaunch(
+@@ -449,6 +483,40 @@ GeckoChildProcessHost::~GeckoChildProcessHost() {
+   }
+ }
+ 
++#if defined(XP_IOS)
++void GeckoChildProcessHost::NotifyChildLifecycle(int32_t aStage,
++                                                 int32_t aFailureCode,
++                                                 int32_t aPid,
++                                                 const char* aReason) {
++  if (!mLaunchID || aStage < kChildRequested || aStage > kChildTerminated) {
++    return;
++  }
++  {
++    MonitorAutoLock lock(mMonitor);
++    uint32_t stageBit = 1u << static_cast<uint32_t>(aStage);
++    if (mLifecycleStages & stageBit) {
++      return;
++    }
++    if (aStage == kChildIPCConnected) {
++      if (mLifecycleOutcome != 0) {
++        return;
++      }
++      mLifecycleOutcome = 1;
++    } else if (aStage == kChildFailed) {
++      if (mLifecycleOutcome != 0) {
++        return;
++      }
++      mLifecycleOutcome = 2;
++    }
++    mLifecycleStages |= stageBit;
++  }
++  GeckoChildProcessDidChange(
++      mLaunchID, static_cast<int32_t>(mChildID), aPid,
++      XRE_GeckoProcessTypeToString(mProcessType), aStage, aFailureCode,
++      aReason);
++}
++#endif
++
+ base::ProcessHandle GeckoChildProcessHost::GetChildProcessHandle() {
+   mozilla::AutoReadLock handleLock(mHandleLock);
+   return mChildProcessHandle;
+@@ -740,6 +808,12 @@ bool GeckoChildProcessHost::AsyncLaunch(
+   }
+ #endif
+ 
++#if defined(XP_IOS)
++  mLaunchID = ++gLaunchCounter;
++  MOZ_RELEASE_ASSERT(mLaunchID > 0, "gLaunchCounter overflowed");
++  NotifyChildLifecycle(kChildRequested, kFailureNone, 0, nullptr);
++#endif
++
+   RefPtr<BaseProcessLauncher> launcher =
+       new ProcessLauncher(this, std::move(aExtraOpts));
+   TimeStamp startTimeStamp = TimeStamp::Now();
+@@ -787,7 +861,7 @@ bool GeckoChildProcessHost::AsyncLaunch(
                      this->mChildTask = aResults.mChildTask;
  #endif
  #ifdef XP_IOS
@@ -40,7 +161,39 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
                      this->mXPCConnection = aResults.mXPCConnection;
                      this->mForegroundCapabilityGrant =
                          std::move(aResults.mForegroundCapabilityGrant);
-@@ -935,6 +937,7 @@ bool GeckoChildProcessHost::InitializeChannel(
+@@ -857,9 +931,28 @@ bool GeckoChildProcessHost::AsyncLaunch(
+ }
+ 
+ void GeckoChildProcessHost::OnProcessLaunchError(const LaunchError aError) {
+-  MonitorAutoLock lock(mMonitor);
+-  mProcessState = PROCESS_ERROR;
+-  lock.Notify();
++#if defined(XP_IOS)
++  int32_t failureCode = kFailureProcessLaunch;
++  const char* reason = "process-launch";
++  const char* function = aError.FunctionName().get();
++  if (!strcmp(function, "NSExtensionProcess::StartProcess")) {
++    failureCode = kFailureExtensionStart;
++    reason = "extension-start";
++  } else if (strstr(function, "MakeLibXPCConnection") ||
++             strstr(function, "xpc_connection_send_message_with_reply")) {
++    failureCode = kFailureXPCTransport;
++    reason = "xpc-transport";
++  } else if (strstr(function, "BootstrapReply")) {
++    failureCode = kFailureBootstrapReply;
++    reason = "bootstrap-reply";
++  }
++  NotifyChildLifecycle(kChildFailed, failureCode, 0, reason);
++#endif
++  {
++    MonitorAutoLock lock(mMonitor);
++    mProcessState = PROCESS_ERROR;
++    lock.Notify();
++  }
+ }
+ 
+ bool GeckoChildProcessHost::WaitUntilConnected(int32_t aTimeoutMs) {
+@@ -935,6 +1028,7 @@ bool GeckoChildProcessHost::InitializeChannel(
  
  void GeckoChildProcessHost::SetAlreadyDead() {
    mozilla::AutoWriteLock handleLock(mHandleLock);
@@ -48,12 +201,14 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
    if (mChildProcessHandle &&
        mChildProcessHandle != base::kInvalidProcessHandle) {
      base::CloseProcessHandle(mChildProcessHandle);
-@@ -943,6 +946,30 @@ void GeckoChildProcessHost::SetAlreadyDead() {
+@@ -943,6 +1037,32 @@ void GeckoChildProcessHost::SetAlreadyDead() {
    mChildProcessHandle = 0;
  }
  
 +#if defined(XP_IOS)
 +void GeckoChildProcessHost::ForceInvalidateForTermination() {
++  NotifyChildLifecycle(kChildTerminated, kFailureNone,
++                       static_cast<int32_t>(GetChildProcessId()), nullptr);
 +  mozilla::AutoWriteLock handleLock(mHandleLock);
 +
 +  if (mForegroundCapabilityGrant) {
@@ -79,7 +234,7 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
  void BaseProcessLauncher::GetChildLogName(const char* origLogName,
                                            nsACString& buffer) {
  #ifdef XP_WIN
-@@ -1391,20 +1418,15 @@ Result<Ok, LaunchError> IosProcessLauncher::DoSetup() {
+@@ -1391,20 +1511,15 @@ Result<Ok, LaunchError> IosProcessLauncher::DoSetup() {
  }
  
  RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
@@ -104,7 +259,7 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
    for (auto& [envKey, envValue] : mLaunchOptions->env_map) {
      xpc_dictionary_set_string(environDict.get(), envKey.c_str(),
                                envValue.c_str());
-@@ -1417,7 +1439,7 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1417,7 +1532,7 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
    xpc_dictionary_set_fd(bootstrapMessage.get(), "stderr", STDERR_FILENO);
  
    DarwinObjectPtr<xpc_object_t> argsArray =
@@ -113,7 +268,7 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
    for (auto& argv : mChildArgs.mArgs) {
      xpc_array_set_string(argsArray.get(), XPC_ARRAY_APPEND, argv.c_str());
    }
-@@ -1425,7 +1447,7 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1425,7 +1540,7 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
    xpc_dictionary_set_value(bootstrapMessage.get(), "argv", argsArray.get());
  
    DarwinObjectPtr<xpc_object_t> fdsArray =
@@ -122,7 +277,7 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
    for (auto& file : mChildArgs.mFiles) {
      xpc_array_set_fd(fdsArray.get(), XPC_ARRAY_APPEND, file.get());
    }
-@@ -1433,12 +1455,12 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1433,12 +1548,12 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
    xpc_dictionary_set_value(bootstrapMessage.get(), "fds", fdsArray.get());
  
    DarwinObjectPtr<xpc_object_t> sendRightsArray =
@@ -137,7 +292,7 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
      xpc_dictionary_set_mach_send(sendRightWrapper.get(), "port",
                                   sendRight.get());
      xpc_array_set_value(sendRightsArray.get(), XPC_ARRAY_APPEND,
-@@ -1450,34 +1472,36 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1450,34 +1565,38 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
                             sendRightsArray.get());
  
    auto promise = MakeRefPtr<ProcessLaunchPromise::Private>(__func__);
@@ -178,6 +333,8 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
 -        CHROMIUM_LOG(WARNING) << "XPC connection received encountered an error";
 -        promise->Reject(LaunchError("xpc_connection_event_handler"), __func__);
 +    self->mResults.mNSExtensionProcess = Some(std::move(process));
++    self->mHost->NotifyChildLifecycle(kChildExtensionConnected, kFailureNone,
++                                      0, nullptr);
 +
 +    if (!self->mResults.mXPCConnection) {
 +      CHROMIUM_LOG(ERROR)
@@ -193,7 +350,7 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
  
      // Send our bootstrap message to the content and wait for it to reply with
      // the task port before resolving.
-@@ -1487,22 +1511,28 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1487,22 +1606,28 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
      xpc_connection_send_message_with_reply(
          self->mResults.mXPCConnection.get(), bootstrapMessage.get(), nullptr,
          ^(xpc_object_t reply) {
@@ -231,18 +388,48 @@ index 8bfc08afb169a3528623629ebc15f8089a527bd2..88ce1ec45e37397a990b5d643085156b
              return;
            }
  
-@@ -1515,10 +1545,11 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1515,10 +1640,22 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
            // this point, so we should be able to trust it.
            pid_t pid =
                static_cast<pid_t>(xpc_dictionary_get_int64(reply, "pid"));
 -          CHROMIUM_LOG(INFO) << "ExtensionKit process started, pid: " << pid;
 -
++          if (pid <= 0) {
++            if (!settleState->exchange(true, std::memory_order_relaxed)) {
++              promise->Reject(
++                  LaunchError("NSExtensionProcess::BootstrapReplyPID"),
++                  __func__);
++            }
++            return;
++          }
 +          CHROMIUM_LOG(INFO) << "Extension process started, pid: " << pid;
            self->mResults.mHandle = pid;
 -          promise->Resolve(std::move(self->mResults), __func__);
 +          if (!settleState->exchange(true, std::memory_order_relaxed)) {
++            self->mHost->NotifyChildLifecycle(
++                kChildBootstrapAcknowledged, kFailureNone,
++                static_cast<int32_t>(pid), nullptr);
 +            promise->Resolve(std::move(self->mResults), __func__);
 +          }
          });
    });
  
+@@ -1788,9 +1925,15 @@ void GeckoChildProcessHost::OnChannelConnected(base::ProcessId peer_pid) {
+       MOZ_CRASH("can't open handle to child process");
+     }
+   }
+-  MonitorAutoLock lock(mMonitor);
+-  mProcessState = PROCESS_CONNECTED;
+-  lock.Notify();
++  {
++    MonitorAutoLock lock(mMonitor);
++    mProcessState = PROCESS_CONNECTED;
++    lock.Notify();
++  }
++#if defined(XP_IOS)
++  NotifyChildLifecycle(kChildIPCConnected, kFailureNone,
++                       static_cast<int32_t>(peer_pid), nullptr);
++#endif
+ }
+ 
+ RefPtr<ProcessHandlePromise> GeckoChildProcessHost::WhenProcessHandleReady() {

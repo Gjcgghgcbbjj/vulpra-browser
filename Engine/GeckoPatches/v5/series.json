@@ -1274,7 +1274,7 @@
     {
       "order": 128,
       "path": "platform/ipc/glue/GeckoChildProcessHost.cpp.patch",
-      "sha256": "a4956e3b80c759ad6bda9e622a5205d729e56a8320b7c9e3a21f858b48bf74ed",
+      "sha256": "00dcbd2d7bb34077cb536500d20978013160c905fdfc69101211935ee41c2e76",
       "owner": "engine-platform",
       "purpose": "Implement standalone iOS Gecko platform behavior in ipc/glue/GeckoChildProcessHost.cpp.",
       "upstreamPaths": [
@@ -1284,7 +1284,7 @@
     {
       "order": 129,
       "path": "platform/ipc/glue/GeckoChildProcessHost.h.patch",
-      "sha256": "381a55e84b90a8328d51c69edf017b43a5fe09c91bd5438bd44d940deb71aae0",
+      "sha256": "95ade46f4d2affa5de4d2d91b033a02b82f23f6f6509debe6358eadeb7ad8480",
       "owner": "engine-platform",
       "purpose": "Define the iOS-compatible runtime contract in ipc/glue/GeckoChildProcessHost.h.",
       "upstreamPaths": [
@@ -1983,8 +1983,18 @@
     },
     {
       "order": 199,
+      "path": "platform/toolkit/xre/IOSBootstrap.h.patch",
+      "sha256": "4b4ceb1746fe14461f3e642b9e1e636ab7dd9394e2cba8f8479a89c45075d58b",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in toolkit/xre/IOSBootstrap.h.",
+      "upstreamPaths": [
+        "toolkit/xre/IOSBootstrap.h"
+      ]
+    },
+    {
+      "order": 200,
       "path": "platform/toolkit/xre/IOSBootstrap.mm.patch",
-      "sha256": "23df786f158e13cf40c1b87611ee83ea9c5aaa95926e98f079e0805e6ad1d279",
+      "sha256": "bd896f4440c1fd2c8697373f0ac980d6a8167b6dc08288174a5e1f2d613a2a8b",
       "owner": "engine-platform",
       "purpose": "Implement standalone iOS Gecko platform behavior in toolkit/xre/IOSBootstrap.mm.",
       "upstreamPaths": [
@@ -1992,7 +2002,7 @@
       ]
     },
     {
-      "order": 200,
+      "order": 201,
       "path": "platform/widget/CompositorWidget.h.patch",
       "sha256": "8d0072ae2977ea584bb8f6696cf44d3ae7573f3762ab3c6b046812fc7c2f7fef",
       "owner": "engine-platform",
@@ -2002,7 +2012,7 @@
       ]
     },
     {
-      "order": 201,
+      "order": 202,
       "path": "platform/widget/ContentCache.cpp.patch",
       "sha256": "7c9cd6f50b5b5f0bd1a443e1dce0447afec38bdeec7446c9126f0755af7d7a25",
       "owner": "engine-platform",
@@ -2012,7 +2022,7 @@
       ]
     },
     {
-      "order": 202,
+      "order": 203,
       "path": "platform/widget/ContentCache.h.patch",
       "sha256": "192a2e49aafd361aa46ab44548d55174884b2d78d1808881a33ce83dc3f1a27c",
       "owner": "engine-platform",
@@ -2022,7 +2032,7 @@
       ]
     },
     {
-      "order": 203,
+      "order": 204,
       "path": "platform/widget/InProcessCompositorWidget.cpp.patch",
       "sha256": "bd58b89cef6d8b08a03c600543a10ef34c1ce260f37c9de8a1370126146331eb",
       "owner": "engine-platform",
@@ -2032,7 +2042,7 @@
       ]
     },
     {
-      "order": 204,
+      "order": 205,
       "path": "platform/widget/PuppetWidget.cpp.patch",
       "sha256": "1f710bb8aca76de046fc1b020b8ccd29976a09f390a02ec1d2b72cacddab02b4",
       "owner": "engine-platform",
@@ -2042,7 +2052,7 @@
       ]
     },
     {
-      "order": 205,
+      "order": 206,
       "path": "platform/widget/PuppetWidget.h.patch",
       "sha256": "6d689979187cb1f2a2a75769e53115cfb9f21edc241e43b885ae3728679e38ed",
       "owner": "engine-platform",
@@ -2052,7 +2062,7 @@
       ]
     },
     {
-      "order": 206,
+      "order": 207,
       "path": "platform/widget/moz.build.patch",
       "sha256": "3d7eef008b8355355626e8eafcaa4c9d8869daa43239d4da096bfd14dd09ca03",
       "owner": "engine-platform",
@@ -2062,7 +2072,7 @@
       ]
     },
     {
-      "order": 207,
+      "order": 208,
       "path": "platform/widget/nsGUIEventIPC.h.patch",
       "sha256": "de5ef31675540fd2639c91a436fae5a47dd2c11b3260c9ab301b56248922eae5",
       "owner": "engine-platform",
@@ -2072,7 +2082,7 @@
       ]
     },
     {
-      "order": 208,
+      "order": 209,
       "path": "platform/widget/uikit/CompositorWidgetChild.cpp.patch",
       "sha256": "c07584dc0c9b51febf02e917e6d60723d1ab6cb525eace0c89ff02fc76a59b0f",
       "owner": "engine-platform",
@@ -2082,7 +2092,7 @@
       ]
     },
     {
-      "order": 209,
+      "order": 210,
       "path": "platform/widget/uikit/CompositorWidgetChild.h.patch",
       "sha256": "00693ed8f743d538ecc1c25e196a2bd903af7d0fc6049b90e5ee5dfd7060c66d",
       "owner": "engine-platform",
@@ -2092,7 +2102,7 @@
       ]
     },
     {
-      "order": 210,
+      "order": 211,
       "path": "platform/widget/uikit/CompositorWidgetParent.cpp.patch",
       "sha256": "9463e801e8f0e3a661728514fdd0042ac0e3a9fbe72e2c6617b78516c4df6418",
       "owner": "engine-platform",
@@ -2102,7 +2112,7 @@
       ]
     },
     {
-      "order": 211,
+      "order": 212,
       "path": "platform/widget/uikit/CompositorWidgetParent.h.patch",
       "sha256": "e7601ae82e3a5d1250445cbc7c396481389af1fa00e9f17e40effa2b21b3d928",
       "owner": "engine-platform",
@@ -2112,7 +2122,7 @@
       ]
     },
     {
-      "order": 212,
+      "order": 213,
       "path": "platform/widget/uikit/EventDispatcher.h.patch",
       "sha256": "01627d55ca6a624543b6a845b1006cb93e9d8df56c66483c6154dda976ec90a7",
       "owner": "engine-platform",
@@ -2122,7 +2132,7 @@
       ]
     },
     {
-      "order": 213,
+      "order": 214,
       "path": "platform/widget/uikit/EventDispatcher.mm.patch",
       "sha256": "90e734e7d868a6fca2a65c56a8d32b160ea0875a54d39f8829611c93ce53083d",
       "owner": "engine-platform",
@@ -2132,7 +2142,7 @@
       ]
     },
     {
-      "order": 214,
+      "order": 215,
       "path": "platform/widget/uikit/ExternalResponseService.h.patch",
       "sha256": "310d4c8d19f66f6f0db30e4e5b78d7e16012d265d0c606ffbc77f4823ca50a1e",
       "owner": "engine-platform",
@@ -2142,7 +2152,7 @@
       ]
     },
     {
-      "order": 215,
+      "order": 216,
       "path": "platform/widget/uikit/ExternalResponseService.mm.patch",
       "sha256": "5e2a30f50b411e23799aadde37d6eb09da1faee04c56f1daea1e5e5e811a1c93",
       "owner": "engine-platform",
@@ -2152,7 +2162,7 @@
       ]
     },
     {
-      "order": 216,
+      "order": 217,
       "path": "platform/widget/uikit/GeckoEditableSupport.h.patch",
       "sha256": "37d2f388be8738bae478789878b3d40c0cea2a3cad40761914f56dd0ad45c3de",
       "owner": "engine-platform",
@@ -2162,7 +2172,7 @@
       ]
     },
     {
-      "order": 217,
+      "order": 218,
       "path": "platform/widget/uikit/GeckoEditableSupport.mm.patch",
       "sha256": "ee1aa8598588574369fee58fc5ef1eaa55485607a7ae6eb188f2fd12e25a8584",
       "owner": "engine-platform",
@@ -2172,9 +2182,9 @@
       ]
     },
     {
-      "order": 218,
+      "order": 219,
       "path": "platform/widget/uikit/GeckoViewSwiftSupport.h.patch",
-      "sha256": "f61533c2dc15f2d3acbee769f6deb38df83d17f032bd1324233954ba294edeb5",
+      "sha256": "78de6c42e86abbd64c79e469c2407b518004c51492a88a2054dd67efa8f01637",
       "owner": "engine-platform",
       "purpose": "Define the iOS-compatible runtime contract in widget/uikit/GeckoViewSwiftSupport.h.",
       "upstreamPaths": [
@@ -2182,7 +2192,7 @@
       ]
     },
     {
-      "order": 219,
+      "order": 220,
       "path": "platform/widget/uikit/PictureInPictureSupport.h.patch",
       "sha256": "1831f82b17fdef30f9d707ba930d65ff5cb470e9c5f0a36806967a452a3f1eaf",
       "owner": "engine-platform",
@@ -2192,7 +2202,7 @@
       ]
     },
     {
-      "order": 220,
+      "order": 221,
       "path": "platform/widget/uikit/PictureInPictureSupport.mm.patch",
       "sha256": "70345a3741acfa017328de6613323fc6ce0a65c6f9ca8fcdb6d118b6f024ce4b",
       "owner": "engine-platform",
@@ -2202,7 +2212,7 @@
       ]
     },
     {
-      "order": 221,
+      "order": 222,
       "path": "platform/widget/uikit/TextInputHandler.h.patch",
       "sha256": "6f1cc8c1ccb49ab192c7e7c3e4e5a677303742ccb13d602e4c06a9d628961d13",
       "owner": "engine-platform",
@@ -2212,7 +2222,7 @@
       ]
     },
     {
-      "order": 222,
+      "order": 223,
       "path": "platform/widget/uikit/TextInputHandler.mm.patch",
       "sha256": "99ed9e3be15024ae11865c56d1682511cd8e4b37ff96b672386c649aadbdae48",
       "owner": "engine-platform",
@@ -2222,7 +2232,7 @@
       ]
     },
     {
-      "order": 223,
+      "order": 224,
       "path": "platform/widget/uikit/UIKitCompositorWidget.cpp.patch",
       "sha256": "1ab1abd9d5263659d734c26b7bcef0c4bf45d7b98876476a8251016a0591d2fc",
       "owner": "engine-platform",
@@ -2232,7 +2242,7 @@
       ]
     },
     {
-      "order": 224,
+      "order": 225,
       "path": "platform/widget/uikit/UIKitCompositorWidget.h.patch",
       "sha256": "cc0b613641e7914166dbfdba537c80d4e91b8f9d76ffe6d8b015caacbfa50a1b",
       "owner": "engine-platform",
@@ -2242,7 +2252,7 @@
       ]
     },
     {
-      "order": 225,
+      "order": 226,
       "path": "platform/widget/uikit/components.conf.patch",
       "sha256": "7c0b36de2648136245f18d8026451fa03f82e20cdc518c77232948056bac33ed",
       "owner": "engine-platform",
@@ -2252,7 +2262,7 @@
       ]
     },
     {
-      "order": 226,
+      "order": 227,
       "path": "platform/widget/uikit/moz.build.patch",
       "sha256": "745b703de56bc17c6a13469067b01ea013bab786cc809d186e61092564ec8e76",
       "owner": "engine-platform",
@@ -2262,7 +2272,7 @@
       ]
     },
     {
-      "order": 227,
+      "order": 228,
       "path": "platform/widget/uikit/nsAppShell.mm.patch",
       "sha256": "fa9b0840bd73c5fa0e39d86eced4526de403d0896bc9c50e6cc455cc97306aa1",
       "owner": "engine-platform",
@@ -2272,7 +2282,7 @@
       ]
     },
     {
-      "order": 228,
+      "order": 229,
       "path": "platform/widget/uikit/nsClipboard.h.patch",
       "sha256": "b8df450e7cae3c2e654666621298a4b5d32f67ed644b8edad9913c9b6b86b43b",
       "owner": "engine-platform",
@@ -2282,7 +2292,7 @@
       ]
     },
     {
-      "order": 229,
+      "order": 230,
       "path": "platform/widget/uikit/nsClipboard.mm.patch",
       "sha256": "6ec2e0edc852dc0a94743f5f96fba8bc8159bc0c4215efe78c3bb1225df29876",
       "owner": "engine-platform",
@@ -2292,7 +2302,7 @@
       ]
     },
     {
-      "order": 230,
+      "order": 231,
       "path": "platform/widget/uikit/nsLookAndFeel.h.patch",
       "sha256": "bedd0d20f11b2aa82dc95b0ea40e2c0659e80e02e51b46cfb099f121b6f71841",
       "owner": "engine-platform",
@@ -2302,7 +2312,7 @@
       ]
     },
     {
-      "order": 231,
+      "order": 232,
       "path": "platform/widget/uikit/nsLookAndFeel.mm.patch",
       "sha256": "ede85307e5bf246ba8b3efa1f97db9963ef58136c03024fcb30c36c0dd86c367",
       "owner": "engine-platform",
@@ -2312,7 +2322,7 @@
       ]
     },
     {
-      "order": 232,
+      "order": 233,
       "path": "platform/widget/uikit/nsWidgetFactory.mm.patch",
       "sha256": "8a0acceeb9b0812c5f28151e8c2a75d6c158eabeefe73707e268eac07104cc87",
       "owner": "engine-platform",
@@ -2322,7 +2332,7 @@
       ]
     },
     {
-      "order": 233,
+      "order": 234,
       "path": "platform/widget/uikit/nsWindow.h.patch",
       "sha256": "bd575e52925d8eb0d9623ebe62d83147ba75953ddb4ebf8fb121ebd2a8c54057",
       "owner": "engine-platform",
@@ -2332,7 +2342,7 @@
       ]
     },
     {
-      "order": 234,
+      "order": 235,
       "path": "platform/widget/uikit/nsWindow.mm.patch",
       "sha256": "24658dca845b46c120b06a87570fb57ba83f205abe736830434d9d1acfdc2115",
       "owner": "engine-platform",
@@ -2342,7 +2352,7 @@
       ]
     },
     {
-      "order": 235,
+      "order": 236,
       "path": "platform/xpcom/base/AvailableMemoryWatcherIOS.cpp.patch",
       "sha256": "cbbfc9290ea15feda9ea4d5fdefc5425b7f0cce9d67ef3738e4049714c0d5a53",
       "owner": "engine-platform",
@@ -2352,7 +2362,7 @@
       ]
     },
     {
-      "order": 236,
+      "order": 237,
       "path": "platform/xpcom/base/MemoryPressureLevelIOS.h.patch",
       "sha256": "f963d6da57cf1a2efa5ddfb0211a3914a3cf0d12d331d53299c27470c334edd4",
       "owner": "engine-platform",
@@ -2362,7 +2372,7 @@
       ]
     },
     {
-      "order": 237,
+      "order": 238,
       "path": "platform/xpcom/base/moz.build.patch",
       "sha256": "abfcaa43ba6304d817101013793b8201b96f2f2f62c7281a7956e83cf03c5208",
       "owner": "engine-platform",
@@ -2372,7 +2382,7 @@
       ]
     },
     {
-      "order": 238,
+      "order": 239,
       "path": "platform/xpcom/threads/TaskController.cpp.patch",
       "sha256": "70bc5f025c5ab65d7ad1e549a62b3299e0787a59fdb33040926fff5a2e8490fd",
       "owner": "engine-platform",
@@ -2382,7 +2392,7 @@
       ]
     },
     {
-      "order": 239,
+      "order": 240,
       "path": "platform/xpcom/threads/nsIThread.idl.patch",
       "sha256": "80a0160eb06e55618723c000ec437b58e956c9a7dac392197182c1bf648dcdc6",
       "owner": "engine-platform",
@@ -2392,7 +2402,7 @@
       ]
     },
     {
-      "order": 240,
+      "order": 241,
       "path": "platform/xpcom/threads/nsMemoryPressure.cpp.patch",
       "sha256": "78699020f67d026791b3fcabbe4deef45efe6531ec3a81d37a3a67fba5daa3d0",
       "owner": "engine-platform",
@@ -2402,7 +2412,7 @@
       ]
     },
     {
-      "order": 241,
+      "order": 242,
       "path": "platform/xpcom/threads/nsMemoryPressure.h.patch",
       "sha256": "74b04029b86b37e7775e6fba3d8f6057f2ea18a59392b411d3fd047ab7ede787",
       "owner": "engine-platform",
@@ -2412,7 +2422,7 @@
       ]
     },
     {
-      "order": 242,
+      "order": 243,
       "path": "platform/xpcom/threads/nsThread.cpp.patch",
       "sha256": "b749055b0aa9a5a45362a2f21a63b6d132278ea1e86d49059a3c25e9345027ac",
       "owner": "engine-platform",
@@ -2422,7 +2432,7 @@
       ]
     },
     {
-      "order": 243,
+      "order": 244,
       "path": "platform/xpcom/threads/nsThreadPool.cpp.patch",
       "sha256": "3c328a7ebd4ebe6a26a587070e04aeebdd956a554dc9477bb93680a34d47b864",
       "owner": "engine-platform",
@@ -2432,7 +2442,7 @@
       ]
     },
     {
-      "order": 244,
+      "order": 245,
       "path": "platform/xpfe/appshell/AppWindow.cpp.patch",
       "sha256": "e1104942e0f5d6f59a406509263e17b3c4c47a5c594a0e483c2ff291bd8bc015",
       "owner": "engine-platform",

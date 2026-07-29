@@ -1,5 +1,5 @@
 diff --git a/ipc/glue/GeckoChildProcessHost.h b/ipc/glue/GeckoChildProcessHost.h
-index 41d972963e3e8bffd431ac9b6afadd6061214431..3fd2e6c79fdb32b4db133b15d65ca40414255032 100644
+index 41d972963e3e8bffd431ac9b6afadd6061214431..50725c130297a27f3d128dba959dbc0cf6e27bc4 100644
 --- a/ipc/glue/GeckoChildProcessHost.h
 +++ b/ipc/glue/GeckoChildProcessHost.h
 @@ -33,7 +33,7 @@
@@ -22,7 +22,15 @@ index 41d972963e3e8bffd431ac9b6afadd6061214431..3fd2e6c79fdb32b4db133b15d65ca404
  #if defined(MOZ_SANDBOX) && defined(XP_MACOSX)
    // Start the sandbox from the child process.
    static bool StartMacSandbox(int aArgc, char** aArgv,
-@@ -268,7 +272,7 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
+@@ -200,6 +204,7 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
+   static void GetAll(const GeckoProcessCallback& aCallback);
+ 
+   friend class BaseProcessLauncher;
++  friend class IosProcessLauncher;
+   friend class PosixProcessLauncher;
+   friend class WindowsProcessLauncher;
+ 
+@@ -268,7 +273,7 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
    task_t mChildTask MOZ_GUARDED_BY(mHandleLock);
  #endif
  #if defined(MOZ_WIDGET_UIKIT)
@@ -31,3 +39,18 @@ index 41d972963e3e8bffd431ac9b6afadd6061214431..3fd2e6c79fdb32b4db133b15d65ca404
    DarwinObjectPtr<xpc_connection_t> mXPCConnection MOZ_GUARDED_BY(mHandleLock);
    UniqueBEProcessCapabilityGrant mForegroundCapabilityGrant
        MOZ_GUARDED_BY(mHandleLock);
+@@ -304,6 +309,14 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
+   // Removes the instance from sGeckoChildProcessHosts
+   void RemoveFromProcessList();
+ 
++#if defined(XP_IOS)
++  void NotifyChildLifecycle(int32_t aStage, int32_t aFailureCode,
++                            int32_t aPid, const char* aReason);
++  uint64_t mLaunchID = 0;
++  uint32_t mLifecycleStages MOZ_GUARDED_BY(mMonitor) = 0;
++  uint8_t mLifecycleOutcome MOZ_GUARDED_BY(mMonitor) = 0;
++#endif
++
+   // Mac and Windows. Set this up before we're called from a different thread.
+   nsCOMPtr<nsIFile> mProfileDir;
+ 

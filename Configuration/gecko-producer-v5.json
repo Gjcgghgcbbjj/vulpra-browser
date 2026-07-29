@@ -14,7 +14,8 @@
   "requiredExports": [
     "_MainProcessInit",
     "_GeckoViewOpenWindow",
-    "_ChildProcessInit"
+    "_ChildProcessInit",
+    "_GeckoChildProcessDidChange"
   ],
   "forbiddenRuntimeTokens": [
     "jit-ready-fd",

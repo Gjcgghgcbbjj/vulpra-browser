@@ -1,19 +1,64 @@
 diff --git a/toolkit/xre/IOSBootstrap.mm b/toolkit/xre/IOSBootstrap.mm
-index 264320aed775724391b3f1ed6487da7e1cc0539f..5077de39e1541acefcb252ffb23af0062f6670e1 100644
+index 264320aed775724391b3f1ed6487da7e1cc0539f..308cb60b7fb2609be88b0216736ef77370953135 100644
 --- a/toolkit/xre/IOSBootstrap.mm
 +++ b/toolkit/xre/IOSBootstrap.mm
-@@ -10,8 +10,10 @@
+@@ -9,9 +9,13 @@
+ #include "mozilla/DarwinObjectPtr.h"
  #include "mozilla/GeckoArgs.h"
  #include "mozilla/widget/GeckoViewSupport.h"
++#include "js/Initialization.h"
  #include "nsDebug.h"
 +#include "nsIThreadManager.h"
  #include "nsPrintfCString.h"
  #include "XREChildData.h"
 +#include <pthread.h>
++#include <time.h>
  
  #include "application.ini.h"
  
-@@ -117,6 +119,45 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+@@ -27,6 +31,32 @@ id<GeckoProcessExtension> mozilla::widget::GetCurrentProcessExtension() {
+   return gCurrentProcessExtension;
+ }
+ 
++void GeckoChildProcessDidChange(uint64_t aLaunchID, int32_t aChildID,
++                                int32_t aPid, const char* aProcessType,
++                                int32_t aStage, int32_t aFailureCode,
++                                const char* aReason) {
++  if (!gRuntime || !aProcessType) {
++    return;
++  }
++  struct timespec now;
++  if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
++    return;
++  }
++  uint64_t timestamp = static_cast<uint64_t>(now.tv_sec) * 1000000000ULL +
++                       static_cast<uint64_t>(now.tv_nsec);
++  NSString* processType = [NSString stringWithUTF8String:aProcessType];
++  NSString* reason = aReason ? [NSString stringWithUTF8String:aReason] : nil;
++  [gRuntime childProcessDidChangeWithLaunchID:aLaunchID
++                                      childID:aChildID
++                                          pid:aPid
++                                  processType:processType
++                                        stage:(GeckoChildProcessStage)aStage
++               monotonicTimestampNanoseconds:timestamp
++                                  failureCode:
++                                      (GeckoChildProcessFailureCode)aFailureCode
++                                       reason:reason];
++}
++
+ int MainProcessInit(int aArgc, char** aArgv,
+                     id<SwiftGeckoViewRuntime> aRuntime) {
+   auto bootstrap = mozilla::GetBootstrap();
+@@ -106,6 +136,8 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+ 
+   mozilla::SetGeckoChildID(aArgv[aArgc - 2]);
+ 
++  JS::DisableJitBackend();
++
+ #if defined(MOZ_MEMORY)
+   jemalloc_reset_small_alloc_randomization(
+       /* aRandomizeSmall */ !XRE_IsContentProcess());
+@@ -117,6 +149,45 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
    return NS_FAILED(rv);
  }
  
@@ -59,7 +104,7 @@ index 264320aed775724391b3f1ed6487da7e1cc0539f..5077de39e1541acefcb252ffb23af006
  void HandleBootstrapMessage(xpc_object_t aEvent) {
    // Set up stdout and stderr if they were provided.
    int fd = xpc_dictionary_dup_fd(aEvent, "stdout");
-@@ -198,6 +239,7 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
+@@ -198,6 +269,7 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
    }
    argv[argc] = nullptr;
  

@@ -20,7 +20,12 @@ TARGETS = {
     "iphoneos": "aarch64-apple-ios",
     "iphonesimulator": "aarch64-apple-ios-sim",
 }
-REQUIRED_EXPORTS = {"_MainProcessInit", "_GeckoViewOpenWindow", "_ChildProcessInit"}
+REQUIRED_EXPORTS = {
+    "_MainProcessInit",
+    "_GeckoViewOpenWindow",
+    "_ChildProcessInit",
+    "_GeckoChildProcessDidChange",
+}
 REQUIRED_FORBIDDEN_TOKENS = {
     "jit-ready-fd",
     "ReportJITStatusForChild",

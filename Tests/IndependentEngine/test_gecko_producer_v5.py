@@ -14,6 +14,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[2]
 VERIFIER = ROOT / "Tools/GeckoProducer/verify-producer.py"
 CONTRACT = ROOT / "Configuration/gecko-producer-v5.json"
+SERIES = ROOT / "Engine/GeckoPatches/v5/series.json"
 
 
 def require(condition: bool, message: str) -> None:
@@ -35,7 +36,10 @@ def valid_contract() -> dict[str, object]:
             "iphoneos": "aarch64-apple-ios",
             "iphonesimulator": "aarch64-apple-ios-sim",
         },
-        "requiredExports": ["_MainProcessInit", "_GeckoViewOpenWindow", "_ChildProcessInit"],
+        "requiredExports": [
+            "_MainProcessInit", "_GeckoViewOpenWindow", "_ChildProcessInit",
+            "_GeckoChildProcessDidChange",
+        ],
         "forbiddenRuntimeTokens": [
             "jit-ready-fd",
             "ReportJITStatusForChild",
@@ -100,6 +104,59 @@ def write_full_fixture(root: Path) -> Path:
     series_path = root / "Engine/GeckoPatches/v5/series.json"
     series_path.write_text(json.dumps(series, indent=2) + "\n", encoding="utf-8")
     return contract_path
+
+
+def checked_in_patch(upstream_path: str) -> str:
+    series = json.loads(SERIES.read_text(encoding="utf-8"))
+    matching = [entry for entry in series["patches"]
+                if entry["upstreamPaths"] == [upstream_path]]
+    require(len(matching) == 1, f"missing unique patch for {upstream_path}")
+    return (SERIES.parent / matching[0]["path"]).read_text(encoding="utf-8")
+
+
+def verify_lifecycle_source_contract() -> None:
+    host_header = checked_in_patch("ipc/glue/GeckoChildProcessHost.h")
+    host = checked_in_patch("ipc/glue/GeckoChildProcessHost.cpp")
+    bootstrap_header = checked_in_patch("toolkit/xre/IOSBootstrap.h")
+    bootstrap = checked_in_patch("toolkit/xre/IOSBootstrap.mm")
+    swift = checked_in_patch("widget/uikit/GeckoViewSwiftSupport.h")
+    combined = "\n".join((host_header, host, bootstrap_header, bootstrap, swift))
+
+    for token in (
+        "GeckoChildProcessRequested = 1",
+        "GeckoChildProcessExtensionConnected = 2",
+        "GeckoChildProcessBootstrapAcknowledged = 3",
+        "GeckoChildProcessIPCConnected = 4",
+        "GeckoChildProcessFailed = 5",
+        "GeckoChildProcessTerminated = 6",
+        "GeckoChildProcessLifecycleObserver",
+        "childProcessDidChangeWithLaunchID",
+        "monotonicTimestampNanoseconds",
+        "GeckoChildProcessDidChange",
+        "CLOCK_MONOTONIC",
+        "JS::DisableJitBackend()",
+        "mLaunchID = ++gLaunchCounter",
+        "mLifecycleStages",
+        "mLifecycleOutcome",
+    ):
+        require(token in combined, f"typed Gecko lifecycle is missing {token!r}")
+
+    owner_pairs = (
+        ("GeckoChildProcessHost::AsyncLaunch", "kChildRequested"),
+        ("NSExtensionProcess::StartProcess", "kChildExtensionConnected"),
+        ("NSExtensionProcess::BootstrapReplyPID", "kChildBootstrapAcknowledged"),
+        ("GeckoChildProcessHost::OnProcessLaunchError", "kChildFailed"),
+        ("GeckoChildProcessHost::OnChannelConnected", "kChildIPCConnected"),
+        ("GeckoChildProcessHost::~GeckoChildProcessHost", "kChildTerminated"),
+    )
+    for owner, stage in owner_pairs:
+        require(owner in host and stage in host and host.index(owner) < host.rindex(stage),
+                f"{stage} is not emitted by {owner}")
+    for forbidden in (
+        "jit-ready-fd", "ReportJITStatusForChild", "WaitForJITReadySignal",
+        "RuntimeJITCoordinator", "childProcessDidStartWithPID", "ptrace", "task_for_pid",
+    ):
+        require(forbidden not in combined, f"retired lifecycle token remains: {forbidden}")
 
 
 def main() -> None:
@@ -214,6 +271,7 @@ def main() -> None:
 
     result = run_contract(CONTRACT)
     require(result.returncode == 0, result.stderr or result.stdout)
+    verify_lifecycle_source_contract()
     print("PASS: Gecko producer v5 contract fixtures")
 
 
