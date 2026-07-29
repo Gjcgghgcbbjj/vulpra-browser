@@ -73,8 +73,10 @@ jobs:
           python3 Tools/GeckoProducer/verify-producer.py \
             --contract Configuration/gecko-producer-v5.json \
             | tee gecko-${{ matrix.platform }}-patch-verification.log
-          ./Tests/IndependentEngine/run-portable.sh \
+          python3 Tests/IndependentEngine/test_gecko_producer_v5.py \
             | tee gecko-${{ matrix.platform }}-portable.log
+          python3 Tests/IndependentEngine/test_gecko_producer_tools.py \
+            | tee -a gecko-${{ matrix.platform }}-portable.log
 
       - name: Fetch and patch pinned Firefox
         shell: bash
