@@ -78,6 +78,18 @@ final class VulpraEngineKitTests: XCTestCase {
         XCTAssertEqual(lifecycle.state, .closed)
     }
 
+    func testInitialNavigationWaitsForDocumentReadinessAndCoalescesRequests() {
+        var gate = EngineInitialNavigationGate()
+        let first = EngineNavigationRequest(url: URL(string: "https://first.example/")!)
+        let latest = EngineNavigationRequest(url: URL(string: "https://latest.example/")!)
+
+        XCTAssertNil(gate.stage(first))
+        XCTAssertNil(gate.stage(latest))
+        XCTAssertEqual(gate.becomeReady(), latest)
+        XCTAssertNil(gate.becomeReady())
+        XCTAssertEqual(gate.stage(first), first)
+    }
+
     func testNavigationLoadErrorPreservesURLAndCoalescesFailedPageStop() {
         let runtime = VulpraEngineRuntime()
         let session = VulpraEngineSession(runtime: runtime, configuration: .init(

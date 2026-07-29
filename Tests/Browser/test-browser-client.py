@@ -77,16 +77,8 @@ def main() -> None:
     require(progress_handler is not None, "BrowserTab progress handler is missing")
     require("browserTabPersistableStateDidChange" not in progress_handler.group(0),
             "transient progress events still enter tab persistence")
-    activation_helper = re.search(
-        r"func reassertActivationIfNeeded\(_ active: Bool\) \{.+?\n    \}",
-        tab,
-        flags=re.DOTALL,
-    )
-    require("private var didReassertActivationForLoad = false" in tab and
-            activation_helper is not None and
-            "guard isLoading, !didReassertActivationForLoad else { return }" in activation_helper.group(0) and
-            progress_handler.group(0).count("didReassertActivationForLoad = false") == 1,
-            "BrowserTab does not rearm Gecko activation exactly once at each load start")
+    require("reassertActivationIfNeeded" not in tab,
+            "BrowserTab retains the UI-layer activation workaround")
     manager = source("App/Browser/TabManager.swift")
     require("lastPersistedTabs" in manager and "snapshot != lastPersistedTabs" in manager,
             "transient page events still enqueue redundant full tab-store writes")
@@ -95,10 +87,10 @@ def main() -> None:
             "browserTabDidChange" not in manager,
             "TabManager does not route presentation and content events separately")
     controller = source("App/Browser/BrowserViewController.swift")
+    require("reassertActivationIfNeeded" not in controller,
+            "BrowserViewController retains the UI-layer activation workaround")
     require("guard attachedEngineView !== engineView else { return }" in controller,
             "browser repeatedly reactivates or detaches the active engine view")
-    require("tab.reassertActivationIfNeeded(isSceneActive)" in controller,
-            "browser does not reassert Gecko activation at the top-level load boundary")
     require("DispatchQueue.main.async { [weak self, weak tab] in" in controller,
             "browser activates a newly attached view before queued navigation is flushed")
     require("suggestionWorkItem?.cancel()" in controller and

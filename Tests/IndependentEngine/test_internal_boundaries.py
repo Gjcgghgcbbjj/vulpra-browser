@@ -25,6 +25,7 @@ def main() -> None:
     decoder = read("Engine/VulpraEngineProcess/EngineProcessDecoder.m")
     bootstrap = read("Engine/VulpraEngineProcess/EngineProcessBootstrap.swift")
     process_extension = read("Engine/VulpraEngineProcess/EngineProcessExtension.swift")
+    session = read("Engine/VulpraEngineKit/Internal/Session/VulpraEngineSession.swift")
     info_path = PROCESS / "Info.plist"
     require(info_path.is_file(), "missing Engine/VulpraEngineProcess/Info.plist")
 
@@ -64,6 +65,10 @@ def main() -> None:
             "retired normalized-data endpoint path remains in the process extension")
     require("Vulpra Engine Process connected" in process_extension,
             "process host lacks runtime connection evidence")
+    require("struct EngineInitialNavigationGate" in session and
+            "initialNavigationGate.stage(request)" in session and
+            "initialNavigationGate.becomeReady()" in session,
+            "EngineKit does not stage cold-start navigation until initial document readiness")
 
     for root in (ROOT / "App", ROOT / "Engine/VulpraEngineKit/Public"):
         for path in root.rglob("*"):
