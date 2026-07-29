@@ -66,9 +66,20 @@ def resolve_build_identity(platform: str) -> tuple[str, str]:
     return match.group(1), sdk_output
 
 
-def ensure_regular_file(path: Path, label: str) -> None:
-    if not path.is_file() or path.is_symlink():
+def ensure_regular_file(
+    path: Path, label: str, *, allowed_symlink_root: Path | None = None
+) -> Path:
+    if not path.is_file():
         fail(f"missing or unsafe {label}: {path}")
+    if not path.is_symlink():
+        return path
+    if allowed_symlink_root is None:
+        fail(f"missing or unsafe {label}: {path}")
+    resolved = path.resolve(strict=True)
+    root = allowed_symlink_root.resolve(strict=True)
+    if not resolved.is_file() or not resolved.is_relative_to(root):
+        fail(f"symlinked {label} resolves outside Gecko source: {path}")
+    return resolved
 
 
 def resource_files(dist: Path) -> Iterable[tuple[str, Path]]:
@@ -82,8 +93,13 @@ def resource_files(dist: Path) -> Iterable[tuple[str, Path]]:
         yield f"runtime/resources/{relative}", path
 
 
-def add_payload(payload: dict[str, Path], archive_path: str, source: Path) -> None:
-    ensure_regular_file(source, archive_path)
+def add_payload(
+    payload: dict[str, Path], archive_path: str, source: Path,
+    *, allowed_symlink_root: Path | None = None,
+) -> None:
+    source = ensure_regular_file(
+        source, archive_path, allowed_symlink_root=allowed_symlink_root
+    )
     if archive_path in payload:
         fail(f"duplicate artifact path: {archive_path}")
     payload[archive_path] = source
@@ -192,6 +208,7 @@ def main() -> int:
         if verification.returncode != 0:
             return verification.returncode
         ensure_regular_file(args.mozconfig, "mozconfig")
+        source = args.mozconfig.parent
         payload: dict[str, Path] = {}
         add_payload(payload, "runtime/bin/XUL", args.dist / "bin/XUL")
         dylibs = sorted(set((args.dist / "bin").glob("*.dylib")) |
@@ -201,11 +218,13 @@ def main() -> int:
         for dylib in dylibs:
             add_payload(payload, f"runtime/lib/{dylib.name}", dylib)
         for header in HEADERS:
-            add_payload(payload, f"runtime/include/{header}", args.dist / "include" / header)
+            add_payload(
+                payload, f"runtime/include/{header}", args.dist / "include" / header,
+                allowed_symlink_root=source,
+            )
         for relative, resource in resource_files(args.dist):
             add_payload(payload, relative, resource)
 
-        source = args.mozconfig.parent
         license_candidates = (source / "LICENSE", source / "MPL-2.0.txt")
         license_path = next((path for path in license_candidates if path.is_file()), None)
         if license_path is None:

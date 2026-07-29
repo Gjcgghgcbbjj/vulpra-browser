@@ -187,10 +187,12 @@ def test_package(base: Path) -> None:
     write(dist / "bin/XUL", b"native-simulator-XUL", executable=True)
     write(dist / "bin/libmozglue.dylib", b"native-simulator-dylib", executable=True)
     write(dist / "bin/application.ini", "[App]\nName=Vulpra\n")
-    for header in (
-        "GeckoViewSwiftSupport.h", "IOSBootstrap.h"
-    ):
-        write(dist / f"include/GeckoView/{header}", f"// {header}\n")
+    exported_header = source / "widget/uikit/GeckoViewSwiftSupport.h"
+    write(exported_header, "// GeckoViewSwiftSupport.h\n")
+    exported_path = dist / "include/GeckoView/GeckoViewSwiftSupport.h"
+    exported_path.parent.mkdir(parents=True, exist_ok=True)
+    exported_path.symlink_to(exported_header)
+    write(dist / "include/GeckoView/IOSBootstrap.h", "// IOSBootstrap.h\n")
 
     environment = os.environ.copy()
     for name in ("GITHUB_ACTIONS", "GITHUB_SHA", "GITHUB_RUN_ID"):
@@ -229,6 +231,20 @@ def test_package(base: Path) -> None:
             manifest["build"]["mozconfigSHA256"] == hashlib.sha256(mozconfig.read_bytes()).hexdigest() and
             manifest["producer"]["workflowRunId"] == 0,
             "artifact manifest lost producer content identity")
+
+    exported_path.unlink()
+    outside_header = base / "outside-header.h"
+    write(outside_header, "// outside\n")
+    exported_path.symlink_to(outside_header)
+    result = run([
+        "python3", str(PACKAGE), "--contract", str(CONTRACT),
+        "--platform", "iphonesimulator", "--dist", str(dist),
+        "--mozconfig", str(mozconfig), "--output", str(base / "escaped.tar.gz"),
+    ], env=environment)
+    require(result.returncode != 0 and "resolves outside Gecko source" in result.stderr,
+            "packaging accepted an exported header link outside the pinned source")
+    exported_path.unlink()
+    write(exported_path, "// GeckoViewSwiftSupport.h\n")
 
     (dist / "bin/unsafe-resource").symlink_to("application.ini")
     result = run([
