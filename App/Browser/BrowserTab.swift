@@ -39,6 +39,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     private(set) var canGoForward = false
     private(set) var progress = 0
     private(set) var isLoading = false
+    private var didReassertActivationForLoad = false
     private(set) var lastFailure: EngineFailure?
     private(set) var httpFallbackURL: URL?
     private(set) var lastAccess: Date
@@ -148,6 +149,11 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     }
 
     func setActive(_ active: Bool) { session?.setActive(active); session?.setFocused(active) }
+    func reassertActivationIfNeeded(_ active: Bool) {
+        guard isLoading, !didReassertActivationForLoad else { return }
+        didReassertActivationForLoad = true
+        setActive(active)
+    }
     func goBack() { session?.goBack() }
     func goForward() { session?.goForward() }
     func reload() { session?.reload() }
@@ -175,7 +181,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     func engineSession(_ id: EngineSessionID, didUpdate event: EngineProgressEvent) {
         switch event {
         case .started:
-            lastFailure = nil; isLoading = true; progress = 4
+            lastFailure = nil; isLoading = true; progress = 4; didReassertActivationForLoad = false
         case .changed(_, let fraction):
             progress = min(100, max(0, Int(fraction * 100)))
         case .completed(_, let succeeded):

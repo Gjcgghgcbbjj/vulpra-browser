@@ -278,6 +278,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     }
     private func updatePresentation(for tab: BrowserTab, in manager: TabManager) {
         guard tab === manager.selectedTab else { return }; chrome.update(tab: tab, tabCount: manager.tabs.count)
+        tab.reassertActivationIfNeeded(isSceneActive)
         if !tab.isLoading { recordHistoryIfNeeded(for: tab) }
     }
     private func recordHistoryIfNeeded(for tab: BrowserTab?) {

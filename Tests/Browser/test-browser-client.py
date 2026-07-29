@@ -77,6 +77,10 @@ def main() -> None:
     require(progress_handler is not None, "BrowserTab progress handler is missing")
     require("browserTabPersistableStateDidChange" not in progress_handler.group(0),
             "transient progress events still enter tab persistence")
+    require("didReassertActivationForLoad" in tab and
+            "func reassertActivationIfNeeded(_ active: Bool)" in tab and
+            "didReassertActivationForLoad = false" in progress_handler.group(0),
+            "BrowserTab does not bound Gecko activation reassertion to one dispatch per load")
     manager = source("App/Browser/TabManager.swift")
     require("lastPersistedTabs" in manager and "snapshot != lastPersistedTabs" in manager,
             "transient page events still enqueue redundant full tab-store writes")
@@ -87,6 +91,8 @@ def main() -> None:
     controller = source("App/Browser/BrowserViewController.swift")
     require("guard attachedEngineView !== engineView else { return }" in controller,
             "browser repeatedly reactivates or detaches the active engine view")
+    require("tab.reassertActivationIfNeeded(isSceneActive)" in controller,
+            "browser does not reassert Gecko activation at the top-level load boundary")
     require("DispatchQueue.main.async { [weak self, weak tab] in" in controller,
             "browser activates a newly attached view before queued navigation is flushed")
     require("suggestionWorkItem?.cancel()" in controller and
