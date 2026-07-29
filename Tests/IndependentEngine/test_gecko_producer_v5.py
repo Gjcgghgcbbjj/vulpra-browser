@@ -158,6 +158,10 @@ def verify_lifecycle_source_contract() -> None:
     ):
         require(forbidden not in combined, f"retired lifecycle token remains: {forbidden}")
 
+    toolchain = checked_in_patch("build/moz.configure/toolchain.configure")
+    for token in ('linker == "ld64"', 'target.kernel == "Darwin"', '"--version" in stderr'):
+        require(token in toolchain, f"Xcode 26 ld64 compatibility patch is missing {token!r}")
+
 
 def main() -> None:
     require(VERIFIER.is_file(), "missing Tools/GeckoProducer/verify-producer.py")

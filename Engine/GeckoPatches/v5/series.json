@@ -2450,6 +2450,16 @@
       "upstreamPaths": [
         "xpfe/appshell/AppWindow.cpp"
       ]
+    },
+    {
+      "order": 246,
+      "path": "platform/build/moz.configure/toolchain.configure.patch",
+      "sha256": "1ff6599a180983c63d7fc755eac0508a0ad7720b869eed59cc30b3ac011689ca",
+      "owner": "engine-platform",
+      "purpose": "Recognize the explicitly selected Xcode 26 ld64 linker for native iOS builds.",
+      "upstreamPaths": [
+        "build/moz.configure/toolchain.configure"
+      ]
     }
   ]
 }

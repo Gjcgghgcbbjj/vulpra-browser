@@ -146,6 +146,7 @@ def test_build(base: Path) -> None:
         require(f"--target={triple}" in contents and
                 "--enable-application=mobile/ios" in contents and
                 "--enable-ios-target=15.0" in contents and
+                "--enable-linker=ld64" in contents and
                 "--enable-optimize" in contents and
                 "--disable-debug" in contents and
                 "--disable-tests" in contents,

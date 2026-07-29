@@ -53,6 +53,7 @@ mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-$TARGET
 ac_add_options --enable-application=mobile/ios
 ac_add_options --target=$TARGET
 ac_add_options --enable-ios-target=15.0
+ac_add_options --enable-linker=ld64
 ac_add_options --enable-optimize
 ac_add_options --disable-debug
 ac_add_options --disable-tests
