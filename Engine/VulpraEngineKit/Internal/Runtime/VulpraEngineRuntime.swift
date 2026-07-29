@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 @MainActor
 public final class VulpraEngineRuntime: EngineRuntime {
@@ -9,6 +10,10 @@ public final class VulpraEngineRuntime: EngineRuntime {
     private var observers: [UUID: @MainActor (ReadyResult) -> Void] = [:]
     private var startupTimeoutTask: Task<Void, Never>?
     private let startupTimeoutNanoseconds: UInt64
+    private var childProcesses = EngineChildProcessLifecycle()
+    private static let childLogger = Logger(
+        subsystem: "com.vulpra.browser.engine-kit", category: "child-lifecycle"
+    )
 
     public convenience init() {
         self.init(startupTimeoutNanoseconds: 20_000_000_000)
@@ -111,7 +116,9 @@ public final class VulpraEngineRuntime: EngineRuntime {
         let owner = EngineABIContext(self)
         let context = Unmanaged.passUnretained(owner).toOpaque()
         handle = withExtendedLifetime(owner) {
-            engineABIRuntimeCreate(context, vulpraRuntimeEventHandler)
+            engineABIRuntimeCreate(
+                context, vulpraRuntimeEventHandler, vulpraRuntimeChildProcessHandler
+            )
         }
         if handle == nil {
             markFailed(EngineFailure(
@@ -153,8 +160,11 @@ public final class VulpraEngineRuntime: EngineRuntime {
                 return
             }
             guard let self, case .starting = self.lifecycle.state else { return }
+            let openLaunches = self.childProcesses.openLaunchIDs.map(String.init).joined(separator: ",")
             self.markFailed(EngineFailure(
-                code: "runtime-start-timeout", message: "Engine startup timed out", isRecoverable: true
+                code: "engine-bootstrap-timeout",
+                message: "Engine bootstrap timed out; open child launches: [\(openLaunches)]",
+                isRecoverable: true
             ))
         }
     }
@@ -175,6 +185,29 @@ public final class VulpraEngineRuntime: EngineRuntime {
         default: break
         }
         resolve(callback, value: NSNull())
+    }
+
+    fileprivate func handleChildProcess(_ event: EngineChildProcessEvent) {
+        let failure = childProcesses.accept(event)
+        let safeReason = event.reason.flatMap { reason -> String? in
+            let lowered = reason.lowercased()
+            return reason.utf8.count <= 160 && !lowered.contains("://") && !lowered.contains("www.")
+                ? reason : nil
+        }
+        Self.childLogger.notice(
+            "launch=\(event.launchID) child=\(event.childID) type=\(event.processType, privacy: .public) pid=\(event.processIdentifier ?? 0) stage=\(event.stage.rawValue) monotonic_ns=\(event.monotonicTimestampNanoseconds) failure=\(event.failureCode.rawValue) reason=\(safeReason ?? "none", privacy: .public)"
+        )
+        guard let failure else { return }
+        if case .starting = lifecycle.state {
+            markFailed(failure)
+        }
+    }
+
+    fileprivate func handleUnknownChildProcessStage(_ rawStage: Int32, launchID: UInt64) {
+        let failure = childProcesses.rejectUnknownStage(rawStage, launchID: launchID)
+        if case .starting = lifecycle.state {
+            markFailed(failure)
+        }
     }
 
     static var capabilities: EngineCapabilities {
@@ -199,6 +232,36 @@ private let vulpraRuntimeEventHandler: EngineABIEventHandler = { context, type, 
     let eventMessage = bridgeObject(message)
     DispatchQueue.main.async {
         runtime.handle(type: eventType, message: eventMessage, callback: lease)
+    }
+}
+
+private let vulpraRuntimeChildProcessHandler: EngineABIChildProcessHandler = {
+    context, launchID, childID, pid, processType, rawStage, timestamp, rawFailure, reason in
+    guard let context else { return }
+    let owner = Unmanaged<EngineABIContext<VulpraEngineRuntime>>
+        .fromOpaque(context).takeUnretainedValue()
+    let runtime = owner.value
+    let processTypeValue = bridgeString(processType)
+    let reasonValue = reason.map(bridgeString)
+    guard let stage = EngineChildProcessStage(rawValue: rawStage),
+          let failureCode = EngineChildProcessFailureCode(rawValue: rawFailure) else {
+        DispatchQueue.main.async {
+            runtime.handleUnknownChildProcessStage(rawStage, launchID: launchID)
+        }
+        return
+    }
+    let event = EngineChildProcessEvent(
+        launchID: launchID,
+        childID: childID,
+        processIdentifier: pid == 0 ? nil : pid,
+        processType: processTypeValue,
+        stage: stage,
+        monotonicTimestampNanoseconds: timestamp,
+        failureCode: failureCode,
+        reason: reasonValue
+    )
+    DispatchQueue.main.async {
+        runtime.handleChildProcess(event)
     }
 }
 

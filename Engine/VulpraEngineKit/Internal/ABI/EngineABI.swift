@@ -52,10 +52,15 @@ func takeCallback(_ pointer: UnsafeMutableRawPointer?) -> EngineABICallbackLease
 typealias EngineABIEventHandler = @convention(c) (
     UnsafeMutableRawPointer?, UnsafeRawPointer, UnsafeRawPointer?, UnsafeMutableRawPointer?
 ) -> Void
+typealias EngineABIChildProcessHandler = @convention(c) (
+    UnsafeMutableRawPointer?, UInt64, Int32, Int32, UnsafeRawPointer, Int32,
+    UInt64, Int32, UnsafeRawPointer?
+) -> Void
 
 @_silgen_name("VEKRuntimeCreate")
 func engineABIRuntimeCreate(
-    _ context: UnsafeMutableRawPointer?, _ handler: EngineABIEventHandler
+    _ context: UnsafeMutableRawPointer?, _ eventHandler: EngineABIEventHandler,
+    _ childProcessHandler: EngineABIChildProcessHandler?
 ) -> UnsafeMutableRawPointer?
 
 @_silgen_name("VEKRuntimeMain")

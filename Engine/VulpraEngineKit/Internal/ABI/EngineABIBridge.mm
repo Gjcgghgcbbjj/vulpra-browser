@@ -159,18 +159,41 @@ extern "C" {
 @interface VEKRuntime : NSObject <SwiftGeckoViewRuntime>
 @property(nonatomic, strong) VEKDispatcher *runtimeDispatcherOwner;
 @property(nonatomic, strong) NSMutableDictionary<NSString *, VEKDispatcher *> *named;
+@property(nonatomic) VulpraEngineChildProcessHandler childProcessHandler;
 @end
 
 @implementation VEKRuntime
 - (instancetype)initWithContext:(id)context
-                         handler:(VulpraEngineEventHandler)handler {
+                    eventHandler:(VulpraEngineEventHandler)eventHandler
+             childProcessHandler:
+                 (VulpraEngineChildProcessHandler)childProcessHandler {
   self = [super init];
   if (self) {
     _runtimeDispatcherOwner = [[VEKDispatcher alloc] initWithContext:context
-                                                            handler:handler];
+                                                            handler:eventHandler];
     _named = [NSMutableDictionary dictionary];
+    _childProcessHandler = childProcessHandler;
   }
   return self;
+}
+- (void)childProcessDidChangeWithLaunchID:(uint64_t)launchID
+                                  childID:(int32_t)childID
+                                      pid:(int32_t)pid
+                              processType:(NSString *)processType
+                                    stage:(GeckoChildProcessStage)stage
+             monotonicTimestampNanoseconds:
+                 (uint64_t)monotonicTimestampNanoseconds
+                              failureCode:
+                                  (GeckoChildProcessFailureCode)failureCode
+                                   reason:(NSString *)reason {
+  VulpraEngineChildProcessHandler handler = _childProcessHandler;
+  id context = _runtimeDispatcherOwner.context;
+  if (handler && context) {
+    handler((__bridge void *)context, launchID, childID, pid,
+            (__bridge const void *)[processType copy], (int32_t)stage,
+            monotonicTimestampNanoseconds, (int32_t)failureCode,
+            reason ? (__bridge const void *)[reason copy] : nullptr);
+  }
 }
 - (id<SwiftEventDispatcher>)runtimeDispatcher { return _runtimeDispatcherOwner; }
 - (id<SwiftEventDispatcher>)dispatcherByName:(const char *)name {
@@ -220,9 +243,13 @@ extern "C" {
 - (xpc_connection_t)_xpcConnection;
 @end
 
-void *VEKRuntimeCreate(void *context, VulpraEngineEventHandler handler) {
+void *VEKRuntimeCreate(void *context, VulpraEngineEventHandler eventHandler,
+                       VulpraEngineChildProcessHandler childProcessHandler) {
   id owner = context ? (__bridge id)context : nil;
-  VEKRuntime *runtime = [[VEKRuntime alloc] initWithContext:owner handler:handler];
+  VEKRuntime *runtime =
+      [[VEKRuntime alloc] initWithContext:owner
+                            eventHandler:eventHandler
+                     childProcessHandler:childProcessHandler];
   return (__bridge_retained void *)runtime;
 }
 
@@ -285,8 +312,10 @@ bool VEKChildProcessStart(void *connection, void *context,
   xpc_connection_t xpc = [owner _xpcConnection];
   if (!xpc) return false;
   id contextOwner = context ? (__bridge id)context : nil;
-  VEKRuntime *runtime = [[VEKRuntime alloc] initWithContext:contextOwner
-                                                   handler:handler];
+  VEKRuntime *runtime =
+      [[VEKRuntime alloc] initWithContext:contextOwner
+                            eventHandler:handler
+                     childProcessHandler:nullptr];
   VEKProcess *process = [VEKProcess new];
   ChildProcessInit(xpc, process, runtime);
   objc_setAssociatedObject(owner, @selector(_xpcConnection),

@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#include <stdint.h>
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -10,13 +11,20 @@ typedef void (*VulpraEngineEventHandler)(void *_Nullable context,
                                          const void *type,
                                          const void *_Nullable message,
                                          void *_Nullable callback);
+typedef void (*VulpraEngineChildProcessHandler)(
+    void *_Nullable context, uint64_t launchID, int32_t childID, int32_t pid,
+    const void *processType, int32_t stage,
+    uint64_t monotonicTimestampNanoseconds, int32_t failureCode,
+    const void *_Nullable reason);
 
 // Type and message values are borrowed for the duration of the handler call.
 // Callback values are owned handoffs and must be consumed exactly once by
 // VEKCallbackResolve, including cancellation paths.
 
 void *_Nullable VEKRuntimeCreate(void *_Nullable context,
-                                 VulpraEngineEventHandler handler);
+                                 VulpraEngineEventHandler eventHandler,
+                                 VulpraEngineChildProcessHandler _Nullable
+                                     childProcessHandler);
 int32_t VEKRuntimeMain(void *runtime, int32_t argc,
                        char *_Nullable *_Nonnull argv);
 void VEKRuntimeDispatch(void *runtime, const void *type,
