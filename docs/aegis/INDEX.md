@@ -130,3 +130,4 @@
 | 2026-07-29 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-final-package-delivery-30398876901.json | 2026-07-26-vulpra-independent-engine-completion evidence final-package-delivery-30398876901 |
 | 2026-07-29 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-loopback-executable-rendering-30389904599.json | 2026-07-26-vulpra-independent-engine-completion evidence loopback-executable-rendering-30389904599 |
 | 2026-07-29 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-hosted-simulator-rerun-drift-30393594180-30397230869.json | 2026-07-26-vulpra-independent-engine-completion evidence hosted-simulator-rerun-drift-30393594180-30397230869 |
+| 2026-07-29 | spec | docs/aegis/specs/2026-07-29-vulpra-power-browser-architecture-design.md | Vulpra Power Browser Product and Platform Architecture |
