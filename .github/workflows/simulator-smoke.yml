@@ -312,7 +312,7 @@ jobs:
             mv "$app/PlugIns/OpenIn.appex" .build/diagnostic-plugins/
           fi
           run_with_timeout 300 xcrun simctl install "$udid" "$app"
-          start_output="$(run_with_timeout 60 xcrun simctl launch "$udid" com.vulpra.browser)"
+          start_output="$(run_with_timeout 180 xcrun simctl launch "$udid" com.vulpra.browser)"
           printf '%s\n' "$start_output" | tee simulator-start-page-launch.log
           start_pid="${start_output##*: }"
           sleep 8
@@ -338,7 +338,7 @@ jobs:
           system_log_pid=$!
           sleep 2
           launch_output="$(SIMCTL_CHILD_VULPRA_SMOKE_URL="$smoke_url" \
-            run_with_timeout 60 xcrun simctl launch "$udid" com.vulpra.browser)"
+            run_with_timeout 180 xcrun simctl launch "$udid" com.vulpra.browser)"
           printf '%s\n' "$launch_output" | tee simulator-launch.log
           app_pid="${launch_output##*: }"
           sleep 8

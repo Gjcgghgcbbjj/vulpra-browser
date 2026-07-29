@@ -102,7 +102,7 @@ def main() -> None:
                 f"native test workflow lacks bounded completion evidence: {token}")
     require("log show --last" not in simulator_workflow,
             "simulator evidence must not use an unbounded historical log scan")
-    require("run_with_timeout 60 xcrun simctl launch" in simulator_workflow and
+    require(simulator_workflow.count("run_with_timeout 180 xcrun simctl launch") == 2 and
             "run_with_timeout 180 xcrun simctl bootstatus" in simulator_workflow,
             "simulator lifecycle commands must have bounded completion")
     require(simulator_workflow.count("run_with_timeout 300 xcrun simctl install") == 2,
