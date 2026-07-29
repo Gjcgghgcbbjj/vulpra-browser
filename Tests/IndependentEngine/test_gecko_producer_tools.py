@@ -170,6 +170,8 @@ def test_package(base: Path) -> None:
         write(dist / f"include/GeckoView/{header}", f"// {header}\n")
 
     environment = os.environ.copy()
+    for name in ("GITHUB_ACTIONS", "GITHUB_SHA", "GITHUB_RUN_ID"):
+        environment.pop(name, None)
     environment.update({
         "VULPRA_XCODE_BUILD": "17E202",
         "VULPRA_SDK_BUILD": "23E252",

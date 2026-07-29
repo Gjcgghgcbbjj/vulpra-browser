@@ -6,6 +6,8 @@ on:
       - fix/browser-performance-20260729
     paths:
       - .github/workflows/produce-gecko-v5.yml
+      - Engine/GeckoPatches/v5/**
+      - Tests/IndependentEngine/test_gecko_producer_tools.py
   workflow_dispatch:
     inputs:
       release_tag:
