@@ -248,6 +248,8 @@ def main() -> None:
         "runs-on: macos-26",
         "platform: [iphoneos, iphonesimulator]",
         "/Applications/Xcode_26.4.1.app",
+        "cargo install cbindgen --version 0.29.1 --locked",
+        "test \"$(cbindgen --version)\" = 'cbindgen 0.29.1'",
         "fetch-source.sh",
         "apply-series.py",
         "build-runtime.sh",
