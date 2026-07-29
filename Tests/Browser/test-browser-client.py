@@ -79,8 +79,8 @@ def main() -> None:
             "transient progress events still enter tab persistence")
     require("didReassertActivationForLoad" in tab and
             "func reassertActivationIfNeeded(_ active: Bool)" in tab and
-            "didReassertActivationForLoad = false" in progress_handler.group(0),
-            "BrowserTab does not bound Gecko activation reassertion to one dispatch per load")
+            progress_handler.group(0).count("didReassertActivationForLoad = false") == 2,
+            "BrowserTab does not bound Gecko activation reassertion to load start/stop boundaries")
     manager = source("App/Browser/TabManager.swift")
     require("lastPersistedTabs" in manager and "snapshot != lastPersistedTabs" in manager,
             "transient page events still enqueue redundant full tab-store writes")
