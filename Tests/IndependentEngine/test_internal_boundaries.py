@@ -67,7 +67,10 @@ def main() -> None:
             "process host lacks runtime connection evidence")
     require("struct EngineInitialNavigationGate" in session and
             "initialNavigationGate.stage(request)" in session and
-            "initialNavigationGate.becomeReady()" in session,
+            "initialNavigationGate.becomeReady()" in session and
+            "dispatchLoad(request, reassertActivity: true)" in session and
+            "private var requestedActive: Bool?" in session and
+            "private var requestedFocused: Bool?" in session,
             "EngineKit does not stage cold-start navigation until initial document readiness")
 
     for root in (ROOT / "App", ROOT / "Engine/VulpraEngineKit/Public"):

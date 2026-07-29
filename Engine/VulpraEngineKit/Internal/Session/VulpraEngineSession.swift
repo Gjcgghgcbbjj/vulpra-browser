@@ -39,6 +39,8 @@ public final class VulpraEngineSession: EngineSession {
     private var requestedWindowID: String?
     private var pendingCommands: [(type: String, message: [String: Any])] = []
     private var initialNavigationGate = EngineInitialNavigationGate()
+    private var requestedActive: Bool?
+    private var requestedFocused: Bool?
     private var stoppedByUser = false
     private var navigationFailureReported = false
     private var navigation = EngineNavigationEvent(
@@ -144,8 +146,14 @@ public final class VulpraEngineSession: EngineSession {
     public func goForward() { send("GeckoView:GoForward", ["userInteraction": true]) }
     public func reload() { send("GeckoView:Reload", ["flags": 0]) }
     public func stop() { stoppedByUser = true; send("GeckoView:Stop") }
-    public func setActive(_ active: Bool) { send("GeckoView:SetActive", ["active": active]) }
-    public func setFocused(_ focused: Bool) { send("GeckoView:SetFocused", ["focused": focused]) }
+    public func setActive(_ active: Bool) {
+        requestedActive = active
+        send("GeckoView:SetActive", ["active": active])
+    }
+    public func setFocused(_ focused: Bool) {
+        requestedFocused = focused
+        send("GeckoView:SetFocused", ["focused": focused])
+    }
 
     public func update(configuration: EngineSessionConfiguration) {
         self.configuration = configuration
@@ -230,7 +238,7 @@ public final class VulpraEngineSession: EngineSession {
             stoppedByUser = false
             if let request = initialNavigationGate.becomeReady() {
                 Self.logger.notice("Engine initial document ready; dispatching staged navigation")
-                dispatchLoad(request)
+                dispatchLoad(request, reassertActivity: true)
             }
         case "GeckoView:ProgressChanged":
             let value = (payload["progress"] as? NSNumber)?.doubleValue ?? 0
@@ -289,8 +297,11 @@ public final class VulpraEngineSession: EngineSession {
         ))
     }
 
-    private func dispatchLoad(_ request: EngineNavigationRequest) {
+    private func dispatchLoad(_ request: EngineNavigationRequest, reassertActivity: Bool = false) {
         send("GeckoView:LoadUri", ["uri": request.url.absoluteString, "flags": 0])
+        guard reassertActivity else { return }
+        if let requestedActive { send("GeckoView:SetActive", ["active": requestedActive]) }
+        if let requestedFocused { send("GeckoView:SetFocused", ["focused": requestedFocused]) }
     }
     private func handlePrompt(_ payload: [String: Any], callback: EngineABICallbackLease?) {
         let value = payload["prompt"] as? [String: Any] ?? payload
