@@ -1,0 +1,14 @@
+diff --git a/dom/media/systemservices/PCameras.ipdl b/dom/media/systemservices/PCameras.ipdl
+index fb0875701900ff710e9122ad50a028c641a29d64..bb12521230dae56bcca951935c63a9e884e74e2e 100644
+--- a/dom/media/systemservices/PCameras.ipdl
++++ b/dom/media/systemservices/PCameras.ipdl
+@@ -70,7 +70,8 @@ child:
+   async ReplyNumberOfCapabilities(int capabilityCount);
+   async ReplyAllocateCapture(int streamId);
+   async ReplyGetCaptureCapability(VideoCaptureCapability cap);
+-  async ReplyGetCaptureDevice(nsCString device_name, nsCString device_id, bool scary);
++  async ReplyGetCaptureDevice(nsCString device_name, nsCString device_id,
++                              bool scary, uint8_t facingMode);
+   async ReplyFailure();
+   async ReplySuccess();
+   async __delete__();

@@ -1,0 +1,16 @@
+diff --git a/layout/style/res/ua.css b/layout/style/res/ua.css
+index 00e45b6ddc634165c68ab565e5bac6f8c7c21795..6b3e9f9bef6846b4e633d14b2ed186c7f20c79f1 100644
+--- a/layout/style/res/ua.css
++++ b/layout/style/res/ua.css
+@@ -9,6 +9,11 @@
+             them
+ */
+ 
++/* VULPRA: Hide caret since we have UIKit's own caret implementation. */
++:root {
++  caret-color: transparent;
++}
++
+ /* Tables */
+ 
+ *|*::-moz-table {

@@ -1,0 +1,36 @@
+diff --git a/widget/uikit/GeckoViewSwiftSupport.h b/widget/uikit/GeckoViewSwiftSupport.h
+index e68fca9134c058205d11d9d46d6938f6172fc9c3..e80bf7e4c8b6a93afa71a7c8b8db92ed06f1512f 100644
+--- a/widget/uikit/GeckoViewSwiftSupport.h
++++ b/widget/uikit/GeckoViewSwiftSupport.h
+@@ -18,11 +18,23 @@
+ #endif
+ 
+ #import <Foundation/Foundation.h>
++#import <AVFoundation/AVSampleBufferDisplayLayer.h>
+ #import <UIKit/UIKit.h>
+ #import <xpc/xpc.h>
+ 
+ @protocol SwiftEventDispatcher;
+ 
++@interface GeckoViewPictureInPictureSnapshot : NSObject
++@property(nonatomic, readonly) AVSampleBufferDisplayLayer* displayLayer;
++@property(nonatomic, readonly) uint64_t enqueueCount;
++@property(nonatomic, readonly) BOOL fullscreen;
++@end
++
++@interface GeckoViewPictureInPictureCandidateList : NSObject
++@property(nonatomic, readonly) NSUInteger count;
++- (GeckoViewPictureInPictureSnapshot*)candidateAtIndex:(NSUInteger)index;
++@end
++
+ @protocol SwiftGeckoViewRuntime <NSObject>
+ - (id<SwiftEventDispatcher>)runtimeDispatcher;
+ - (id<SwiftEventDispatcher>)dispatcherByName:(const char*)name;
+@@ -56,6 +68,7 @@
+ 
+ @protocol GeckoViewWindow <NSObject>
+ - (UIView*)view;
++- (GeckoViewPictureInPictureCandidateList*)pictureInPictureCandidates;
+ - (void)close;
+ @end
+ 

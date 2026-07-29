@@ -1,0 +1,12 @@
+diff --git a/extensions/permissions/PermissionDelegateHandler.cpp b/extensions/permissions/PermissionDelegateHandler.cpp
+index ccaa471aebb2fb99de723824d0df478f0b29f933..9b6c5e64ffe13e25e9304940c89b92fa6a855b18 100644
+--- a/extensions/permissions/PermissionDelegateHandler.cpp
++++ b/extensions/permissions/PermissionDelegateHandler.cpp
+@@ -48,6 +48,7 @@ static const DelegateInfo sPermissionsMap[] = {
+      DelegatePolicy::eDelegateUseFeaturePolicy},
+     {"local-network", u"local-network",
+      DelegatePolicy::eDelegateUseFeaturePolicy},
++    {"device-sensors", nullptr, DelegatePolicy::eDelegateUseTopOrigin},
+ 
+     {"screen-wake-lock", u"screen-wake-lock",
+      DelegatePolicy::eDelegateUseFeaturePolicy}};

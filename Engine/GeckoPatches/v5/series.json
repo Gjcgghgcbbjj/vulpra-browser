@@ -1,0 +1,2445 @@
+{
+  "schemaVersion": 1,
+  "patches": [
+    {
+      "order": 1,
+      "path": "platform/Cargo.lock.patch",
+      "sha256": "31b11a5d55f22a5a2807e5a4709ab7684e51a7f3b838f5bf90dec903a204ca4e",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through Cargo.lock.",
+      "upstreamPaths": [
+        "Cargo.lock"
+      ]
+    },
+    {
+      "order": 2,
+      "path": "platform/config/recurse.mk.patch",
+      "sha256": "01d41ab13cac4bcbe1bfd035187d08416829e19ba67046b1b2a5d6dd63428169",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in config/recurse.mk.",
+      "upstreamPaths": [
+        "config/recurse.mk"
+      ]
+    },
+    {
+      "order": 3,
+      "path": "platform/dom/canvas/WebGLExtensions.cpp.patch",
+      "sha256": "e989de7b900807f0eda2076cf4e2aa3210fbb234e07bb678bca7870875c76df4",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/canvas/WebGLExtensions.cpp.",
+      "upstreamPaths": [
+        "dom/canvas/WebGLExtensions.cpp"
+      ]
+    },
+    {
+      "order": 4,
+      "path": "platform/dom/events/ContentEventHandler.cpp.patch",
+      "sha256": "0d4455140a0a4a63de0980610e4b28f69eb6910bb1625a5ac2ad2742f3b72bfd",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/events/ContentEventHandler.cpp.",
+      "upstreamPaths": [
+        "dom/events/ContentEventHandler.cpp"
+      ]
+    },
+    {
+      "order": 5,
+      "path": "platform/dom/events/EventListenerManager.cpp.patch",
+      "sha256": "dadc2d685674fadc10fb534d0658894de675b6b5f1513b283a3faadc3136d376",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/events/EventListenerManager.cpp.",
+      "upstreamPaths": [
+        "dom/events/EventListenerManager.cpp"
+      ]
+    },
+    {
+      "order": 6,
+      "path": "platform/dom/geolocation/Geolocation.cpp.patch",
+      "sha256": "5f27e71b32e3782fe368d327e53dd350c10e89d7b505157b557abcec8d047377",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/geolocation/Geolocation.cpp.",
+      "upstreamPaths": [
+        "dom/geolocation/Geolocation.cpp"
+      ]
+    },
+    {
+      "order": 7,
+      "path": "platform/dom/geolocation/GeolocationSystemUIKit.mm.patch",
+      "sha256": "9bbb91643d4e14f8f83aca7e56bb4c479bbe275bc39578e249466c9ab76d8d94",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/geolocation/GeolocationSystemUIKit.mm.",
+      "upstreamPaths": [
+        "dom/geolocation/GeolocationSystemUIKit.mm"
+      ]
+    },
+    {
+      "order": 8,
+      "path": "platform/dom/geolocation/moz.build.patch",
+      "sha256": "e2e3002def6dc345dc0daf41b6dd41dd730bc0444911b171c9e09baef86838f0",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through dom/geolocation/moz.build.",
+      "upstreamPaths": [
+        "dom/geolocation/moz.build"
+      ]
+    },
+    {
+      "order": 9,
+      "path": "platform/dom/ipc/BrowserParent.cpp.patch",
+      "sha256": "c8d390d368dc796d2b22a474d6066ceb5e15f84de760ed135a9dfbbac15c5b7c",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/ipc/BrowserParent.cpp.",
+      "upstreamPaths": [
+        "dom/ipc/BrowserParent.cpp"
+      ]
+    },
+    {
+      "order": 10,
+      "path": "platform/dom/ipc/ContentChild.cpp.patch",
+      "sha256": "456dba7ccdd1586c363e93e7f7c05c0b543efad078595d7e6cbec1900d828f8c",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/ipc/ContentChild.cpp.",
+      "upstreamPaths": [
+        "dom/ipc/ContentChild.cpp"
+      ]
+    },
+    {
+      "order": 11,
+      "path": "platform/dom/ipc/ContentChild.h.patch",
+      "sha256": "2eccc2af5e3dd45a30fd0ccd0d9e38d61f9aad6933c2079bf6917661bdbf9506",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/ipc/ContentChild.h.",
+      "upstreamPaths": [
+        "dom/ipc/ContentChild.h"
+      ]
+    },
+    {
+      "order": 12,
+      "path": "platform/dom/ipc/ContentParent.cpp.patch",
+      "sha256": "7350c9dc06c1937d818ae509f446e3669654899af6c2cc37c8b824e1de4e6aeb",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/ipc/ContentParent.cpp.",
+      "upstreamPaths": [
+        "dom/ipc/ContentParent.cpp"
+      ]
+    },
+    {
+      "order": 13,
+      "path": "platform/dom/ipc/ContentParent.h.patch",
+      "sha256": "3c2b001d37de74350d12ca75484291198569902f33fb0f261cd9f466adb68989",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/ipc/ContentParent.h.",
+      "upstreamPaths": [
+        "dom/ipc/ContentParent.h"
+      ]
+    },
+    {
+      "order": 14,
+      "path": "platform/dom/ipc/PContent.ipdl.patch",
+      "sha256": "2e46a7d81cd47f6f4c8dea99e39e89dc8fb6deb20c8e1794f78076cf5910e3ce",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/ipc/PContent.ipdl.",
+      "upstreamPaths": [
+        "dom/ipc/PContent.ipdl"
+      ]
+    },
+    {
+      "order": 15,
+      "path": "platform/dom/ipc/ProcessHangMonitor.cpp.patch",
+      "sha256": "310fbbae1fa857cfc033acabf1c9865e8ec57256ec9bb3ba84ea03bfc9198bde",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/ipc/ProcessHangMonitor.cpp.",
+      "upstreamPaths": [
+        "dom/ipc/ProcessHangMonitor.cpp"
+      ]
+    },
+    {
+      "order": 16,
+      "path": "platform/dom/ipc/ProcessPriorityManager.cpp.patch",
+      "sha256": "0ee6ea26ac88dab7255b0b67c1a6cf6e059f5e61c9f121d14841166f2bc9da36",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/ipc/ProcessPriorityManager.cpp.",
+      "upstreamPaths": [
+        "dom/ipc/ProcessPriorityManager.cpp"
+      ]
+    },
+    {
+      "order": 17,
+      "path": "platform/dom/media/CubebUtils.cpp.patch",
+      "sha256": "94e52dfaf157114ff643a1bf624a6d100b0635aeae66ef7996a1e6bc79444006",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/CubebUtils.cpp.",
+      "upstreamPaths": [
+        "dom/media/CubebUtils.cpp"
+      ]
+    },
+    {
+      "order": 18,
+      "path": "platform/dom/media/CubebUtils.h.patch",
+      "sha256": "26880e5637ef360c80aa16f936b0067da631eb4912ebe85002cf0d26d9defbc2",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/media/CubebUtils.h.",
+      "upstreamPaths": [
+        "dom/media/CubebUtils.h"
+      ]
+    },
+    {
+      "order": 19,
+      "path": "platform/dom/media/DecoderTraits.cpp.patch",
+      "sha256": "8770a624b2bfbc60ba13da31d1c33d513d58ea4d133f3b63597f19fead568ffe",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/DecoderTraits.cpp.",
+      "upstreamPaths": [
+        "dom/media/DecoderTraits.cpp"
+      ]
+    },
+    {
+      "order": 20,
+      "path": "platform/dom/media/GraphRunner.cpp.patch",
+      "sha256": "d5d18c3b78512cf8a39c8b7c24da9cd2ee13f148444a1889fb4b99fdc0007708",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/GraphRunner.cpp.",
+      "upstreamPaths": [
+        "dom/media/GraphRunner.cpp"
+      ]
+    },
+    {
+      "order": 21,
+      "path": "platform/dom/media/MediaManager.cpp.patch",
+      "sha256": "e62662c7bd3fa986088170e1c127deaf04b083deb2c43b3d45bbebefc612dabc",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/MediaManager.cpp.",
+      "upstreamPaths": [
+        "dom/media/MediaManager.cpp"
+      ]
+    },
+    {
+      "order": 22,
+      "path": "platform/dom/media/MediaManager.h.patch",
+      "sha256": "61bc510c6106005cd66c27f08bf553ec4dbd3a27a8500c406ece0c0dc531676a",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/media/MediaManager.h.",
+      "upstreamPaths": [
+        "dom/media/MediaManager.h"
+      ]
+    },
+    {
+      "order": 23,
+      "path": "platform/dom/media/moz.build.patch",
+      "sha256": "daf21de382a1270d3cf18aad6fd71eac7ca5be309c0576b78b792e68c596201a",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through dom/media/moz.build.",
+      "upstreamPaths": [
+        "dom/media/moz.build"
+      ]
+    },
+    {
+      "order": 24,
+      "path": "platform/dom/media/platforms/apple/AppleDecoderModule.cpp.patch",
+      "sha256": "54b24e785435306253fcaa43d3d5c2b5d89247b0af5224d69774f67bfe8e6417",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/platforms/apple/AppleDecoderModule.cpp.",
+      "upstreamPaths": [
+        "dom/media/platforms/apple/AppleDecoderModule.cpp"
+      ]
+    },
+    {
+      "order": 25,
+      "path": "platform/dom/media/platforms/apple/AppleVTDecoder.cpp.patch",
+      "sha256": "a309cfe01da7d89f04852c69cde67f6fedb4e8940e752fbb79cbacfb6dc6bc79",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/platforms/apple/AppleVTDecoder.cpp.",
+      "upstreamPaths": [
+        "dom/media/platforms/apple/AppleVTDecoder.cpp"
+      ]
+    },
+    {
+      "order": 26,
+      "path": "platform/dom/media/systemservices/CamerasChild.cpp.patch",
+      "sha256": "d69843033c4158cadf5e2ddcf70be8a9e54f5b0f3431a64ddd8bc68157bc1a61",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/systemservices/CamerasChild.cpp.",
+      "upstreamPaths": [
+        "dom/media/systemservices/CamerasChild.cpp"
+      ]
+    },
+    {
+      "order": 27,
+      "path": "platform/dom/media/systemservices/CamerasChild.h.patch",
+      "sha256": "485ace5a7df0191766610ae0d1d82557ca3ff9538b77b99f85cc33830b58b188",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/media/systemservices/CamerasChild.h.",
+      "upstreamPaths": [
+        "dom/media/systemservices/CamerasChild.h"
+      ]
+    },
+    {
+      "order": 28,
+      "path": "platform/dom/media/systemservices/CamerasParent.cpp.patch",
+      "sha256": "75e15815389bcd2ea1a734f3a298808c7752adeec3d098792ae7f26c93a18127",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/systemservices/CamerasParent.cpp.",
+      "upstreamPaths": [
+        "dom/media/systemservices/CamerasParent.cpp"
+      ]
+    },
+    {
+      "order": 29,
+      "path": "platform/dom/media/systemservices/CamerasParent.h.patch",
+      "sha256": "1d972df545e6d15309d92f5fd8156df0783fee7b9e7e3a7f7a45204c9ef58224",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/media/systemservices/CamerasParent.h.",
+      "upstreamPaths": [
+        "dom/media/systemservices/CamerasParent.h"
+      ]
+    },
+    {
+      "order": 30,
+      "path": "platform/dom/media/systemservices/CamerasTypes.h.patch",
+      "sha256": "8492a475b5aefc9227c040f08650b4c84835fef765fa6b6d8cdc8dc79e8f5d77",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/media/systemservices/CamerasTypes.h.",
+      "upstreamPaths": [
+        "dom/media/systemservices/CamerasTypes.h"
+      ]
+    },
+    {
+      "order": 31,
+      "path": "platform/dom/media/systemservices/PCameras.ipdl.patch",
+      "sha256": "833483f0741eb5c8f8e9cf69c19a40a65a407933396eb791036268fbc5a062f3",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/media/systemservices/PCameras.ipdl.",
+      "upstreamPaths": [
+        "dom/media/systemservices/PCameras.ipdl"
+      ]
+    },
+    {
+      "order": 32,
+      "path": "platform/dom/media/systemservices/moz.build.patch",
+      "sha256": "aa88d16731c058cdeca4db5bfe0f3401e44f11b14f1183e972a5d9f485f1385b",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through dom/media/systemservices/moz.build.",
+      "upstreamPaths": [
+        "dom/media/systemservices/moz.build"
+      ]
+    },
+    {
+      "order": 33,
+      "path": "platform/dom/media/systemservices/objc_video_capture/capture_access.h.patch",
+      "sha256": "882499e59c526496926e5f37d4a2736827528e61bb486640613e76d77197be8a",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/media/systemservices/objc_video_capture/capture_access.h.",
+      "upstreamPaths": [
+        "dom/media/systemservices/objc_video_capture/capture_access.h"
+      ]
+    },
+    {
+      "order": 34,
+      "path": "platform/dom/media/systemservices/objc_video_capture/capture_access.mm.patch",
+      "sha256": "029f1565af6d0219527981a2bbd97f120c696ea093d0a6c808f2e939b96be92c",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/systemservices/objc_video_capture/capture_access.mm.",
+      "upstreamPaths": [
+        "dom/media/systemservices/objc_video_capture/capture_access.mm"
+      ]
+    },
+    {
+      "order": 35,
+      "path": "platform/dom/media/systemservices/objc_video_capture/device_info.mm.patch",
+      "sha256": "c91e914d8a91881d12597bc6070b96f472bfb03162c9ab2fc73f0d76ccc89419",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/systemservices/objc_video_capture/device_info.mm.",
+      "upstreamPaths": [
+        "dom/media/systemservices/objc_video_capture/device_info.mm"
+      ]
+    },
+    {
+      "order": 36,
+      "path": "platform/dom/media/systemservices/objc_video_capture/video_capture.mm.patch",
+      "sha256": "1c6fddd18463090d4e88cb2734ec1435688b9583637966f147c2c84c4e5fe03c",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/systemservices/objc_video_capture/video_capture.mm.",
+      "upstreamPaths": [
+        "dom/media/systemservices/objc_video_capture/video_capture.mm"
+      ]
+    },
+    {
+      "order": 37,
+      "path": "platform/dom/media/webaudio/AnalyserNode.cpp.patch",
+      "sha256": "e31ad617afb119d19cc0d5a42a96add36ee1d32873980ced01d3d52a7948d9e6",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/webaudio/AnalyserNode.cpp.",
+      "upstreamPaths": [
+        "dom/media/webaudio/AnalyserNode.cpp"
+      ]
+    },
+    {
+      "order": 38,
+      "path": "platform/dom/media/webrtc/MediaEngineRemoteVideoSource.cpp.patch",
+      "sha256": "334ab77ff0fd5930f47655ae7eb9fe0a424312f4107d31828b27b6c6305f5ae6",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/webrtc/MediaEngineRemoteVideoSource.cpp.",
+      "upstreamPaths": [
+        "dom/media/webrtc/MediaEngineRemoteVideoSource.cpp"
+      ]
+    },
+    {
+      "order": 39,
+      "path": "platform/dom/media/webrtc/MediaEngineWebRTC.cpp.patch",
+      "sha256": "571e62bd0d1da85db90f5e014e23c80a9bed936758d675c67c664ac4e67bcb6f",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/webrtc/MediaEngineWebRTC.cpp.",
+      "upstreamPaths": [
+        "dom/media/webrtc/MediaEngineWebRTC.cpp"
+      ]
+    },
+    {
+      "order": 40,
+      "path": "platform/dom/media/webrtc/jsapi/PeerConnectionImpl.cpp.patch",
+      "sha256": "83811f3a3a3b55922934a338050b8da94e99e94b93a3768cab5849a47451258a",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/webrtc/jsapi/PeerConnectionImpl.cpp.",
+      "upstreamPaths": [
+        "dom/media/webrtc/jsapi/PeerConnectionImpl.cpp"
+      ]
+    },
+    {
+      "order": 41,
+      "path": "platform/dom/media/webrtc/third_party_build/webrtc.mozbuild.patch",
+      "sha256": "0b7d8c8ffe08d565bab7a09e46b56b68f48bcc4d4bc5b98cd4d31cf10bf5ea8d",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/webrtc/third_party_build/webrtc.mozbuild.",
+      "upstreamPaths": [
+        "dom/media/webrtc/third_party_build/webrtc.mozbuild"
+      ]
+    },
+    {
+      "order": 42,
+      "path": "platform/dom/media/webrtc/transport/third_party/nICEr/src/stun/addrs-bsd.cpp.patch",
+      "sha256": "ec0e3e985559b2301dea1d3d509181d289a50a4547a73d327133c817449683d9",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/media/webrtc/transport/third_party/nICEr/src/stun/addrs-bsd.cpp.",
+      "upstreamPaths": [
+        "dom/media/webrtc/transport/third_party/nICEr/src/stun/addrs-bsd.cpp"
+      ]
+    },
+    {
+      "order": 43,
+      "path": "platform/dom/media/webrtc/transport/third_party/nICEr/src/stun/stun.h.patch",
+      "sha256": "1861e4cbca83dc2c6a376834d6aadd1e97fed7e6ed3e181d433a0e3ffc60b327",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/media/webrtc/transport/third_party/nICEr/src/stun/stun.h.",
+      "upstreamPaths": [
+        "dom/media/webrtc/transport/third_party/nICEr/src/stun/stun.h"
+      ]
+    },
+    {
+      "order": 44,
+      "path": "platform/dom/system/mac/CoreLocationLocationProvider.mm.patch",
+      "sha256": "e9d99e839783dbec4a48d3ac815e48498c35e6b5de1229e214067c904a0f85a3",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/system/mac/CoreLocationLocationProvider.mm.",
+      "upstreamPaths": [
+        "dom/system/mac/CoreLocationLocationProvider.mm"
+      ]
+    },
+    {
+      "order": 45,
+      "path": "platform/dom/system/moz.build.patch",
+      "sha256": "637fb6542cd439649e0c51058c05badf56d8dd41aafd4fd86ce1db882a4b48bf",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through dom/system/moz.build.",
+      "upstreamPaths": [
+        "dom/system/moz.build"
+      ]
+    },
+    {
+      "order": 46,
+      "path": "platform/dom/system/nsDeviceSensors.cpp.patch",
+      "sha256": "ce59e0e98628a63338dc9421fd76bd8360452f73cb34e80836c662dcb8a4bef4",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/system/nsDeviceSensors.cpp.",
+      "upstreamPaths": [
+        "dom/system/nsDeviceSensors.cpp"
+      ]
+    },
+    {
+      "order": 47,
+      "path": "platform/dom/system/nsDeviceSensors.h.patch",
+      "sha256": "2ff1acec7f29d50dc12ccead890d175f245e213cd76637cf4ca650e9f2509da3",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/system/nsDeviceSensors.h.",
+      "upstreamPaths": [
+        "dom/system/nsDeviceSensors.h"
+      ]
+    },
+    {
+      "order": 48,
+      "path": "platform/dom/system/uikit/moz.build.patch",
+      "sha256": "23cea962fb0016ee202f9ffbcb55c222cf46ab6f6721963590e21ffdfc6de975",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through dom/system/uikit/moz.build.",
+      "upstreamPaths": [
+        "dom/system/uikit/moz.build"
+      ]
+    },
+    {
+      "order": 49,
+      "path": "platform/dom/system/uikit/nsOSPermissionRequest.h.patch",
+      "sha256": "d41cf6b600b50568947bd0bf350fc034ae020a3272621d4821b51b2b122620c2",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in dom/system/uikit/nsOSPermissionRequest.h.",
+      "upstreamPaths": [
+        "dom/system/uikit/nsOSPermissionRequest.h"
+      ]
+    },
+    {
+      "order": 50,
+      "path": "platform/dom/system/uikit/nsOSPermissionRequest.mm.patch",
+      "sha256": "a469174bb281499d4e4d88561608cbd73a9b17d1393fe1c8fedc67809895ca0d",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/system/uikit/nsOSPermissionRequest.mm.",
+      "upstreamPaths": [
+        "dom/system/uikit/nsOSPermissionRequest.mm"
+      ]
+    },
+    {
+      "order": 51,
+      "path": "platform/dom/webgpu/ExternalTexture.cpp.patch",
+      "sha256": "c4efb00a4fef2df32db3e12ab356e0ecfcc3f8d36748380f19bfcdd173463a42",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/webgpu/ExternalTexture.cpp.",
+      "upstreamPaths": [
+        "dom/webgpu/ExternalTexture.cpp"
+      ]
+    },
+    {
+      "order": 52,
+      "path": "platform/dom/webgpu/SharedTextureMacIOSurface.cpp.patch",
+      "sha256": "b81d66f7ff85adaf05681547dd1ca65e44c425093cd80a19573400b8695a53de",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in dom/webgpu/SharedTextureMacIOSurface.cpp.",
+      "upstreamPaths": [
+        "dom/webgpu/SharedTextureMacIOSurface.cpp"
+      ]
+    },
+    {
+      "order": 53,
+      "path": "platform/extensions/permissions/PermissionDelegateHandler.cpp.patch",
+      "sha256": "78284a5b5503be36216120bf97015ad52e73e515ae6de1d948be2169b92d9a4c",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in extensions/permissions/PermissionDelegateHandler.cpp.",
+      "upstreamPaths": [
+        "extensions/permissions/PermissionDelegateHandler.cpp"
+      ]
+    },
+    {
+      "order": 54,
+      "path": "platform/extensions/permissions/PermissionDelegateHandler.h.patch",
+      "sha256": "c500199ce8030714a86c4975a5ae48d11b78133ab827602a606de4d572781772",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in extensions/permissions/PermissionDelegateHandler.h.",
+      "upstreamPaths": [
+        "extensions/permissions/PermissionDelegateHandler.h"
+      ]
+    },
+    {
+      "order": 55,
+      "path": "platform/gfx/2d/2D.h.patch",
+      "sha256": "9bf210b7e477c4e0a73fd64f2a7a00b5be563f42b6db09c101984fbd9688a783",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/2d/2D.h.",
+      "upstreamPaths": [
+        "gfx/2d/2D.h"
+      ]
+    },
+    {
+      "order": 56,
+      "path": "platform/gfx/2d/Factory.cpp.patch",
+      "sha256": "6d7e27934c9a34577510cd765ccf8802e23cbb0e30d91655c810bc721fb5ec6f",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/2d/Factory.cpp.",
+      "upstreamPaths": [
+        "gfx/2d/Factory.cpp"
+      ]
+    },
+    {
+      "order": 57,
+      "path": "platform/gfx/2d/MacIOSurface.cpp.patch",
+      "sha256": "f04a0e0d7a3a626918275175e288a480b37774508be35d17db7dfaad38977c08",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/2d/MacIOSurface.cpp.",
+      "upstreamPaths": [
+        "gfx/2d/MacIOSurface.cpp"
+      ]
+    },
+    {
+      "order": 58,
+      "path": "platform/gfx/2d/MacIOSurfaceIOS.mm.patch",
+      "sha256": "5b646688c29cc1d98f6540d8f00f66a88267ad892f0b0b4bc950b1b5ba9cf825",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/2d/MacIOSurfaceIOS.mm.",
+      "upstreamPaths": [
+        "gfx/2d/MacIOSurfaceIOS.mm"
+      ]
+    },
+    {
+      "order": 59,
+      "path": "platform/gfx/2d/RecordedEventImpl.h.patch",
+      "sha256": "b617c72a2262ac5d1bdc634f7d5d1713fbcb6d911153110c4937cbcae59efb43",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/2d/RecordedEventImpl.h.",
+      "upstreamPaths": [
+        "gfx/2d/RecordedEventImpl.h"
+      ]
+    },
+    {
+      "order": 60,
+      "path": "platform/gfx/2d/ScaledFontMac.cpp.patch",
+      "sha256": "67efcdebdd4201db1f5b3828f184c5eab91af83b1584c8e81d463c3b137c40ae",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/2d/ScaledFontMac.cpp.",
+      "upstreamPaths": [
+        "gfx/2d/ScaledFontMac.cpp"
+      ]
+    },
+    {
+      "order": 61,
+      "path": "platform/gfx/2d/UnscaledFontMac.h.patch",
+      "sha256": "b9016edfaac041e13da5de4844116a488c1c30622bd95b3b1cd40f0e99e72c3a",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/2d/UnscaledFontMac.h.",
+      "upstreamPaths": [
+        "gfx/2d/UnscaledFontMac.h"
+      ]
+    },
+    {
+      "order": 62,
+      "path": "platform/gfx/2d/moz.build.patch",
+      "sha256": "7a8f34abf47abc622395ff52daa1827500b9a3f20f5e47b682d86b2b7bcda3f8",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through gfx/2d/moz.build.",
+      "upstreamPaths": [
+        "gfx/2d/moz.build"
+      ]
+    },
+    {
+      "order": 63,
+      "path": "platform/gfx/gl/SharedSurfaceIO.cpp.patch",
+      "sha256": "ade9a3840a04afb375d6ebb06704a35e3ec51eae0c2508a7f1e78ced9a149669",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/gl/SharedSurfaceIO.cpp.",
+      "upstreamPaths": [
+        "gfx/gl/SharedSurfaceIO.cpp"
+      ]
+    },
+    {
+      "order": 64,
+      "path": "platform/gfx/ipc/GPUProcessManager.cpp.patch",
+      "sha256": "07d2d02f127e682d3225409d734abde135021100587990bfc1c938cea6cb79f4",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/ipc/GPUProcessManager.cpp.",
+      "upstreamPaths": [
+        "gfx/ipc/GPUProcessManager.cpp"
+      ]
+    },
+    {
+      "order": 65,
+      "path": "platform/gfx/ipc/GPUProcessManager.h.patch",
+      "sha256": "6fce12be0d9ed7f867549da6bebdc7001f12cf696489b6eea90797c819fa5b09",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/ipc/GPUProcessManager.h.",
+      "upstreamPaths": [
+        "gfx/ipc/GPUProcessManager.h"
+      ]
+    },
+    {
+      "order": 66,
+      "path": "platform/gfx/layers/NativeLayerCA.h.patch",
+      "sha256": "29573cb5a0518cc0dc1289d20886aafe672c1e1aa1a1433b91e2f3e273765c5a",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/layers/NativeLayerCA.h.",
+      "upstreamPaths": [
+        "gfx/layers/NativeLayerCA.h"
+      ]
+    },
+    {
+      "order": 67,
+      "path": "platform/gfx/layers/NativeLayerCA.mm.patch",
+      "sha256": "4f43cc9162801c6216238560380e9464dca85156915fdf00a69abdcc130b3d9d",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/NativeLayerCA.mm.",
+      "upstreamPaths": [
+        "gfx/layers/NativeLayerCA.mm"
+      ]
+    },
+    {
+      "order": 68,
+      "path": "platform/gfx/layers/NativeLayerCAPictureInPicture.h.patch",
+      "sha256": "89bca1ea033a9ddabd888951224f5f7b47d977a4c0f3a97e3d4608ba20cb7e6e",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/layers/NativeLayerCAPictureInPicture.h.",
+      "upstreamPaths": [
+        "gfx/layers/NativeLayerCAPictureInPicture.h"
+      ]
+    },
+    {
+      "order": 69,
+      "path": "platform/gfx/layers/NativeLayerCAPictureInPicture.mm.patch",
+      "sha256": "e15698f716d5e3696b790ba35d6e9a02ccce26c5775fb7c3f84ea02a67bd9a7a",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/NativeLayerCAPictureInPicture.mm.",
+      "upstreamPaths": [
+        "gfx/layers/NativeLayerCAPictureInPicture.mm"
+      ]
+    },
+    {
+      "order": 70,
+      "path": "platform/gfx/layers/NativeLayerRootRemoteMacParent.h.patch",
+      "sha256": "f739e5102bf8ebcb8294fed7e92cdec4b75d7404c11b41b78604034e0202706d",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/layers/NativeLayerRootRemoteMacParent.h.",
+      "upstreamPaths": [
+        "gfx/layers/NativeLayerRootRemoteMacParent.h"
+      ]
+    },
+    {
+      "order": 71,
+      "path": "platform/gfx/layers/NativeLayerRootRemoteMacParent.mm.patch",
+      "sha256": "4b96a41ed0475e2d11e5987069fd09708545d9aa85b488834b58241df0eff6b3",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/NativeLayerRootRemoteMacParent.mm.",
+      "upstreamPaths": [
+        "gfx/layers/NativeLayerRootRemoteMacParent.mm"
+      ]
+    },
+    {
+      "order": 72,
+      "path": "platform/gfx/layers/apz/util/APZCCallbackHelper.cpp.patch",
+      "sha256": "c5dfa8d4c936612c9744904401c514df1c712a288917c5bc849cd4d499a9c644",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/apz/util/APZCCallbackHelper.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/apz/util/APZCCallbackHelper.cpp"
+      ]
+    },
+    {
+      "order": 73,
+      "path": "platform/gfx/layers/ipc/CompositorBridgeChild.cpp.patch",
+      "sha256": "99120ebe290d6feafa4314036082b6cd84e3c314cc51019df88c1a94e043edba",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/ipc/CompositorBridgeChild.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/ipc/CompositorBridgeChild.cpp"
+      ]
+    },
+    {
+      "order": 74,
+      "path": "platform/gfx/layers/ipc/CompositorBridgeChild.h.patch",
+      "sha256": "02e40d1ca46996dc2bdc1100dddde9a1c1230f700e45a51c82064c073afee168",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/layers/ipc/CompositorBridgeChild.h.",
+      "upstreamPaths": [
+        "gfx/layers/ipc/CompositorBridgeChild.h"
+      ]
+    },
+    {
+      "order": 75,
+      "path": "platform/gfx/layers/ipc/CompositorBridgeParent.cpp.patch",
+      "sha256": "53842b691c3eba6b5b3430d168487f297a2b8d7c1ca9b1c85068e447a6d44fd9",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/ipc/CompositorBridgeParent.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/ipc/CompositorBridgeParent.cpp"
+      ]
+    },
+    {
+      "order": 76,
+      "path": "platform/gfx/layers/ipc/CompositorBridgeParent.h.patch",
+      "sha256": "82cbb823d7fbc8935dd66b586d881b1090196ef930e9016bb0f3278e7ed5d5f8",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/layers/ipc/CompositorBridgeParent.h.",
+      "upstreamPaths": [
+        "gfx/layers/ipc/CompositorBridgeParent.h"
+      ]
+    },
+    {
+      "order": 77,
+      "path": "platform/gfx/layers/ipc/CompositorManagerChild.cpp.patch",
+      "sha256": "7052a1e92a4c39c278066ba060fbaf60d78a46adc0589288cc7e3db7eb0ca968",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/ipc/CompositorManagerChild.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/ipc/CompositorManagerChild.cpp"
+      ]
+    },
+    {
+      "order": 78,
+      "path": "platform/gfx/layers/ipc/IOSurfacePort.cpp.patch",
+      "sha256": "1aebc3e53f08f4207c2805df656ea219cd081b8efb16c67904523b610b1915fd",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/ipc/IOSurfacePort.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/ipc/IOSurfacePort.cpp"
+      ]
+    },
+    {
+      "order": 79,
+      "path": "platform/gfx/layers/ipc/IOSurfacePort.h.patch",
+      "sha256": "55e99fdfacea673af8eaf215722f84e76efac851438174a76af0e7e75dc938a1",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/layers/ipc/IOSurfacePort.h.",
+      "upstreamPaths": [
+        "gfx/layers/ipc/IOSurfacePort.h"
+      ]
+    },
+    {
+      "order": 80,
+      "path": "platform/gfx/layers/ipc/LayersSurfaces.ipdlh.patch",
+      "sha256": "308ff441cc0094a8b60db1a770edc7e459db3c4ab582fd05522a9e1b9b4aac40",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/layers/ipc/LayersSurfaces.ipdlh.",
+      "upstreamPaths": [
+        "gfx/layers/ipc/LayersSurfaces.ipdlh"
+      ]
+    },
+    {
+      "order": 81,
+      "path": "platform/gfx/layers/ipc/WebRenderMessages.ipdlh.patch",
+      "sha256": "9c78bf8c82d07df2d505cd228aadb94cb7271b77b8ce51fcf48123abee4a7a3f",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/layers/ipc/WebRenderMessages.ipdlh.",
+      "upstreamPaths": [
+        "gfx/layers/ipc/WebRenderMessages.ipdlh"
+      ]
+    },
+    {
+      "order": 82,
+      "path": "platform/gfx/layers/moz.build.patch",
+      "sha256": "085857145c810b6eb54cf7371cd0eb93587238bf5c06e682332599d60a3dddcb",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through gfx/layers/moz.build.",
+      "upstreamPaths": [
+        "gfx/layers/moz.build"
+      ]
+    },
+    {
+      "order": 83,
+      "path": "platform/gfx/layers/opengl/MacIOSurfaceTextureClientOGL.cpp.patch",
+      "sha256": "33bd3780f35e828f10469e55e4f7a5658100628140fa112820a0a65e91c2d1ba",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/opengl/MacIOSurfaceTextureClientOGL.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/opengl/MacIOSurfaceTextureClientOGL.cpp"
+      ]
+    },
+    {
+      "order": 84,
+      "path": "platform/gfx/layers/opengl/MacIOSurfaceTextureHostOGL.cpp.patch",
+      "sha256": "4d44e50b1126045dc884969f5babeb7c9dbf385b575c7a2d4c5315d1b9052d4a",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/opengl/MacIOSurfaceTextureHostOGL.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/opengl/MacIOSurfaceTextureHostOGL.cpp"
+      ]
+    },
+    {
+      "order": 85,
+      "path": "platform/gfx/layers/opengl/TextureHostOGL.cpp.patch",
+      "sha256": "30cfd23b866a3beefb8589571ff39ac58c15bdb38624681d6749c0ee9e861b6e",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/opengl/TextureHostOGL.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/opengl/TextureHostOGL.cpp"
+      ]
+    },
+    {
+      "order": 86,
+      "path": "platform/gfx/layers/wr/IpcResourceUpdateQueue.cpp.patch",
+      "sha256": "01d894547fa2cd0a51035ec53fbdfc5bf6dff6f81692e693797863ee1f8f2dbe",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/wr/IpcResourceUpdateQueue.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/wr/IpcResourceUpdateQueue.cpp"
+      ]
+    },
+    {
+      "order": 87,
+      "path": "platform/gfx/layers/wr/IpcResourceUpdateQueue.h.patch",
+      "sha256": "c7217ebb05e0c40f578f4a51c29e3784cd5094e97b5d58684c8337be450815fd",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/layers/wr/IpcResourceUpdateQueue.h.",
+      "upstreamPaths": [
+        "gfx/layers/wr/IpcResourceUpdateQueue.h"
+      ]
+    },
+    {
+      "order": 88,
+      "path": "platform/gfx/layers/wr/WebRenderBridgeChild.cpp.patch",
+      "sha256": "803f9fb6ca73e1ca18eb176aaf10ebf0b2e8e75da0d84ec64dc857b04468f46b",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/wr/WebRenderBridgeChild.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/wr/WebRenderBridgeChild.cpp"
+      ]
+    },
+    {
+      "order": 89,
+      "path": "platform/gfx/layers/wr/WebRenderBridgeParent.cpp.patch",
+      "sha256": "b4c2b245011a70bd327e15a683ed45f5d8c470811131fd1997ed811e2cd6f1a5",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/layers/wr/WebRenderBridgeParent.cpp.",
+      "upstreamPaths": [
+        "gfx/layers/wr/WebRenderBridgeParent.cpp"
+      ]
+    },
+    {
+      "order": 90,
+      "path": "platform/gfx/ots/RLBoxWOFF2Host.cpp.patch",
+      "sha256": "c73f8f3282e8d74ed4d5ae05792a464e41556e4f24299d64681ac6a6c533911b",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/ots/RLBoxWOFF2Host.cpp.",
+      "upstreamPaths": [
+        "gfx/ots/RLBoxWOFF2Host.cpp"
+      ]
+    },
+    {
+      "order": 91,
+      "path": "platform/gfx/thebes/CoreTextFontList.cpp.patch",
+      "sha256": "03764f1cd7f9ad81cdc8f52e1c8bbd39ecc044ed7a446fdde279e5d9824250f5",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/CoreTextFontList.cpp.",
+      "upstreamPaths": [
+        "gfx/thebes/CoreTextFontList.cpp"
+      ]
+    },
+    {
+      "order": 92,
+      "path": "platform/gfx/thebes/CoreTextFontList.h.patch",
+      "sha256": "c642768a257c2acf9d87933f1b6b826a16d958501aa07214fcc413c810c2b284",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/thebes/CoreTextFontList.h.",
+      "upstreamPaths": [
+        "gfx/thebes/CoreTextFontList.h"
+      ]
+    },
+    {
+      "order": 93,
+      "path": "platform/gfx/thebes/IOSPlatformFontList.mm.patch",
+      "sha256": "3cbc3f5440a1a42982a23bfe19d21910a7c71bf39e3f0e671cd5b2e2b8744585",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/IOSPlatformFontList.mm.",
+      "upstreamPaths": [
+        "gfx/thebes/IOSPlatformFontList.mm"
+      ]
+    },
+    {
+      "order": 94,
+      "path": "platform/gfx/thebes/SharedFontList.cpp.patch",
+      "sha256": "e76a87005b3281efc7de0b1a54fa633efd403b9dd9f04655c1a22c29f5f8ce86",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/SharedFontList.cpp.",
+      "upstreamPaths": [
+        "gfx/thebes/SharedFontList.cpp"
+      ]
+    },
+    {
+      "order": 95,
+      "path": "platform/gfx/thebes/gfxCoreTextShaper.cpp.patch",
+      "sha256": "28ba8d9dcee1bc07d37c15cfcddcb41fadfd3d3517e0bd51b529302d3ea440ca",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/gfxCoreTextShaper.cpp.",
+      "upstreamPaths": [
+        "gfx/thebes/gfxCoreTextShaper.cpp"
+      ]
+    },
+    {
+      "order": 96,
+      "path": "platform/gfx/thebes/gfxFontEntry.cpp.patch",
+      "sha256": "a974a7e89fb864a8c2f7d4b41a92af5aaf3bfe2fc4e49986db244245ccf24dd2",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/gfxFontEntry.cpp.",
+      "upstreamPaths": [
+        "gfx/thebes/gfxFontEntry.cpp"
+      ]
+    },
+    {
+      "order": 97,
+      "path": "platform/gfx/thebes/gfxMacFont.cpp.patch",
+      "sha256": "6c43475aa8ddda14a722177699e92466a98aa2d02f249c6c21b8b1901bdeb33d",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/gfxMacFont.cpp.",
+      "upstreamPaths": [
+        "gfx/thebes/gfxMacFont.cpp"
+      ]
+    },
+    {
+      "order": 98,
+      "path": "platform/gfx/thebes/gfxPlatform.cpp.patch",
+      "sha256": "14664a3a1b414f1b1bcb0a6c19f318b7e80d941e9b3276ae14937ce0e0c032f0",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/gfxPlatform.cpp.",
+      "upstreamPaths": [
+        "gfx/thebes/gfxPlatform.cpp"
+      ]
+    },
+    {
+      "order": 99,
+      "path": "platform/gfx/thebes/gfxPlatformMac.cpp.patch",
+      "sha256": "b04350e62b9b37a96e36b03ee4c57d0e30488b86fc09067f7949fc919ce32688",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/gfxPlatformMac.cpp.",
+      "upstreamPaths": [
+        "gfx/thebes/gfxPlatformMac.cpp"
+      ]
+    },
+    {
+      "order": 100,
+      "path": "platform/gfx/thebes/gfxTextRun.cpp.patch",
+      "sha256": "51d203b6bd529c3fe0331c9f259326325539c9f9bad3ad31be73e4044f9d53fd",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/gfxTextRun.cpp.",
+      "upstreamPaths": [
+        "gfx/thebes/gfxTextRun.cpp"
+      ]
+    },
+    {
+      "order": 101,
+      "path": "platform/gfx/thebes/gfxUIKitVsyncSource.h.patch",
+      "sha256": "2ad4a241b54e3c59172c4552b3357f016726669ff98bacbc44219b96f68d1135",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/thebes/gfxUIKitVsyncSource.h.",
+      "upstreamPaths": [
+        "gfx/thebes/gfxUIKitVsyncSource.h"
+      ]
+    },
+    {
+      "order": 102,
+      "path": "platform/gfx/thebes/gfxUIKitVsyncSource.mm.patch",
+      "sha256": "9d80b856fe07c9d04ede1357e87f917c28c73b7fce80e685857f745098eb63e6",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/thebes/gfxUIKitVsyncSource.mm.",
+      "upstreamPaths": [
+        "gfx/thebes/gfxUIKitVsyncSource.mm"
+      ]
+    },
+    {
+      "order": 103,
+      "path": "platform/gfx/thebes/moz.build.patch",
+      "sha256": "ac112720b32a8d7e9bc0946d03fa59dd8aae3c25f57616452582f0251796ac76",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through gfx/thebes/moz.build.",
+      "upstreamPaths": [
+        "gfx/thebes/moz.build"
+      ]
+    },
+    {
+      "order": 104,
+      "path": "platform/gfx/webrender_bindings/Cargo.toml.patch",
+      "sha256": "8c7aae9456dbe9e0ecffc95d9fdfc801895afb18cb9e6f6d38dbc2f386d052c7",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through gfx/webrender_bindings/Cargo.toml.",
+      "upstreamPaths": [
+        "gfx/webrender_bindings/Cargo.toml"
+      ]
+    },
+    {
+      "order": 105,
+      "path": "platform/gfx/webrender_bindings/RenderCompositorNative.cpp.patch",
+      "sha256": "4356485b61a4e0ec787fdab26502dcec472cd73027658d2de8411a11908d39a1",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/webrender_bindings/RenderCompositorNative.cpp.",
+      "upstreamPaths": [
+        "gfx/webrender_bindings/RenderCompositorNative.cpp"
+      ]
+    },
+    {
+      "order": 106,
+      "path": "platform/gfx/webrender_bindings/RenderMacIOSurfaceTextureHost.cpp.patch",
+      "sha256": "3871bfb5dfda85899b6b1e922f594af623e8e96c5ccc9f309fe66a9d9328b4bd",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/webrender_bindings/RenderMacIOSurfaceTextureHost.cpp.",
+      "upstreamPaths": [
+        "gfx/webrender_bindings/RenderMacIOSurfaceTextureHost.cpp"
+      ]
+    },
+    {
+      "order": 107,
+      "path": "platform/gfx/webrender_bindings/WebRenderAPI.cpp.patch",
+      "sha256": "d0388d2767575507001190cbe961f35a4501dba0d5a3719df6674952a0ff3710",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/webrender_bindings/WebRenderAPI.cpp.",
+      "upstreamPaths": [
+        "gfx/webrender_bindings/WebRenderAPI.cpp"
+      ]
+    },
+    {
+      "order": 108,
+      "path": "platform/gfx/webrender_bindings/WebRenderAPI.h.patch",
+      "sha256": "2202f1e70aac34c714f7a819e1f291aee9b879e993e8a7bcf2c4cf86daa1c489",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in gfx/webrender_bindings/WebRenderAPI.h.",
+      "upstreamPaths": [
+        "gfx/webrender_bindings/WebRenderAPI.h"
+      ]
+    },
+    {
+      "order": 109,
+      "path": "platform/gfx/webrender_bindings/src/bindings.rs.patch",
+      "sha256": "3bcfb3b127d62d3f4758613e54246eeb942b22587a6e3fed39cc151fedebe52d",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/webrender_bindings/src/bindings.rs.",
+      "upstreamPaths": [
+        "gfx/webrender_bindings/src/bindings.rs"
+      ]
+    },
+    {
+      "order": 110,
+      "path": "platform/gfx/webrender_bindings/src/lib.rs.patch",
+      "sha256": "812b7eda473864de185ff9defc79d862b7bf585b6f1ed8dd0c75cdce85258d38",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/webrender_bindings/src/lib.rs.",
+      "upstreamPaths": [
+        "gfx/webrender_bindings/src/lib.rs"
+      ]
+    },
+    {
+      "order": 111,
+      "path": "platform/gfx/webrender_bindings/src/moz2d_renderer.rs.patch",
+      "sha256": "c6363aa3fcdf2b23f1cbf08719f73733929e7cd0f9ecff5daa6fc38111f53388",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/webrender_bindings/src/moz2d_renderer.rs.",
+      "upstreamPaths": [
+        "gfx/webrender_bindings/src/moz2d_renderer.rs"
+      ]
+    },
+    {
+      "order": 112,
+      "path": "platform/gfx/wgpu_bindings/Cargo.toml.patch",
+      "sha256": "566498b3476af7a8181d462aad327d86779398ac36ea1542891bde430d7e9d71",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through gfx/wgpu_bindings/Cargo.toml.",
+      "upstreamPaths": [
+        "gfx/wgpu_bindings/Cargo.toml"
+      ]
+    },
+    {
+      "order": 113,
+      "path": "platform/gfx/wgpu_bindings/cbindgen.toml.patch",
+      "sha256": "dac945984c468b639aa5ccc8b2e4b97674698cd37fb44cc29e5ed58db03569be",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through gfx/wgpu_bindings/cbindgen.toml.",
+      "upstreamPaths": [
+        "gfx/wgpu_bindings/cbindgen.toml"
+      ]
+    },
+    {
+      "order": 114,
+      "path": "platform/gfx/wgpu_bindings/src/server.rs.patch",
+      "sha256": "92cdfc703cff1843f8a34ede8885a702c8f04151f2c0e84f4758765ca1da8b6b",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/wgpu_bindings/src/server.rs.",
+      "upstreamPaths": [
+        "gfx/wgpu_bindings/src/server.rs"
+      ]
+    },
+    {
+      "order": 115,
+      "path": "platform/gfx/wr/webrender_api/src/font.rs.patch",
+      "sha256": "f4b3ec99b4f45b181e2201ec878c591ece977d784287177c82f2daaad4e6b5b0",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/wr/webrender_api/src/font.rs.",
+      "upstreamPaths": [
+        "gfx/wr/webrender_api/src/font.rs"
+      ]
+    },
+    {
+      "order": 116,
+      "path": "platform/gfx/wr/wr_glyph_rasterizer/src/platform/macos/font.rs.patch",
+      "sha256": "67e5d026ebf1ad1640ac6ad27d0b4cbc970d89877cac43c4abc6ca3d6806941d",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in gfx/wr/wr_glyph_rasterizer/src/platform/macos/font.rs.",
+      "upstreamPaths": [
+        "gfx/wr/wr_glyph_rasterizer/src/platform/macos/font.rs"
+      ]
+    },
+    {
+      "order": 117,
+      "path": "platform/hal/moz.build.patch",
+      "sha256": "f27d614add70f39ae06836dda5ee9e20f3ce98d8f6334e0b382d5ede7241a033",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through hal/moz.build.",
+      "upstreamPaths": [
+        "hal/moz.build"
+      ]
+    },
+    {
+      "order": 118,
+      "path": "platform/hal/uikit/UIKitBattery.mm.patch",
+      "sha256": "55a850596087e100b4363b0328f475c7702e1a097c1aa1a2e728e2a732bd6a85",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in hal/uikit/UIKitBattery.mm.",
+      "upstreamPaths": [
+        "hal/uikit/UIKitBattery.mm"
+      ]
+    },
+    {
+      "order": 119,
+      "path": "platform/hal/uikit/UIKitHeterogeneousCpuInfo.cpp.patch",
+      "sha256": "18957df41d280f1a7bb9e03d1a4f97db0c0f31d1525cf09b3123baf9b2217dd2",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in hal/uikit/UIKitHeterogeneousCpuInfo.cpp.",
+      "upstreamPaths": [
+        "hal/uikit/UIKitHeterogeneousCpuInfo.cpp"
+      ]
+    },
+    {
+      "order": 120,
+      "path": "platform/hal/uikit/UIKitProcessPriority.mm.patch",
+      "sha256": "d2d0f71f82f969cbd4292ab020d708f54dd410417e6eabdab073a8742d125490",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in hal/uikit/UIKitProcessPriority.mm.",
+      "upstreamPaths": [
+        "hal/uikit/UIKitProcessPriority.mm"
+      ]
+    },
+    {
+      "order": 121,
+      "path": "platform/hal/uikit/UIKitSensor.mm.patch",
+      "sha256": "944a393407158c01b1ce9299261f157156db96dfab71623afafdeefb4b719af8",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in hal/uikit/UIKitSensor.mm.",
+      "upstreamPaths": [
+        "hal/uikit/UIKitSensor.mm"
+      ]
+    },
+    {
+      "order": 122,
+      "path": "platform/ipc/chromium/src/base/message_pump_kqueue.cc.patch",
+      "sha256": "488366b50cc915fae1de1237b73794d320c46db2d998d00a44b5ce40d20b32be",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in ipc/chromium/src/base/message_pump_kqueue.cc.",
+      "upstreamPaths": [
+        "ipc/chromium/src/base/message_pump_kqueue.cc"
+      ]
+    },
+    {
+      "order": 123,
+      "path": "platform/ipc/chromium/src/chrome/common/ipc_channel_mach.cc.patch",
+      "sha256": "fa45b5b0d73c36d811687178e34b2bf057481c61b7020bfbdb0cf6b80f87a884",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in ipc/chromium/src/chrome/common/ipc_channel_mach.cc.",
+      "upstreamPaths": [
+        "ipc/chromium/src/chrome/common/ipc_channel_mach.cc"
+      ]
+    },
+    {
+      "order": 124,
+      "path": "platform/ipc/glue/BackgroundParentImpl.cpp.patch",
+      "sha256": "b783434a28da38e51fd93091614d8bf4e75a718000f78f0084da51b645300101",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in ipc/glue/BackgroundParentImpl.cpp.",
+      "upstreamPaths": [
+        "ipc/glue/BackgroundParentImpl.cpp"
+      ]
+    },
+    {
+      "order": 125,
+      "path": "platform/ipc/glue/BackgroundParentImpl.h.patch",
+      "sha256": "65cb2c55e2904a22a85e5a5367a2920adfe8e8733fe700ca9d139dd321701b4c",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in ipc/glue/BackgroundParentImpl.h.",
+      "upstreamPaths": [
+        "ipc/glue/BackgroundParentImpl.h"
+      ]
+    },
+    {
+      "order": 126,
+      "path": "platform/ipc/glue/ExtensionKitUtils.h.patch",
+      "sha256": "a94dd5beb00234006e43ac88894b07fe24361220a8044fd1ff56b903e0dfbca5",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in ipc/glue/ExtensionKitUtils.h.",
+      "upstreamPaths": [
+        "ipc/glue/ExtensionKitUtils.h"
+      ]
+    },
+    {
+      "order": 127,
+      "path": "platform/ipc/glue/ExtensionKitUtils.mm.patch",
+      "sha256": "df8a0e8c6bb0a199fa0c4f18051b75cbcda0ffbbc4c2781dc70c4808e2c40e39",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in ipc/glue/ExtensionKitUtils.mm.",
+      "upstreamPaths": [
+        "ipc/glue/ExtensionKitUtils.mm"
+      ]
+    },
+    {
+      "order": 128,
+      "path": "platform/ipc/glue/GeckoChildProcessHost.cpp.patch",
+      "sha256": "a4956e3b80c759ad6bda9e622a5205d729e56a8320b7c9e3a21f858b48bf74ed",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in ipc/glue/GeckoChildProcessHost.cpp.",
+      "upstreamPaths": [
+        "ipc/glue/GeckoChildProcessHost.cpp"
+      ]
+    },
+    {
+      "order": 129,
+      "path": "platform/ipc/glue/GeckoChildProcessHost.h.patch",
+      "sha256": "381a55e84b90a8328d51c69edf017b43a5fe09c91bd5438bd44d940deb71aae0",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in ipc/glue/GeckoChildProcessHost.h.",
+      "upstreamPaths": [
+        "ipc/glue/GeckoChildProcessHost.h"
+      ]
+    },
+    {
+      "order": 130,
+      "path": "platform/ipc/glue/NSExtensionUtils.h.patch",
+      "sha256": "1532d8b81597194b760255c37f67791a33f36d100356ea135679935fec1a2d9e",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in ipc/glue/NSExtensionUtils.h.",
+      "upstreamPaths": [
+        "ipc/glue/NSExtensionUtils.h"
+      ]
+    },
+    {
+      "order": 131,
+      "path": "platform/ipc/glue/NSExtensionUtils.mm.patch",
+      "sha256": "cb9661e6315eb237f07c326663738f93a8e2545200d5703c293a4c322753c8ab",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in ipc/glue/NSExtensionUtils.mm.",
+      "upstreamPaths": [
+        "ipc/glue/NSExtensionUtils.mm"
+      ]
+    },
+    {
+      "order": 132,
+      "path": "platform/ipc/glue/PBackground.ipdl.patch",
+      "sha256": "c78252de7243875fb8415884267c228178ebb0f43e2d6a540a723d6e082fbf0a",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in ipc/glue/PBackground.ipdl.",
+      "upstreamPaths": [
+        "ipc/glue/PBackground.ipdl"
+      ]
+    },
+    {
+      "order": 133,
+      "path": "platform/ipc/glue/moz.build.patch",
+      "sha256": "fc74102c8e8eb5b8d3cacbb9c7be277ca3dbb31ef51fda80f904b69799c20d35",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through ipc/glue/moz.build.",
+      "upstreamPaths": [
+        "ipc/glue/moz.build"
+      ]
+    },
+    {
+      "order": 134,
+      "path": "platform/js/src/build/moz.build.patch",
+      "sha256": "5bd5e0101ec68c4e62c3da1f266b2bab90d33df248c42b02710b5b061b267b03",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through js/src/build/moz.build.",
+      "upstreamPaths": [
+        "js/src/build/moz.build"
+      ]
+    },
+    {
+      "order": 135,
+      "path": "platform/js/src/jit/ProcessExecutableMemory.h.patch",
+      "sha256": "0e3aaf30c2dcd97f7bd50ae5bfbd3306dd7b8092fde3ac1dc5f4a7f1326f0edb",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in js/src/jit/ProcessExecutableMemory.h.",
+      "upstreamPaths": [
+        "js/src/jit/ProcessExecutableMemory.h"
+      ]
+    },
+    {
+      "order": 136,
+      "path": "platform/layout/base/AccessibleCaret.cpp.patch",
+      "sha256": "91e7529bd8953c827e53b8261be4eeb533cb4ed2b5a50472e10657449a9e2788",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in layout/base/AccessibleCaret.cpp.",
+      "upstreamPaths": [
+        "layout/base/AccessibleCaret.cpp"
+      ]
+    },
+    {
+      "order": 137,
+      "path": "platform/layout/base/AccessibleCaret.h.patch",
+      "sha256": "77d3910098a992543cf48eb6c00b1d4eb6c052240f878e9baab044e4527c2041",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in layout/base/AccessibleCaret.h.",
+      "upstreamPaths": [
+        "layout/base/AccessibleCaret.h"
+      ]
+    },
+    {
+      "order": 138,
+      "path": "platform/layout/base/AccessibleCaretManager.cpp.patch",
+      "sha256": "cd73ffe2ccacda94ed7918ac2564e4d644295c874bc080c7fb51d3acb07d80ba",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in layout/base/AccessibleCaretManager.cpp.",
+      "upstreamPaths": [
+        "layout/base/AccessibleCaretManager.cpp"
+      ]
+    },
+    {
+      "order": 139,
+      "path": "platform/layout/generic/nsIFrame.cpp.patch",
+      "sha256": "8ccd596a55515f4441063ebc6d3201d5e8f254bb18ed0ac9eba46fd293e52be0",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in layout/generic/nsIFrame.cpp.",
+      "upstreamPaths": [
+        "layout/generic/nsIFrame.cpp"
+      ]
+    },
+    {
+      "order": 140,
+      "path": "platform/layout/ipc/RemoteLayerTreeOwner.cpp.patch",
+      "sha256": "23448805fd90a09aa41545a3f77d7fc165482084687badfcc42a7c4b1fee02fe",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in layout/ipc/RemoteLayerTreeOwner.cpp.",
+      "upstreamPaths": [
+        "layout/ipc/RemoteLayerTreeOwner.cpp"
+      ]
+    },
+    {
+      "order": 141,
+      "path": "platform/layout/style/res/accessiblecaret.css.patch",
+      "sha256": "d8cf59cac5c15e2b516d3ae951a79e48a81c1b80bfdbcfc948d323439488662a",
+      "owner": "engine-platform",
+      "purpose": "Adapt the standalone iOS runtime presentation in layout/style/res/accessiblecaret.css.",
+      "upstreamPaths": [
+        "layout/style/res/accessiblecaret.css"
+      ]
+    },
+    {
+      "order": 142,
+      "path": "platform/layout/style/res/ua.css.patch",
+      "sha256": "c109133d807a39b3d043b7c8412dc4e1bac525b950b3096f5a3d8ddc63e649e2",
+      "owner": "engine-platform",
+      "purpose": "Adapt the standalone iOS runtime presentation in layout/style/res/ua.css.",
+      "upstreamPaths": [
+        "layout/style/res/ua.css"
+      ]
+    },
+    {
+      "order": 143,
+      "path": "platform/media/libcubeb/src/cubeb_audiounit.cpp.patch",
+      "sha256": "2d993a630b9e05ccb704b9bce7e9eb586dccfd3474c13711ec4658b122121b21",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in media/libcubeb/src/cubeb_audiounit.cpp.",
+      "upstreamPaths": [
+        "media/libcubeb/src/cubeb_audiounit.cpp"
+      ]
+    },
+    {
+      "order": 144,
+      "path": "platform/media/libcubeb/src/cubeb_audiounit_ios.mm.patch",
+      "sha256": "896d0152bdd5f77bb5a24aedd273abdb9cbd8854540f22bf59f3b2886998b1d2",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in media/libcubeb/src/cubeb_audiounit_ios.mm.",
+      "upstreamPaths": [
+        "media/libcubeb/src/cubeb_audiounit_ios.mm"
+      ]
+    },
+    {
+      "order": 145,
+      "path": "platform/media/libcubeb/src/cubeb_resampler_internal.h.patch",
+      "sha256": "d53ef9f5122a74f05e743056ead52b5e1a5e8c79230797b4447debe46b05f1cd",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in media/libcubeb/src/cubeb_resampler_internal.h.",
+      "upstreamPaths": [
+        "media/libcubeb/src/cubeb_resampler_internal.h"
+      ]
+    },
+    {
+      "order": 146,
+      "path": "platform/media/libcubeb/src/moz.build.patch",
+      "sha256": "4c220f6b113331cae12e62d24bec602ee8af8705524258336deefa8f11675d86",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through media/libcubeb/src/moz.build.",
+      "upstreamPaths": [
+        "media/libcubeb/src/moz.build"
+      ]
+    },
+    {
+      "order": 147,
+      "path": "platform/mobile/ios/app/mobile.js.patch",
+      "sha256": "2e5feb99b5fb62f32de14bfa847235a3e139932f84c3a9248efae75a974e738b",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/ios/app/mobile.js for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/ios/app/mobile.js"
+      ]
+    },
+    {
+      "order": 148,
+      "path": "platform/mobile/shared/actors/GeckoViewAutoFillChild.sys.mjs.patch",
+      "sha256": "ddd5a831be8a09387ba958b91969a3901f8dabf52f548ea74a633b796687a549",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/actors/GeckoViewAutoFillChild.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/actors/GeckoViewAutoFillChild.sys.mjs"
+      ]
+    },
+    {
+      "order": 149,
+      "path": "platform/mobile/shared/actors/GeckoViewAutoFillParent.sys.mjs.patch",
+      "sha256": "8de742c7583f9d64900692b2190206aa2948f428d53fe4a145e2b2eeb01f1b09",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/actors/GeckoViewAutoFillParent.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/actors/GeckoViewAutoFillParent.sys.mjs"
+      ]
+    },
+    {
+      "order": 150,
+      "path": "platform/mobile/shared/actors/GeckoViewContentChild.sys.mjs.patch",
+      "sha256": "9083382f9afc635bd078c22a30dfd76ee5ee4abcec31ff3fd47483c15268f715",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/actors/GeckoViewContentChild.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/actors/GeckoViewContentChild.sys.mjs"
+      ]
+    },
+    {
+      "order": 151,
+      "path": "platform/mobile/shared/actors/GeckoViewPrompterChild.sys.mjs.patch",
+      "sha256": "dd0a32e47147144e6dcee50d8919341e5e4eb1aeb1544a4dea05d75e171cdc7c",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/actors/GeckoViewPrompterChild.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/actors/GeckoViewPrompterChild.sys.mjs"
+      ]
+    },
+    {
+      "order": 152,
+      "path": "platform/mobile/shared/actors/SelectionActionDelegateChild.sys.mjs.patch",
+      "sha256": "577db67f313fabfaf99ffcd3abe7b957661752400cad42ad7b5df9603decdbca",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/actors/SelectionActionDelegateChild.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/actors/SelectionActionDelegateChild.sys.mjs"
+      ]
+    },
+    {
+      "order": 153,
+      "path": "platform/mobile/shared/components/geckoview/FilePickerDelegate.sys.mjs.patch",
+      "sha256": "169ce98dac76a8733d76f50d873f3e2f449f13b939e23cb2624e58bd37aaa308",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/components/geckoview/FilePickerDelegate.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/components/geckoview/FilePickerDelegate.sys.mjs"
+      ]
+    },
+    {
+      "order": 154,
+      "path": "platform/mobile/shared/components/geckoview/GeckoViewPermission.sys.mjs.patch",
+      "sha256": "09e5cfba4af34f57a971e5fc9ed7904cf5d6d5a9448862aacdd5ef1f44d10bfc",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/components/geckoview/GeckoViewPermission.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/components/geckoview/GeckoViewPermission.sys.mjs"
+      ]
+    },
+    {
+      "order": 155,
+      "path": "platform/mobile/shared/components/geckoview/GeckoViewPrompt.sys.mjs.patch",
+      "sha256": "ec6168c4c94b0d8e4da91c1701748d5ede1b7debfd8315b39d807e6c545fb0ca",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/components/geckoview/GeckoViewPrompt.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/components/geckoview/GeckoViewPrompt.sys.mjs"
+      ]
+    },
+    {
+      "order": 156,
+      "path": "platform/mobile/shared/components/geckoview/GeckoViewPrompter.sys.mjs.patch",
+      "sha256": "6c69bc6cdb5d0d6e63cc86d595809df58d09ad423a9ec440341ef56a0e0748c1",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/components/geckoview/GeckoViewPrompter.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/components/geckoview/GeckoViewPrompter.sys.mjs"
+      ]
+    },
+    {
+      "order": 157,
+      "path": "platform/mobile/shared/components/geckoview/GeckoViewStartup.sys.mjs.patch",
+      "sha256": "1c57cbf9e3f033ca56c9593d700451ad2481176b37a4c4cdcdd07fcf2cb5a51b",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/components/geckoview/GeckoViewStartup.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/components/geckoview/GeckoViewStartup.sys.mjs"
+      ]
+    },
+    {
+      "order": 158,
+      "path": "platform/mobile/shared/modules/geckoview/FormAutoFillKeywords.sys.mjs.patch",
+      "sha256": "303a7784079059e91df1bf070e2eeaf0051ec9f6732b43164dd85641bafe2a57",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/modules/geckoview/FormAutoFillKeywords.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/modules/geckoview/FormAutoFillKeywords.sys.mjs"
+      ]
+    },
+    {
+      "order": 159,
+      "path": "platform/mobile/shared/modules/geckoview/FormFieldClassifier.sys.mjs.patch",
+      "sha256": "904f0cfa383e3e3902bdfbcefc17daad0424f47d382c5cfc73ad7c71b38bc1f8",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/modules/geckoview/FormFieldClassifier.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/modules/geckoview/FormFieldClassifier.sys.mjs"
+      ]
+    },
+    {
+      "order": 160,
+      "path": "platform/mobile/shared/modules/geckoview/GeckoViewAutofill.sys.mjs.patch",
+      "sha256": "3b9650920683bc8758c0cbb6feec19732332970800adb50121ce63da01e628df",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/modules/geckoview/GeckoViewAutofill.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/modules/geckoview/GeckoViewAutofill.sys.mjs"
+      ]
+    },
+    {
+      "order": 161,
+      "path": "platform/mobile/shared/modules/geckoview/GeckoViewContent.sys.mjs.patch",
+      "sha256": "1f4d81d3bbf553e3433f84f49974210278bb7e52ce0dc507cba7a5d827b735f5",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/modules/geckoview/GeckoViewContent.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/modules/geckoview/GeckoViewContent.sys.mjs"
+      ]
+    },
+    {
+      "order": 162,
+      "path": "platform/mobile/shared/modules/geckoview/GeckoViewMediaControl.sys.mjs.patch",
+      "sha256": "24a59e800d7abb7e3672a04ce83773457eff5b7a2807443dc2c6b921a4fb5fd8",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/modules/geckoview/GeckoViewMediaControl.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/modules/geckoview/GeckoViewMediaControl.sys.mjs"
+      ]
+    },
+    {
+      "order": 163,
+      "path": "platform/mobile/shared/modules/geckoview/GeckoViewSettings.sys.mjs.patch",
+      "sha256": "17082e8f1a8d06595940a1024ef095ae9d98fd586d061e2ed9efd0f3aa908d2f",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/modules/geckoview/GeckoViewSettings.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/modules/geckoview/GeckoViewSettings.sys.mjs"
+      ]
+    },
+    {
+      "order": 164,
+      "path": "platform/mobile/shared/modules/geckoview/GeckoViewStorageController.sys.mjs.patch",
+      "sha256": "ec5ca5bb872aa9a31867127385c730d15e7e6671d8d9a36d37a54089beb176d3",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/modules/geckoview/GeckoViewStorageController.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/modules/geckoview/GeckoViewStorageController.sys.mjs"
+      ]
+    },
+    {
+      "order": 165,
+      "path": "platform/mobile/shared/modules/geckoview/Messaging.sys.mjs.patch",
+      "sha256": "ba4e6b45bfc6e67bbc420a2ffb9c014c3c35aa681b15aa980f38e58d8306d3b5",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in mobile/shared/modules/geckoview/Messaging.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "mobile/shared/modules/geckoview/Messaging.sys.mjs"
+      ]
+    },
+    {
+      "order": 166,
+      "path": "platform/mobile/shared/modules/geckoview/moz.build.patch",
+      "sha256": "e7ba982e718d14f434842b23a67592dc3155249d0511f3f01a18e3ed55dd65db",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through mobile/shared/modules/geckoview/moz.build.",
+      "upstreamPaths": [
+        "mobile/shared/modules/geckoview/moz.build"
+      ]
+    },
+    {
+      "order": 167,
+      "path": "platform/modules/libpref/init/StaticPrefList.yaml.patch",
+      "sha256": "14abc7b235236aa8aa6556842ef9a69105f722609907d895b8309a0bc252aa22",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through modules/libpref/init/StaticPrefList.yaml.",
+      "upstreamPaths": [
+        "modules/libpref/init/StaticPrefList.yaml"
+      ]
+    },
+    {
+      "order": 168,
+      "path": "platform/modules/libpref/init/all.js.patch",
+      "sha256": "60254dc68fb5bd18459d9c86037e56c4a7da41ca0012d3bcfaa1f2fbfa853071",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in modules/libpref/init/all.js for standalone iOS.",
+      "upstreamPaths": [
+        "modules/libpref/init/all.js"
+      ]
+    },
+    {
+      "order": 169,
+      "path": "platform/modules/woff2/moz.build.patch",
+      "sha256": "8a7d68fbce07f5b0126baf9a7d8bfb4daf307aaf7cdcbe048b33aee76a30d202",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through modules/woff2/moz.build.",
+      "upstreamPaths": [
+        "modules/woff2/moz.build"
+      ]
+    },
+    {
+      "order": 170,
+      "path": "platform/netwerk/build/components.conf.patch",
+      "sha256": "3aebe8ba6ffbb05f71bece4880afe6805fda1f025611ee4ac5766a4f4add2dea",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through netwerk/build/components.conf.",
+      "upstreamPaths": [
+        "netwerk/build/components.conf"
+      ]
+    },
+    {
+      "order": 171,
+      "path": "platform/netwerk/ipc/SocketProcessHost.cpp.patch",
+      "sha256": "8b2a2315cf2c1354a457db322d3172a7c9091a894af8e35f31ecc5e855a96f3b",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in netwerk/ipc/SocketProcessHost.cpp.",
+      "upstreamPaths": [
+        "netwerk/ipc/SocketProcessHost.cpp"
+      ]
+    },
+    {
+      "order": 172,
+      "path": "platform/netwerk/protocol/http/HttpConnectionMgrChild.cpp.patch",
+      "sha256": "fd5a23b5eaeb5517c58a1af080412a75e8b555e3840f2df77f0928fddc63018b",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in netwerk/protocol/http/HttpConnectionMgrChild.cpp.",
+      "upstreamPaths": [
+        "netwerk/protocol/http/HttpConnectionMgrChild.cpp"
+      ]
+    },
+    {
+      "order": 173,
+      "path": "platform/netwerk/protocol/http/HttpConnectionMgrChild.h.patch",
+      "sha256": "46799e20bd108cdf3f5f5426eb41068525e11c15de57c79a6b47bb60ac5271a2",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in netwerk/protocol/http/HttpConnectionMgrChild.h.",
+      "upstreamPaths": [
+        "netwerk/protocol/http/HttpConnectionMgrChild.h"
+      ]
+    },
+    {
+      "order": 174,
+      "path": "platform/netwerk/protocol/http/HttpConnectionMgrParent.cpp.patch",
+      "sha256": "7bf446907e31c2a6917bd2a7da56a758d0e0a3fd4221f384c15d4339267a8b54",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in netwerk/protocol/http/HttpConnectionMgrParent.cpp.",
+      "upstreamPaths": [
+        "netwerk/protocol/http/HttpConnectionMgrParent.cpp"
+      ]
+    },
+    {
+      "order": 175,
+      "path": "platform/netwerk/protocol/http/HttpConnectionMgrParent.h.patch",
+      "sha256": "47be6bf62534ff683fa9fa570b3658e8470ec8b489479bc5af1c0cdbde3c9a79",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in netwerk/protocol/http/HttpConnectionMgrParent.h.",
+      "upstreamPaths": [
+        "netwerk/protocol/http/HttpConnectionMgrParent.h"
+      ]
+    },
+    {
+      "order": 176,
+      "path": "platform/netwerk/protocol/http/PHttpConnectionMgr.ipdl.patch",
+      "sha256": "25cf447072ac1279175a5f1407e43069a6fb65aee3268fe60ac22e5369dd471f",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in netwerk/protocol/http/PHttpConnectionMgr.ipdl.",
+      "upstreamPaths": [
+        "netwerk/protocol/http/PHttpConnectionMgr.ipdl"
+      ]
+    },
+    {
+      "order": 177,
+      "path": "platform/netwerk/protocol/http/nsHttpChannel.cpp.patch",
+      "sha256": "97a20dea0571fc1296a2ea242a33c97500dca91e0a7cd615741894a00bc89ad4",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in netwerk/protocol/http/nsHttpChannel.cpp.",
+      "upstreamPaths": [
+        "netwerk/protocol/http/nsHttpChannel.cpp"
+      ]
+    },
+    {
+      "order": 178,
+      "path": "platform/netwerk/protocol/http/nsHttpHandler.cpp.patch",
+      "sha256": "ab79ba72cb64518d82a6230d22cb7fcc33350d4c008ba44d7b8b24b5c8a12783",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in netwerk/protocol/http/nsHttpHandler.cpp.",
+      "upstreamPaths": [
+        "netwerk/protocol/http/nsHttpHandler.cpp"
+      ]
+    },
+    {
+      "order": 179,
+      "path": "platform/netwerk/protocol/http/nsHttpHandler.h.patch",
+      "sha256": "40b415d64260e3a4208ea4858125a6ee111c3a83d67fa372b78fdbc4eeaab963",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in netwerk/protocol/http/nsHttpHandler.h.",
+      "upstreamPaths": [
+        "netwerk/protocol/http/nsHttpHandler.h"
+      ]
+    },
+    {
+      "order": 180,
+      "path": "platform/netwerk/system/ios/moz.build.patch",
+      "sha256": "c08499f793011b5888e5b71ecdd5d472f64ea974b66def930adac0802db61684",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through netwerk/system/ios/moz.build.",
+      "upstreamPaths": [
+        "netwerk/system/ios/moz.build"
+      ]
+    },
+    {
+      "order": 181,
+      "path": "platform/netwerk/system/ios/nsIOSNetworkLinkService.h.patch",
+      "sha256": "2cae32c0bcc02af32d8298ae6356e76bbc1deb0ee4cf9f762e2f34ead15b48c1",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in netwerk/system/ios/nsIOSNetworkLinkService.h.",
+      "upstreamPaths": [
+        "netwerk/system/ios/nsIOSNetworkLinkService.h"
+      ]
+    },
+    {
+      "order": 182,
+      "path": "platform/netwerk/system/ios/nsIOSNetworkLinkService.mm.patch",
+      "sha256": "459eeb461299492b6cdb105b7a7b3ac6aa30cbf07b71612130b84bae760294b5",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in netwerk/system/ios/nsIOSNetworkLinkService.mm.",
+      "upstreamPaths": [
+        "netwerk/system/ios/nsIOSNetworkLinkService.mm"
+      ]
+    },
+    {
+      "order": 183,
+      "path": "platform/netwerk/system/ios/nsNetworkLinkServiceIOS.mm.patch",
+      "sha256": "82d7eeb6f87efea49b372ca6668eab6d0c66e67cb123474e091de96f76f76c6d",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in netwerk/system/ios/nsNetworkLinkServiceIOS.mm.",
+      "upstreamPaths": [
+        "netwerk/system/ios/nsNetworkLinkServiceIOS.mm"
+      ]
+    },
+    {
+      "order": 184,
+      "path": "platform/parser/expat/moz.build.patch",
+      "sha256": "3d735bbcc02f345ed0c3e21913cda5e18fc033d8f9114f06c3c58b21f20a2530",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through parser/expat/moz.build.",
+      "upstreamPaths": [
+        "parser/expat/moz.build"
+      ]
+    },
+    {
+      "order": 185,
+      "path": "platform/parser/expat/rlbox_expat.h.patch",
+      "sha256": "50b32fab979a4019f4bfd8eda837c1eeb4e1be7c4c9f77d71db1f1c8f0c05319",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in parser/expat/rlbox_expat.h.",
+      "upstreamPaths": [
+        "parser/expat/rlbox_expat.h"
+      ]
+    },
+    {
+      "order": 186,
+      "path": "platform/parser/expat/rlbox_expat_types.h.patch",
+      "sha256": "1b0f1d65b0004f4a7019a5969aa03fff0fcf956823f525c7eb073e7dca4eb88e",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in parser/expat/rlbox_expat_types.h.",
+      "upstreamPaths": [
+        "parser/expat/rlbox_expat_types.h"
+      ]
+    },
+    {
+      "order": 187,
+      "path": "platform/parser/htmlparser/nsExpatDriver.cpp.patch",
+      "sha256": "a666bdba31d199d2cf00ef71f1106eaa0e469329ead6a4dc349e23720b288209",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in parser/htmlparser/nsExpatDriver.cpp.",
+      "upstreamPaths": [
+        "parser/htmlparser/nsExpatDriver.cpp"
+      ]
+    },
+    {
+      "order": 188,
+      "path": "platform/security/manager/ssl/TLSClientAuthCertSelection.cpp.patch",
+      "sha256": "79a652ec14c1f9772491258cb49a064bd0447bbe23f27c879d7d128cacb5874d",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in security/manager/ssl/TLSClientAuthCertSelection.cpp.",
+      "upstreamPaths": [
+        "security/manager/ssl/TLSClientAuthCertSelection.cpp"
+      ]
+    },
+    {
+      "order": 189,
+      "path": "platform/third_party/libwebrtc/moz.build.patch",
+      "sha256": "9c8ccb82f3260d48c0d48b566aae87097d302c56adc6a3a4b894198bd43a9458",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through third_party/libwebrtc/moz.build.",
+      "upstreamPaths": [
+        "third_party/libwebrtc/moz.build"
+      ]
+    },
+    {
+      "order": 190,
+      "path": "platform/third_party/libwebrtc/sdk/objc/components/capturer/RTCCameraVideoCapturer.m.patch",
+      "sha256": "076a287a8ad6deca47a11dbe8e7d0fe09f296cdabdb6f9ed46735e6fdeaa7598",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in third_party/libwebrtc/sdk/objc/components/capturer/RTCCameraVideoCapturer.m.",
+      "upstreamPaths": [
+        "third_party/libwebrtc/sdk/objc/components/capturer/RTCCameraVideoCapturer.m"
+      ]
+    },
+    {
+      "order": 191,
+      "path": "platform/toolkit/components/extensions/Extension.sys.mjs.patch",
+      "sha256": "d25a65b9953b56c9f32917d42318e4d0a9f20d668204d13f1b7d7d215eaa6d73",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in toolkit/components/extensions/Extension.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "toolkit/components/extensions/Extension.sys.mjs"
+      ]
+    },
+    {
+      "order": 192,
+      "path": "platform/toolkit/content/jar.mn.patch",
+      "sha256": "8b321891878ddfed351f068b636341bdad341bd93745642432576cceca627d77",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in toolkit/content/jar.mn.",
+      "upstreamPaths": [
+        "toolkit/content/jar.mn"
+      ]
+    },
+    {
+      "order": 193,
+      "path": "platform/toolkit/library/moz.build.patch",
+      "sha256": "83510055fe9e4cac10a12e77081d13476c9ddbd90d04567aa3b8e294af329bcf",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through toolkit/library/moz.build.",
+      "upstreamPaths": [
+        "toolkit/library/moz.build"
+      ]
+    },
+    {
+      "order": 194,
+      "path": "platform/toolkit/modules/ActorManagerParent.sys.mjs.patch",
+      "sha256": "f6c589a29a005a2d7ca3e482c907aba2748d13a36de5096c73f838100024dd4f",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in toolkit/modules/ActorManagerParent.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "toolkit/modules/ActorManagerParent.sys.mjs"
+      ]
+    },
+    {
+      "order": 195,
+      "path": "platform/toolkit/moz.configure.patch",
+      "sha256": "ebefd883c92da4cd554676e98d6b310d28fbab8633067a639f21371020fd21ee",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in toolkit/moz.configure.",
+      "upstreamPaths": [
+        "toolkit/moz.configure"
+      ]
+    },
+    {
+      "order": 196,
+      "path": "platform/toolkit/mozapps/extensions/internal/AddonSettings.sys.mjs.patch",
+      "sha256": "09d59a97fa2160b53ca6506bafe3e801d29318909504814676c025903dcc9c00",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in toolkit/mozapps/extensions/internal/AddonSettings.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "toolkit/mozapps/extensions/internal/AddonSettings.sys.mjs"
+      ]
+    },
+    {
+      "order": 197,
+      "path": "platform/toolkit/mozapps/extensions/internal/XPIDatabase.sys.mjs.patch",
+      "sha256": "3d1dfc9f83d17d3fd795ce7ac52f3eb519fc75ed851c7718fdc03af518a98b13",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in toolkit/mozapps/extensions/internal/XPIDatabase.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "toolkit/mozapps/extensions/internal/XPIDatabase.sys.mjs"
+      ]
+    },
+    {
+      "order": 198,
+      "path": "platform/toolkit/mozapps/extensions/internal/XPIProvider.sys.mjs.patch",
+      "sha256": "22a2e3de87589a69970ffcd7588faa3cc3f74b0f4553be23e753982aed6483b7",
+      "owner": "engine-platform",
+      "purpose": "Adapt Gecko runtime integration in toolkit/mozapps/extensions/internal/XPIProvider.sys.mjs for standalone iOS.",
+      "upstreamPaths": [
+        "toolkit/mozapps/extensions/internal/XPIProvider.sys.mjs"
+      ]
+    },
+    {
+      "order": 199,
+      "path": "platform/toolkit/xre/IOSBootstrap.mm.patch",
+      "sha256": "23df786f158e13cf40c1b87611ee83ea9c5aaa95926e98f079e0805e6ad1d279",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in toolkit/xre/IOSBootstrap.mm.",
+      "upstreamPaths": [
+        "toolkit/xre/IOSBootstrap.mm"
+      ]
+    },
+    {
+      "order": 200,
+      "path": "platform/widget/CompositorWidget.h.patch",
+      "sha256": "8d0072ae2977ea584bb8f6696cf44d3ae7573f3762ab3c6b046812fc7c2f7fef",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/CompositorWidget.h.",
+      "upstreamPaths": [
+        "widget/CompositorWidget.h"
+      ]
+    },
+    {
+      "order": 201,
+      "path": "platform/widget/ContentCache.cpp.patch",
+      "sha256": "7c9cd6f50b5b5f0bd1a443e1dce0447afec38bdeec7446c9126f0755af7d7a25",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/ContentCache.cpp.",
+      "upstreamPaths": [
+        "widget/ContentCache.cpp"
+      ]
+    },
+    {
+      "order": 202,
+      "path": "platform/widget/ContentCache.h.patch",
+      "sha256": "192a2e49aafd361aa46ab44548d55174884b2d78d1808881a33ce83dc3f1a27c",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/ContentCache.h.",
+      "upstreamPaths": [
+        "widget/ContentCache.h"
+      ]
+    },
+    {
+      "order": 203,
+      "path": "platform/widget/InProcessCompositorWidget.cpp.patch",
+      "sha256": "bd58b89cef6d8b08a03c600543a10ef34c1ce260f37c9de8a1370126146331eb",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/InProcessCompositorWidget.cpp.",
+      "upstreamPaths": [
+        "widget/InProcessCompositorWidget.cpp"
+      ]
+    },
+    {
+      "order": 204,
+      "path": "platform/widget/PuppetWidget.cpp.patch",
+      "sha256": "1f710bb8aca76de046fc1b020b8ccd29976a09f390a02ec1d2b72cacddab02b4",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/PuppetWidget.cpp.",
+      "upstreamPaths": [
+        "widget/PuppetWidget.cpp"
+      ]
+    },
+    {
+      "order": 205,
+      "path": "platform/widget/PuppetWidget.h.patch",
+      "sha256": "6d689979187cb1f2a2a75769e53115cfb9f21edc241e43b885ae3728679e38ed",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/PuppetWidget.h.",
+      "upstreamPaths": [
+        "widget/PuppetWidget.h"
+      ]
+    },
+    {
+      "order": 206,
+      "path": "platform/widget/moz.build.patch",
+      "sha256": "3d7eef008b8355355626e8eafcaa4c9d8869daa43239d4da096bfd14dd09ca03",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through widget/moz.build.",
+      "upstreamPaths": [
+        "widget/moz.build"
+      ]
+    },
+    {
+      "order": 207,
+      "path": "platform/widget/nsGUIEventIPC.h.patch",
+      "sha256": "de5ef31675540fd2639c91a436fae5a47dd2c11b3260c9ab301b56248922eae5",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/nsGUIEventIPC.h.",
+      "upstreamPaths": [
+        "widget/nsGUIEventIPC.h"
+      ]
+    },
+    {
+      "order": 208,
+      "path": "platform/widget/uikit/CompositorWidgetChild.cpp.patch",
+      "sha256": "c07584dc0c9b51febf02e917e6d60723d1ab6cb525eace0c89ff02fc76a59b0f",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/CompositorWidgetChild.cpp.",
+      "upstreamPaths": [
+        "widget/uikit/CompositorWidgetChild.cpp"
+      ]
+    },
+    {
+      "order": 209,
+      "path": "platform/widget/uikit/CompositorWidgetChild.h.patch",
+      "sha256": "00693ed8f743d538ecc1c25e196a2bd903af7d0fc6049b90e5ee5dfd7060c66d",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/CompositorWidgetChild.h.",
+      "upstreamPaths": [
+        "widget/uikit/CompositorWidgetChild.h"
+      ]
+    },
+    {
+      "order": 210,
+      "path": "platform/widget/uikit/CompositorWidgetParent.cpp.patch",
+      "sha256": "9463e801e8f0e3a661728514fdd0042ac0e3a9fbe72e2c6617b78516c4df6418",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/CompositorWidgetParent.cpp.",
+      "upstreamPaths": [
+        "widget/uikit/CompositorWidgetParent.cpp"
+      ]
+    },
+    {
+      "order": 211,
+      "path": "platform/widget/uikit/CompositorWidgetParent.h.patch",
+      "sha256": "e7601ae82e3a5d1250445cbc7c396481389af1fa00e9f17e40effa2b21b3d928",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/CompositorWidgetParent.h.",
+      "upstreamPaths": [
+        "widget/uikit/CompositorWidgetParent.h"
+      ]
+    },
+    {
+      "order": 212,
+      "path": "platform/widget/uikit/EventDispatcher.h.patch",
+      "sha256": "01627d55ca6a624543b6a845b1006cb93e9d8df56c66483c6154dda976ec90a7",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/EventDispatcher.h.",
+      "upstreamPaths": [
+        "widget/uikit/EventDispatcher.h"
+      ]
+    },
+    {
+      "order": 213,
+      "path": "platform/widget/uikit/EventDispatcher.mm.patch",
+      "sha256": "90e734e7d868a6fca2a65c56a8d32b160ea0875a54d39f8829611c93ce53083d",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/EventDispatcher.mm.",
+      "upstreamPaths": [
+        "widget/uikit/EventDispatcher.mm"
+      ]
+    },
+    {
+      "order": 214,
+      "path": "platform/widget/uikit/ExternalResponseService.h.patch",
+      "sha256": "310d4c8d19f66f6f0db30e4e5b78d7e16012d265d0c606ffbc77f4823ca50a1e",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/ExternalResponseService.h.",
+      "upstreamPaths": [
+        "widget/uikit/ExternalResponseService.h"
+      ]
+    },
+    {
+      "order": 215,
+      "path": "platform/widget/uikit/ExternalResponseService.mm.patch",
+      "sha256": "5e2a30f50b411e23799aadde37d6eb09da1faee04c56f1daea1e5e5e811a1c93",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/ExternalResponseService.mm.",
+      "upstreamPaths": [
+        "widget/uikit/ExternalResponseService.mm"
+      ]
+    },
+    {
+      "order": 216,
+      "path": "platform/widget/uikit/GeckoEditableSupport.h.patch",
+      "sha256": "37d2f388be8738bae478789878b3d40c0cea2a3cad40761914f56dd0ad45c3de",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/GeckoEditableSupport.h.",
+      "upstreamPaths": [
+        "widget/uikit/GeckoEditableSupport.h"
+      ]
+    },
+    {
+      "order": 217,
+      "path": "platform/widget/uikit/GeckoEditableSupport.mm.patch",
+      "sha256": "ee1aa8598588574369fee58fc5ef1eaa55485607a7ae6eb188f2fd12e25a8584",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/GeckoEditableSupport.mm.",
+      "upstreamPaths": [
+        "widget/uikit/GeckoEditableSupport.mm"
+      ]
+    },
+    {
+      "order": 218,
+      "path": "platform/widget/uikit/GeckoViewSwiftSupport.h.patch",
+      "sha256": "f61533c2dc15f2d3acbee769f6deb38df83d17f032bd1324233954ba294edeb5",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/GeckoViewSwiftSupport.h.",
+      "upstreamPaths": [
+        "widget/uikit/GeckoViewSwiftSupport.h"
+      ]
+    },
+    {
+      "order": 219,
+      "path": "platform/widget/uikit/PictureInPictureSupport.h.patch",
+      "sha256": "1831f82b17fdef30f9d707ba930d65ff5cb470e9c5f0a36806967a452a3f1eaf",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/PictureInPictureSupport.h.",
+      "upstreamPaths": [
+        "widget/uikit/PictureInPictureSupport.h"
+      ]
+    },
+    {
+      "order": 220,
+      "path": "platform/widget/uikit/PictureInPictureSupport.mm.patch",
+      "sha256": "70345a3741acfa017328de6613323fc6ce0a65c6f9ca8fcdb6d118b6f024ce4b",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/PictureInPictureSupport.mm.",
+      "upstreamPaths": [
+        "widget/uikit/PictureInPictureSupport.mm"
+      ]
+    },
+    {
+      "order": 221,
+      "path": "platform/widget/uikit/TextInputHandler.h.patch",
+      "sha256": "6f1cc8c1ccb49ab192c7e7c3e4e5a677303742ccb13d602e4c06a9d628961d13",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/TextInputHandler.h.",
+      "upstreamPaths": [
+        "widget/uikit/TextInputHandler.h"
+      ]
+    },
+    {
+      "order": 222,
+      "path": "platform/widget/uikit/TextInputHandler.mm.patch",
+      "sha256": "99ed9e3be15024ae11865c56d1682511cd8e4b37ff96b672386c649aadbdae48",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/TextInputHandler.mm.",
+      "upstreamPaths": [
+        "widget/uikit/TextInputHandler.mm"
+      ]
+    },
+    {
+      "order": 223,
+      "path": "platform/widget/uikit/UIKitCompositorWidget.cpp.patch",
+      "sha256": "1ab1abd9d5263659d734c26b7bcef0c4bf45d7b98876476a8251016a0591d2fc",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/UIKitCompositorWidget.cpp.",
+      "upstreamPaths": [
+        "widget/uikit/UIKitCompositorWidget.cpp"
+      ]
+    },
+    {
+      "order": 224,
+      "path": "platform/widget/uikit/UIKitCompositorWidget.h.patch",
+      "sha256": "cc0b613641e7914166dbfdba537c80d4e91b8f9d76ffe6d8b015caacbfa50a1b",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/UIKitCompositorWidget.h.",
+      "upstreamPaths": [
+        "widget/uikit/UIKitCompositorWidget.h"
+      ]
+    },
+    {
+      "order": 225,
+      "path": "platform/widget/uikit/components.conf.patch",
+      "sha256": "7c0b36de2648136245f18d8026451fa03f82e20cdc518c77232948056bac33ed",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through widget/uikit/components.conf.",
+      "upstreamPaths": [
+        "widget/uikit/components.conf"
+      ]
+    },
+    {
+      "order": 226,
+      "path": "platform/widget/uikit/moz.build.patch",
+      "sha256": "745b703de56bc17c6a13469067b01ea013bab786cc809d186e61092564ec8e76",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through widget/uikit/moz.build.",
+      "upstreamPaths": [
+        "widget/uikit/moz.build"
+      ]
+    },
+    {
+      "order": 227,
+      "path": "platform/widget/uikit/nsAppShell.mm.patch",
+      "sha256": "fa9b0840bd73c5fa0e39d86eced4526de403d0896bc9c50e6cc455cc97306aa1",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/nsAppShell.mm.",
+      "upstreamPaths": [
+        "widget/uikit/nsAppShell.mm"
+      ]
+    },
+    {
+      "order": 228,
+      "path": "platform/widget/uikit/nsClipboard.h.patch",
+      "sha256": "b8df450e7cae3c2e654666621298a4b5d32f67ed644b8edad9913c9b6b86b43b",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/nsClipboard.h.",
+      "upstreamPaths": [
+        "widget/uikit/nsClipboard.h"
+      ]
+    },
+    {
+      "order": 229,
+      "path": "platform/widget/uikit/nsClipboard.mm.patch",
+      "sha256": "6ec2e0edc852dc0a94743f5f96fba8bc8159bc0c4215efe78c3bb1225df29876",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/nsClipboard.mm.",
+      "upstreamPaths": [
+        "widget/uikit/nsClipboard.mm"
+      ]
+    },
+    {
+      "order": 230,
+      "path": "platform/widget/uikit/nsLookAndFeel.h.patch",
+      "sha256": "bedd0d20f11b2aa82dc95b0ea40e2c0659e80e02e51b46cfb099f121b6f71841",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/nsLookAndFeel.h.",
+      "upstreamPaths": [
+        "widget/uikit/nsLookAndFeel.h"
+      ]
+    },
+    {
+      "order": 231,
+      "path": "platform/widget/uikit/nsLookAndFeel.mm.patch",
+      "sha256": "ede85307e5bf246ba8b3efa1f97db9963ef58136c03024fcb30c36c0dd86c367",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/nsLookAndFeel.mm.",
+      "upstreamPaths": [
+        "widget/uikit/nsLookAndFeel.mm"
+      ]
+    },
+    {
+      "order": 232,
+      "path": "platform/widget/uikit/nsWidgetFactory.mm.patch",
+      "sha256": "8a0acceeb9b0812c5f28151e8c2a75d6c158eabeefe73707e268eac07104cc87",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/nsWidgetFactory.mm.",
+      "upstreamPaths": [
+        "widget/uikit/nsWidgetFactory.mm"
+      ]
+    },
+    {
+      "order": 233,
+      "path": "platform/widget/uikit/nsWindow.h.patch",
+      "sha256": "bd575e52925d8eb0d9623ebe62d83147ba75953ddb4ebf8fb121ebd2a8c54057",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in widget/uikit/nsWindow.h.",
+      "upstreamPaths": [
+        "widget/uikit/nsWindow.h"
+      ]
+    },
+    {
+      "order": 234,
+      "path": "platform/widget/uikit/nsWindow.mm.patch",
+      "sha256": "24658dca845b46c120b06a87570fb57ba83f205abe736830434d9d1acfdc2115",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in widget/uikit/nsWindow.mm.",
+      "upstreamPaths": [
+        "widget/uikit/nsWindow.mm"
+      ]
+    },
+    {
+      "order": 235,
+      "path": "platform/xpcom/base/AvailableMemoryWatcherIOS.cpp.patch",
+      "sha256": "cbbfc9290ea15feda9ea4d5fdefc5425b7f0cce9d67ef3738e4049714c0d5a53",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in xpcom/base/AvailableMemoryWatcherIOS.cpp.",
+      "upstreamPaths": [
+        "xpcom/base/AvailableMemoryWatcherIOS.cpp"
+      ]
+    },
+    {
+      "order": 236,
+      "path": "platform/xpcom/base/MemoryPressureLevelIOS.h.patch",
+      "sha256": "f963d6da57cf1a2efa5ddfb0211a3914a3cf0d12d331d53299c27470c334edd4",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in xpcom/base/MemoryPressureLevelIOS.h.",
+      "upstreamPaths": [
+        "xpcom/base/MemoryPressureLevelIOS.h"
+      ]
+    },
+    {
+      "order": 237,
+      "path": "platform/xpcom/base/moz.build.patch",
+      "sha256": "abfcaa43ba6304d817101013793b8201b96f2f2f62c7281a7956e83cf03c5208",
+      "owner": "engine-platform",
+      "purpose": "Configure the standalone iOS Gecko build through xpcom/base/moz.build.",
+      "upstreamPaths": [
+        "xpcom/base/moz.build"
+      ]
+    },
+    {
+      "order": 238,
+      "path": "platform/xpcom/threads/TaskController.cpp.patch",
+      "sha256": "70bc5f025c5ab65d7ad1e549a62b3299e0787a59fdb33040926fff5a2e8490fd",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in xpcom/threads/TaskController.cpp.",
+      "upstreamPaths": [
+        "xpcom/threads/TaskController.cpp"
+      ]
+    },
+    {
+      "order": 239,
+      "path": "platform/xpcom/threads/nsIThread.idl.patch",
+      "sha256": "80a0160eb06e55618723c000ec437b58e956c9a7dac392197182c1bf648dcdc6",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in xpcom/threads/nsIThread.idl.",
+      "upstreamPaths": [
+        "xpcom/threads/nsIThread.idl"
+      ]
+    },
+    {
+      "order": 240,
+      "path": "platform/xpcom/threads/nsMemoryPressure.cpp.patch",
+      "sha256": "78699020f67d026791b3fcabbe4deef45efe6531ec3a81d37a3a67fba5daa3d0",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in xpcom/threads/nsMemoryPressure.cpp.",
+      "upstreamPaths": [
+        "xpcom/threads/nsMemoryPressure.cpp"
+      ]
+    },
+    {
+      "order": 241,
+      "path": "platform/xpcom/threads/nsMemoryPressure.h.patch",
+      "sha256": "74b04029b86b37e7775e6fba3d8f6057f2ea18a59392b411d3fd047ab7ede787",
+      "owner": "engine-platform",
+      "purpose": "Define the iOS-compatible runtime contract in xpcom/threads/nsMemoryPressure.h.",
+      "upstreamPaths": [
+        "xpcom/threads/nsMemoryPressure.h"
+      ]
+    },
+    {
+      "order": 242,
+      "path": "platform/xpcom/threads/nsThread.cpp.patch",
+      "sha256": "b749055b0aa9a5a45362a2f21a63b6d132278ea1e86d49059a3c25e9345027ac",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in xpcom/threads/nsThread.cpp.",
+      "upstreamPaths": [
+        "xpcom/threads/nsThread.cpp"
+      ]
+    },
+    {
+      "order": 243,
+      "path": "platform/xpcom/threads/nsThreadPool.cpp.patch",
+      "sha256": "3c328a7ebd4ebe6a26a587070e04aeebdd956a554dc9477bb93680a34d47b864",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in xpcom/threads/nsThreadPool.cpp.",
+      "upstreamPaths": [
+        "xpcom/threads/nsThreadPool.cpp"
+      ]
+    },
+    {
+      "order": 244,
+      "path": "platform/xpfe/appshell/AppWindow.cpp.patch",
+      "sha256": "e1104942e0f5d6f59a406509263e17b3c4c47a5c594a0e483c2ff291bd8bc015",
+      "owner": "engine-platform",
+      "purpose": "Implement standalone iOS Gecko platform behavior in xpfe/appshell/AppWindow.cpp.",
+      "upstreamPaths": [
+        "xpfe/appshell/AppWindow.cpp"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+diff --git a/gfx/wgpu_bindings/cbindgen.toml b/gfx/wgpu_bindings/cbindgen.toml
+index 4b6b18157b9df55fea7c91d981e985e77f7f3f75..cef9bd74981e46ce455c4f782494b36c4ce84120 100644
+--- a/gfx/wgpu_bindings/cbindgen.toml
++++ b/gfx/wgpu_bindings/cbindgen.toml
+@@ -147,5 +147,6 @@ bitflags = true
+ [defines]
+ "target_os = windows" = "XP_WIN"
+ "target_os = macos" = "XP_MACOSX"
++"target_os = ios" = "XP_IOS"
+ "target_os = android" = "ANDROID"
+ "feature = id32" = "WGPU_FEATURE_ID32"

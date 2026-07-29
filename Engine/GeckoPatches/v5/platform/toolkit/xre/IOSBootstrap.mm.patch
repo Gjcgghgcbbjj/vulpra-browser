@@ -1,0 +1,71 @@
+diff --git a/toolkit/xre/IOSBootstrap.mm b/toolkit/xre/IOSBootstrap.mm
+index 264320aed775724391b3f1ed6487da7e1cc0539f..5077de39e1541acefcb252ffb23af0062f6670e1 100644
+--- a/toolkit/xre/IOSBootstrap.mm
++++ b/toolkit/xre/IOSBootstrap.mm
+@@ -10,8 +10,10 @@
+ #include "mozilla/GeckoArgs.h"
+ #include "mozilla/widget/GeckoViewSupport.h"
+ #include "nsDebug.h"
++#include "nsIThreadManager.h"
+ #include "nsPrintfCString.h"
+ #include "XREChildData.h"
++#include <pthread.h>
+ 
+ #include "application.ini.h"
+ 
+@@ -117,6 +119,45 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+   return NS_FAILED(rv);
+ }
+ 
++struct ChildBootstrapThreadArgs {
++  int argc;
++  char** argv;
++};
++
++static void* ChildBootstrapThreadMain(void* aClosure) {
++  auto* args = static_cast<ChildBootstrapThreadArgs*>(aClosure);
++  const int argc = args->argc;
++  char** argv = args->argv;
++  delete args;
++
++  pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
++  _exit(ChildProcessInitImpl(argc, argv));
++}
++
++static void LaunchChildBootstrapThread(int aArgc, char** aArgv) {
++  auto* args = new ChildBootstrapThreadArgs{aArgc, aArgv};
++  pthread_attr_t attr;
++  int rv = pthread_attr_init(&attr);
++  MOZ_RELEASE_ASSERT(rv == 0, "Failed to initialize bootstrap thread attrs");
++  rv = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
++  MOZ_RELEASE_ASSERT(rv == 0, "Failed to detach bootstrap thread");
++
++  size_t stackSize = nsIThreadManager::LargeStackSize();
++  if (stackSize < PTHREAD_STACK_MIN) {
++    stackSize = PTHREAD_STACK_MIN;
++  }
++  rv = pthread_attr_setstacksize(&attr, stackSize);
++  MOZ_RELEASE_ASSERT(rv == 0, "Failed to size bootstrap thread stack");
++
++  pthread_t thread;
++  rv = pthread_create(&thread, &attr, ChildBootstrapThreadMain, args);
++  pthread_attr_destroy(&attr);
++  if (rv != 0) {
++    delete args;
++    MOZ_CRASH("Failed to create Gecko child bootstrap thread");
++  }
++}
++
+ void HandleBootstrapMessage(xpc_object_t aEvent) {
+   // Set up stdout and stderr if they were provided.
+   int fd = xpc_dictionary_dup_fd(aEvent, "stdout");
+@@ -198,6 +239,7 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
+   }
+   argv[argc] = nullptr;
+ 
+-  dispatch_async(dispatch_get_main_queue(),
+-                 [argc, argv] { _exit(ChildProcessInitImpl(argc, argv)); });
++  // Keep ExtensionKit's main queue available while Gecko starts on a stack
++  // sized for deep JavaScript execution.
++  LaunchChildBootstrapThread(argc, argv);
+ }

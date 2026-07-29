@@ -1,0 +1,27 @@
+diff --git a/xpcom/base/moz.build b/xpcom/base/moz.build
+index f526cc0c300fd16352ac596b01d57e58155275ae..3bf3116adf16a39a55b66f419eb800f05a4561bd 100644
+--- a/xpcom/base/moz.build
++++ b/xpcom/base/moz.build
+@@ -220,11 +220,20 @@ if CONFIG["OS_TARGET"] == "WINNT":
+     ]
+ 
+ if CONFIG["OS_TARGET"] == "Darwin":
++    EXPORTS.mozilla += [
++        "MemoryPressureLevelMac.h",
++    ]
++    if CONFIG["MOZ_WIDGET_TOOLKIT"] != "uikit":
++        UNIFIED_SOURCES += [
++            "AvailableMemoryWatcherMac.cpp",
++        ]
++
++if CONFIG["MOZ_WIDGET_TOOLKIT"] == "uikit":
+     UNIFIED_SOURCES += [
+-        "AvailableMemoryWatcherMac.cpp",
++        "AvailableMemoryWatcherIOS.cpp",
+     ]
+     EXPORTS.mozilla += [
+-        "MemoryPressureLevelMac.h",
++        "MemoryPressureLevelIOS.h",
+     ]
+ 
+ if CONFIG["OS_TARGET"] == "Linux":

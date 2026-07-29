@@ -1,0 +1,40 @@
+diff --git a/js/src/jit/ProcessExecutableMemory.h b/js/src/jit/ProcessExecutableMemory.h
+index 4a08d4a6238f6faaccd725ce2f6f6ffe1156c5d1..ed6179fd567a7896e07336b1e1919b60fe6bc90d 100644
+--- a/js/src/jit/ProcessExecutableMemory.h
++++ b/js/src/jit/ProcessExecutableMemory.h
+@@ -7,10 +7,6 @@
+ 
+ #include "util/Poison.h"
+ 
+-#ifdef XP_IOS
+-#  include <BrowserEngineCore/BEMemory.h>
+-#endif
+-
+ namespace js {
+ namespace jit {
+ 
+@@ -123,22 +119,14 @@ class MOZ_RAII AutoMarkJitCodeWritableForThread {
+ 
+  public:
+   MOZ_ALWAYS_INLINE_EVEN_DEBUG AutoMarkJitCodeWritableForThread() {
+-#if defined(JS_USE_APPLE_FAST_WX)
+-#  if defined(XP_IOS)
+-    be_memory_inline_jit_restrict_rwx_to_rw_with_witness();
+-#  else
++#if defined(JS_USE_APPLE_FAST_WX) && !defined(XP_IOS)
+     markExecutable(false);
+-#  endif
+ #endif
+     checkConstructor();
+   }
+   MOZ_ALWAYS_INLINE_EVEN_DEBUG ~AutoMarkJitCodeWritableForThread() {
+-#if defined(JS_USE_APPLE_FAST_WX)
+-#  if defined(XP_IOS)
+-    be_memory_inline_jit_restrict_rwx_to_rx_with_witness();
+-#  else
++#if defined(JS_USE_APPLE_FAST_WX) && !defined(XP_IOS)
+     markExecutable(true);
+-#  endif
+ #endif
+     checkDestructor();
+   }

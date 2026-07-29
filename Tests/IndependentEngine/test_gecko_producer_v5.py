@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -53,10 +54,52 @@ def run_contract(path: Path) -> subprocess.CompletedProcess[str]:
     )
 
 
+def run_full(path: Path, root: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        ["python3", str(VERIFIER), "--contract", str(path), "--root", str(root)],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+
 def write_fixture(directory: Path, name: str, payload: dict[str, object]) -> Path:
     path = directory / name
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def write_full_fixture(root: Path) -> Path:
+    contract_path = root / "Configuration/gecko-producer-v5.json"
+    contract_path.parent.mkdir(parents=True)
+    contract_path.write_text(json.dumps(valid_contract(), indent=2) + "\n", encoding="utf-8")
+    patch = root / "Engine/GeckoPatches/v5/platform/example.patch"
+    patch.parent.mkdir(parents=True)
+    patch.write_text(
+        "diff --git a/example/source.cpp b/example/source.cpp\n"
+        "index 111111111111..222222222222 100644\n"
+        "--- a/example/source.cpp\n"
+        "+++ b/example/source.cpp\n"
+        "@@ -1 +1 @@\n"
+        "-old value\n"
+        "+new iOS value\n",
+        encoding="utf-8",
+    )
+    series = {
+        "schemaVersion": 1,
+        "patches": [{
+            "order": 1,
+            "path": "platform/example.patch",
+            "sha256": hashlib.sha256(patch.read_bytes()).hexdigest(),
+            "owner": "engine-platform",
+            "purpose": "Adapt example/source.cpp for the standalone iOS runtime.",
+            "upstreamPaths": ["example/source.cpp"],
+        }],
+    }
+    series_path = root / "Engine/GeckoPatches/v5/series.json"
+    series_path.write_text(json.dumps(series, indent=2) + "\n", encoding="utf-8")
+    return contract_path
 
 
 def main() -> None:
@@ -115,6 +158,59 @@ def main() -> None:
         result = run_contract(duplicate_key)
         require(result.returncode != 0 and "duplicate JSON key" in result.stderr,
                 "duplicate JSON keys were not rejected")
+
+        full_root = fixtures / "full"
+        full_contract = write_full_fixture(full_root)
+        result = run_full(full_contract, full_root)
+        require(result.returncode == 0, result.stderr or result.stdout)
+        require(result.stdout.strip() == "PASS: Gecko producer v5 patch series",
+                "full series output is not deterministic")
+
+        series_path = full_root / "Engine/GeckoPatches/v5/series.json"
+        original_series = json.loads(series_path.read_text(encoding="utf-8"))
+        invalid_series: list[tuple[str, dict[str, object], str]] = []
+
+        missing_patch = copy.deepcopy(original_series)
+        missing_patch["patches"][0]["path"] = "platform/missing.patch"  # type: ignore[index]
+        invalid_series.append(("missing-patch", missing_patch, "missing patch file"))
+
+        wrong_order = copy.deepcopy(original_series)
+        wrong_order["patches"][0]["order"] = 2  # type: ignore[index]
+        invalid_series.append(("wrong-order", wrong_order, "orders must be contiguous"))
+
+        wrong_hash = copy.deepcopy(original_series)
+        wrong_hash["patches"][0]["sha256"] = "0" * 64  # type: ignore[index]
+        invalid_series.append(("wrong-hash", wrong_hash, "patch digest mismatch"))
+
+        duplicate_path = copy.deepcopy(original_series)
+        duplicate_path["patches"].append(copy.deepcopy(duplicate_path["patches"][0]))  # type: ignore[index,union-attr]
+        duplicate_path["patches"][1]["order"] = 2  # type: ignore[index]
+        invalid_series.append(("duplicate-path", duplicate_path, "duplicate patch path"))
+
+        vague_purpose = copy.deepcopy(original_series)
+        vague_purpose["patches"][0]["purpose"] = "iOS patch"  # type: ignore[index]
+        invalid_series.append(("vague-purpose", vague_purpose, "specific purpose"))
+
+        wrong_upstream = copy.deepcopy(original_series)
+        wrong_upstream["patches"][0]["upstreamPaths"] = ["wrong.cpp"]  # type: ignore[index]
+        invalid_series.append(("wrong-upstream", wrong_upstream, "upstreamPaths mismatch"))
+
+        for name, payload, expected in invalid_series:
+            series_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+            result = run_full(full_contract, full_root)
+            require(result.returncode != 0, f"invalid full-series fixture passed: {name}")
+            require(expected in result.stderr,
+                    f"{name} did not report {expected!r}: {result.stderr}")
+
+        series_path.write_text(json.dumps(original_series, indent=2) + "\n", encoding="utf-8")
+        patch_path = full_root / "Engine/GeckoPatches/v5/platform/example.patch"
+        clean_patch = patch_path.read_text(encoding="utf-8")
+        patch_path.write_text(clean_patch + "+jit-ready-fd\n", encoding="utf-8")
+        original_series["patches"][0]["sha256"] = hashlib.sha256(patch_path.read_bytes()).hexdigest()
+        series_path.write_text(json.dumps(original_series, indent=2) + "\n", encoding="utf-8")
+        result = run_full(full_contract, full_root)
+        require(result.returncode != 0 and "forbidden runtime token" in result.stderr,
+                "forbidden patch content was not rejected")
 
     result = run_contract(CONTRACT)
     require(result.returncode == 0, result.stderr or result.stdout)

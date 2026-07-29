@@ -1,0 +1,14 @@
+diff --git a/ipc/chromium/src/chrome/common/ipc_channel_mach.cc b/ipc/chromium/src/chrome/common/ipc_channel_mach.cc
+index 68d1b07ba51d88b0aaeb2f90adb0a7c8b450477d..77d783ee0db3b44e68c1d0e9a3a0bb1716b0864f 100644
+--- a/ipc/chromium/src/chrome/common/ipc_channel_mach.cc
++++ b/ipc/chromium/src/chrome/common/ipc_channel_mach.cc
+@@ -756,8 +756,7 @@ bool ChannelMach::IsValidHandle(const ChannelHandle& handle) {
+           std::get_if<mozilla::UniqueMachReceiveRight>(&handle)) {
+     return !!*server;
+   }
+-  if (const auto* client =
+-          std::get_if<mozilla::UniqueMachReceiveRight>(&handle)) {
++  if (const auto* client = std::get_if<mozilla::UniqueMachSendRight>(&handle)) {
+     return !!*client;
+   }
+   return false;

@@ -1,0 +1,13 @@
+diff --git a/gfx/webrender_bindings/src/lib.rs b/gfx/webrender_bindings/src/lib.rs
+index 1a8e376583f2c8b673957844e5073d2b931d818b..c1f664c8ffa0a862c0390512ed5f7b05730ed6ef 100644
+--- a/gfx/webrender_bindings/src/lib.rs
++++ b/gfx/webrender_bindings/src/lib.rs
+@@ -34,6 +34,8 @@ extern crate core_foundation;
+ #[cfg(any(target_os = "macos", target_os = "ios"))]
+ extern crate core_graphics;
+ #[cfg(any(target_os = "macos", target_os = "ios"))]
++extern crate core_text;
++#[cfg(any(target_os = "macos", target_os = "ios"))]
+ extern crate foreign_types;
+ 
+ mod program_cache;

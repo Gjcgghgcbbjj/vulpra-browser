@@ -1,0 +1,12 @@
+diff --git a/gfx/thebes/moz.build b/gfx/thebes/moz.build
+index 2bb893d84f50bb9fdbaf68a0980ddf14cc3ee931..5c768be5f0443639c536c3b399b53c8cf254c836 100644
+--- a/gfx/thebes/moz.build
++++ b/gfx/thebes/moz.build
+@@ -242,6 +242,7 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
+     ]
+ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "uikit":
+     UNIFIED_SOURCES += [
++        "gfxUIKitVsyncSource.mm",
+         "IOSPlatformFontList.mm",
+     ]
+ elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
