@@ -85,8 +85,6 @@ def ensure_regular_file(
 def resource_files(dist: Path) -> Iterable[tuple[str, Path]]:
     bin_root = dist / "bin"
     for path in sorted(bin_root.rglob("*")):
-        if path.is_symlink():
-            fail(f"symbolic links are forbidden in dist resources: {path}")
         if not path.is_file() or path.name == "XUL" or path.suffix == ".dylib":
             continue
         relative = path.relative_to(bin_root).as_posix()
@@ -210,20 +208,28 @@ def main() -> int:
         ensure_regular_file(args.mozconfig, "mozconfig")
         source = args.mozconfig.parent
         payload: dict[str, Path] = {}
-        add_payload(payload, "runtime/bin/XUL", args.dist / "bin/XUL")
+        add_payload(
+            payload, "runtime/bin/XUL", args.dist / "bin/XUL",
+            allowed_symlink_root=source,
+        )
         dylibs = sorted(set((args.dist / "bin").glob("*.dylib")) |
                         set((args.dist / "lib").glob("*.dylib")))
         if not dylibs:
             fail("Gecko dist contains no dylibs")
         for dylib in dylibs:
-            add_payload(payload, f"runtime/lib/{dylib.name}", dylib)
+            add_payload(
+                payload, f"runtime/lib/{dylib.name}", dylib,
+                allowed_symlink_root=source,
+            )
         for header in HEADERS:
             add_payload(
                 payload, f"runtime/include/{header}", args.dist / "include" / header,
                 allowed_symlink_root=source,
             )
         for relative, resource in resource_files(args.dist):
-            add_payload(payload, relative, resource)
+            add_payload(
+                payload, relative, resource, allowed_symlink_root=source
+            )
 
         license_candidates = (source / "LICENSE", source / "MPL-2.0.txt")
         license_path = next((path for path in license_candidates if path.is_file()), None)

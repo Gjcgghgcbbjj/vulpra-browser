@@ -186,7 +186,10 @@ def test_package(base: Path) -> None:
     write(source / "toolkit/content/license.html", "third party fixture\n")
     write(dist / "bin/XUL", b"native-simulator-XUL", executable=True)
     write(dist / "bin/libmozglue.dylib", b"native-simulator-dylib", executable=True)
-    write(dist / "bin/application.ini", "[App]\nName=Vulpra\n")
+    exported_resource = source / "browser/app/application.ini"
+    write(exported_resource, "[App]\nName=Vulpra\n")
+    (dist / "bin").mkdir(parents=True, exist_ok=True)
+    (dist / "bin/application.ini").symlink_to(exported_resource)
     exported_header = source / "widget/uikit/GeckoViewSwiftSupport.h"
     write(exported_header, "// GeckoViewSwiftSupport.h\n")
     exported_path = dist / "include/GeckoView/GeckoViewSwiftSupport.h"
@@ -246,14 +249,16 @@ def test_package(base: Path) -> None:
     exported_path.unlink()
     write(exported_path, "// GeckoViewSwiftSupport.h\n")
 
-    (dist / "bin/unsafe-resource").symlink_to("application.ini")
+    outside_resource = base / "outside-resource"
+    write(outside_resource, "outside\n")
+    (dist / "bin/unsafe-resource").symlink_to(outside_resource)
     result = run([
         "python3", str(PACKAGE), "--contract", str(CONTRACT),
         "--platform", "iphonesimulator", "--dist", str(dist),
         "--mozconfig", str(mozconfig), "--output", str(base / "unsafe.tar.gz"),
     ], env=environment)
-    require(result.returncode != 0 and "symbolic links are forbidden" in result.stderr,
-            "packaging accepted an unsafe resource link")
+    require(result.returncode != 0 and "resolves outside Gecko source" in result.stderr,
+            "packaging accepted a resource link outside the pinned source")
 
 
 def main() -> None:
