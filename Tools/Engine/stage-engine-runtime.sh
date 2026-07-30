@@ -3,9 +3,13 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 ENGINE_ROOT=${VULPRA_ENGINE_ROOT:-$ROOT/.build/engine}
-APP_BUNDLE=${TARGET_BUILD_DIR:?}/${WRAPPER_NAME:?}
-FRAMEWORKS=$APP_BUNDLE/Frameworks
-ENGINE_FRAMEWORK=$FRAMEWORKS/VulpraEngineKit.framework
+if [ -n "${VULPRA_ENGINE_PRODUCT_BUNDLE:-}" ]; then
+  PRODUCT_BUNDLE=$VULPRA_ENGINE_PRODUCT_BUNDLE
+else
+  PRODUCT_BUNDLE=${TARGET_BUILD_DIR:?}/${WRAPPER_NAME:?}
+fi
+FRAMEWORKS=$PRODUCT_BUNDLE/Frameworks
+ENGINE_FRAMEWORK=${VULPRA_ENGINE_FRAMEWORK:-$FRAMEWORKS/VulpraEngineKit.framework}
 CONTRACT=${VULPRA_ENGINE_CONTRACT:-$ROOT/Configuration/engine-artifact-device-v5.json}
 
 python3 "$ROOT/Tools/Engine/verify-engine-artifact.py" \

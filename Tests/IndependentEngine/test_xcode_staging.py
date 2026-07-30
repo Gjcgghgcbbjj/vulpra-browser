@@ -42,6 +42,10 @@ def main() -> None:
             "EngineKit unit tests still depend on the production App test host")
     require('TEST_HOST =' not in text and 'BUNDLE_LOADER =' not in text,
             "EngineKit unit tests still launch through the production App main")
+    require('Stage Engine Test Runtime' in test_target,
+            "hostless EngineKit tests do not stage their runtime link dependencies")
+    require('VULPRA_ENGINE_PRODUCT_BUNDLE' in text and 'VULPRA_ENGINE_FRAMEWORK' in text,
+            "EngineKit test staging does not call the shared runtime owner explicitly")
 
     app = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "App").rglob("*.swift"))
     require("import VulpraEngineKit" in app, "App is not migrated to VulpraEngineKit")
@@ -53,6 +57,8 @@ def main() -> None:
                 f"{name} config retains inherited source")
 
     staging = (ROOT / "Tools/Engine/stage-engine-runtime.sh").read_text(encoding="utf-8")
+    require('VULPRA_ENGINE_PRODUCT_BUNDLE' in staging and 'VULPRA_ENGINE_FRAMEWORK' in staging,
+            "runtime staging cannot target a hostless test bundle")
     require('codesign --force --sign - {}' in staging,
             "simulator runtime does not repair the precompiled Mach-O signature")
     require('json.load(open(sys.argv[1]' in staging and '["runtimeResourceContainer"]' in staging,
