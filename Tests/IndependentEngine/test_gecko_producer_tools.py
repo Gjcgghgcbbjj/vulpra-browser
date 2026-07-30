@@ -445,7 +445,7 @@ def main() -> None:
         "reuse_build_run_id:",
         "promote_run_id:",
         "repeat_producer_run_id:",
-        "default: vulpra-engine-v5-r0-candidate",
+        "default: vulpra-engine-v5-r0.1-candidate",
         "runs-on: macos-26",
         "platform: [iphoneos, iphonesimulator]",
         "/Applications/Xcode_26.4.1.app",
@@ -479,6 +479,8 @@ def main() -> None:
             "single producer run retains direct release publication ownership")
     require("- .github/workflows/produce-gecko-v5.yml" not in workflow,
             "workflow-only changes still trigger an expensive native rebuild")
+    require("- Tests/IndependentEngine/test_gecko_producer_tools.py" not in workflow,
+            "portable fixture changes still trigger an expensive native rebuild")
 
     with tempfile.TemporaryDirectory(prefix="vulpra-gecko-producer-tools-") as temporary:
         base = Path(temporary)

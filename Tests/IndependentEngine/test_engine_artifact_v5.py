@@ -223,7 +223,7 @@ def main() -> None:
     workflow = PROMOTION_WORKFLOW.read_text(encoding="utf-8")
     for token in (
         "producer_run_id:", "repeat_producer_run_id:", "release_tag:",
-        "default: vulpra-engine-v5-r0-candidate", "runs-on: macos-26",
+        "default: vulpra-engine-v5-r0.1-candidate", "runs-on: macos-26",
         "workflow_call:", "gh run download \"$run_id\"",
         "gh release download \"$tag\"", "gh release upload \"$tag\"",
         "promote-engine-artifacts.py promote",

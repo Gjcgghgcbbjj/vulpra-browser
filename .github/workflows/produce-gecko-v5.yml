@@ -7,13 +7,12 @@ on:
     paths:
       - Engine/GeckoPatches/v5/**
       - Tools/GeckoProducer/**
-      - Tests/IndependentEngine/test_gecko_producer_tools.py
   workflow_dispatch:
     inputs:
       release_tag:
         description: R0 prerelease tag for repeat-verified promotion
         required: true
-        default: vulpra-engine-v5-r0-candidate
+        default: vulpra-engine-v5-r0.1-candidate
         type: string
       reuse_build_run_id:
         description: Repackage verified build snapshots from this producer run
