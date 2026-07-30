@@ -199,6 +199,13 @@ def test_package(base: Path) -> None:
     exported_path.parent.mkdir(parents=True, exist_ok=True)
     exported_path.symlink_to(exported_header)
     write(dist / "include/GeckoView/IOSBootstrap.h", "// IOSBootstrap.h\n")
+    write(source / ".vulpra-build-provenance.json", json.dumps({
+        "schemaVersion": 1,
+        "compiledBy": {
+            "repository": "https://github.com/Gjcgghgcbbjj/vulpra-browser",
+            "commit": "0" * 40, "workflowRunId": 0, "buildFingerprint": "1" * 64,
+        },
+    }))
 
     environment = os.environ.copy()
     for name in ("GITHUB_ACTIONS", "GITHUB_SHA", "GITHUB_RUN_ID"):
@@ -237,6 +244,9 @@ def test_package(base: Path) -> None:
             manifest["build"]["mozconfigSHA256"] == hashlib.sha256(mozconfig.read_bytes()).hexdigest() and
             manifest["producer"]["workflowRunId"] == 0,
             "artifact manifest lost producer content identity")
+    require(manifest["compiledBy"]["workflowRunId"] == 0 and
+            manifest["compiledBy"]["buildFingerprint"] == "1" * 64,
+            "artifact manifest lost native compilation provenance")
 
     exported_path.unlink()
     outside_header = base / "outside-header.h"
@@ -326,6 +336,12 @@ def test_build_snapshot(base: Path) -> None:
     require(result.returncode == 0, result.stderr or result.stdout)
     require((extracted / "dist/bin/application.ini").read_bytes() == linked_resource.read_bytes(),
             "verified build snapshot extraction lost resource content")
+    provenance = json.loads(
+        (extracted / ".vulpra-build-provenance.json").read_text(encoding="utf-8")
+    )
+    require(provenance["compiledBy"]["workflowRunId"] == 123 and
+            len(provenance["compiledBy"]["buildFingerprint"]) == 64,
+            "verified snapshot extraction lost native compilation provenance")
     result = run([
         "python3", str(SNAPSHOT), "extract", *common,
         "--expected-producer-run-id", "124",

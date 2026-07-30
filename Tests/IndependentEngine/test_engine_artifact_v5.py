@@ -86,6 +86,12 @@ def manifest_for(platform: str, values: dict[str, bytes], run_id: int = RUN_ID) 
             "commit": PRODUCER_COMMIT,
             "workflowRunId": run_id,
         },
+        "compiledBy": {
+            "repository": "https://github.com/Gjcgghgcbbjj/vulpra-browser",
+            "commit": PRODUCER_COMMIT,
+            "workflowRunId": run_id,
+            "buildFingerprint": hashlib.sha256(platform.encode("ascii") + b"-build").hexdigest(),
+        },
         "configurationSHA256": hashlib.sha256(PRODUCER_CONTRACT.read_bytes()).hexdigest(),
         "build": {
             "mozconfigSHA256": hashlib.sha256(platform.encode("ascii")).hexdigest(),
@@ -269,6 +275,17 @@ def main() -> None:
         write_root(changed, "iphoneos", changed_values, manifest_for("iphoneos", changed_values, RUN_ID + 1))
         require(verify(device, "iphoneos", nm, changed).returncode != 0,
                 "repeat comparison accepted changed resources")
+        changed_compile = base / "repeat-compile-changed"
+        changed_compile_manifest = manifest_for("iphoneos", payload("iphoneos"), RUN_ID + 1)
+        changed_compile_manifest["compiledBy"]["commit"] = "b" * 40
+        bind_artifact_id(changed_compile_manifest, "iphoneos")
+        write_root(
+            changed_compile, "iphoneos",
+            manifest=changed_compile_manifest,
+        )
+        result = verify(device, "iphoneos", nm, changed_compile)
+        require(result.returncode != 0 and "repeat v5 build" in result.stderr,
+                "repeat comparison normalized away a different compile commit")
 
         device_archive = base / "vulpra-engine-ios-arm64-v5.tar.gz"
         simulator_archive = base / "vulpra-engine-ios-simulator-native-arm64-v5.tar.gz"
@@ -286,6 +303,10 @@ def main() -> None:
                 promoted["device"]["platform"] == "iphoneos" and
                 promoted["simulator"]["platform"] == "iphonesimulator",
                 "promotion lost run or platform identity")
+        require(promoted["device"]["compiledByRunId"] == RUN_ID and
+                promoted["device"]["compiledByHeadSha"] == PRODUCER_COMMIT and
+                len(promoted["device"]["buildFingerprint"]) == 64,
+                "promotion lost native compilation provenance")
 
         original_lock = lock.read_bytes()
         unsafe = base / "unsafe.tar.gz"

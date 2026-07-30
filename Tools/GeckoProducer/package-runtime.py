@@ -107,6 +107,22 @@ def make_manifest(args: argparse.Namespace, payload: dict[str, Path]) -> dict[st
     contract = json.loads(args.contract.read_text(encoding="utf-8"))
     series_path = ROOT / contract["patchSeries"]
     xcode_build, sdk_build = resolve_build_identity(args.platform)
+    provenance_path = args.mozconfig.parent / ".vulpra-build-provenance.json"
+    try:
+        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"cannot read verified build provenance: {error}")
+    compiled_by = provenance.get("compiledBy") if isinstance(provenance, dict) else None
+    if (not isinstance(compiled_by, dict)
+            or set(compiled_by) != {"repository", "commit", "workflowRunId", "buildFingerprint"}
+            or compiled_by.get("repository") != PRODUCER_REPOSITORY
+            or not isinstance(compiled_by.get("commit"), str)
+            or re.fullmatch(r"[0-9a-f]{40}", compiled_by["commit"]) is None
+            or type(compiled_by.get("workflowRunId")) is not int
+            or compiled_by["workflowRunId"] < 0
+            or not isinstance(compiled_by.get("buildFingerprint"), str)
+            or re.fullmatch(r"[0-9a-f]{64}", compiled_by["buildFingerprint"]) is None):
+        fail("verified build provenance is invalid")
     github_sha = os.environ.get("GITHUB_SHA")
     github_run_id = os.environ.get("GITHUB_RUN_ID")
     in_ci = bool(os.environ.get("GITHUB_ACTIONS"))
@@ -145,6 +161,7 @@ def make_manifest(args: argparse.Namespace, payload: dict[str, Path]) -> dict[st
             "commit": producer_commit,
             "workflowRunId": workflow_run_id,
         },
+        "compiledBy": compiled_by,
         "configurationSHA256": sha256(args.contract),
         "build": {
             "mozconfigSHA256": sha256(args.mozconfig),

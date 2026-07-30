@@ -251,7 +251,8 @@ def validate_v5_manifest_identity(
 ) -> None:
     expected_keys = {
         "formatVersion", "artifactId", "abiVersion", "source", "patchSet",
-        "producer", "configurationSHA256", "build", "licenses", "notices", "files",
+        "producer", "compiledBy", "configurationSHA256", "build",
+        "licenses", "notices", "files",
     }
     if set(manifest) != expected_keys:
         fail(f"v5 manifest keys must be exactly: {', '.join(sorted(expected_keys))}")
@@ -293,6 +294,17 @@ def validate_v5_manifest_identity(
         fail("manifest producer commit is invalid")
     if type(producer.get("workflowRunId")) is not int or producer["workflowRunId"] < 0:
         fail("manifest producer workflow run ID is invalid")
+    compiled_by = manifest.get("compiledBy")
+    if (not isinstance(compiled_by, dict)
+            or set(compiled_by) != {"repository", "commit", "workflowRunId", "buildFingerprint"}
+            or compiled_by.get("repository") != producer.get("repository")
+            or not isinstance(compiled_by.get("commit"), str)
+            or COMMIT_PATTERN.fullmatch(compiled_by["commit"]) is None
+            or type(compiled_by.get("workflowRunId")) is not int
+            or compiled_by["workflowRunId"] < 0
+            or not isinstance(compiled_by.get("buildFingerprint"), str)
+            or SHA256_PATTERN.fullmatch(compiled_by["buildFingerprint"]) is None):
+        fail("manifest native compilation provenance is invalid")
 
     build = manifest.get("build")
     expected_build_keys = {
@@ -439,6 +451,7 @@ def normalized_repeat_manifest(manifest: dict[str, object]) -> dict[str, object]
     normalized = json.loads(json.dumps(manifest))
     normalized["artifactId"] = ""
     normalized["producer"]["workflowRunId"] = 0
+    normalized["compiledBy"]["workflowRunId"] = 0
     return normalized
 
 

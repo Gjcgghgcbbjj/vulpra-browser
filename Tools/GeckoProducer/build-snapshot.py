@@ -20,6 +20,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
 BUILD_SCRIPT = ROOT / "Tools/GeckoProducer/build-runtime.sh"
+PRODUCER_REPOSITORY = "https://github.com/Gjcgghgcbbjj/vulpra-browser"
 HEADERS = (
     "GeckoView/GeckoViewSwiftSupport.h",
     "GeckoView/IOSBootstrap.h",
@@ -306,6 +307,18 @@ def extract(args: argparse.Namespace) -> None:
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(content)
             destination.chmod(0o755 if mode & stat.S_IXUSR else 0o644)
+        provenance = {
+            "schemaVersion": 1,
+            "compiledBy": {
+                "repository": PRODUCER_REPOSITORY,
+                "commit": manifest["producer"]["commit"],
+                "workflowRunId": manifest["producer"]["workflowRunId"],
+                "buildFingerprint": manifest["buildIdentity"]["fingerprint"],
+            },
+        }
+        (temporary / ".vulpra-build-provenance.json").write_text(
+            json.dumps(provenance, indent=2) + "\n", encoding="utf-8"
+        )
         os.replace(temporary, args.output)
     finally:
         if temporary.exists():

@@ -68,6 +68,9 @@ jobs:
               'ENGINE_PRODUCER_HEAD_SHA': lock['producerHeadSha'],
               'ENGINE_PATCH_SET_SHA256': lock['simulator']['patchSetSHA256'],
               'ENGINE_CONFIGURATION_SHA256': lock['simulator']['configurationSHA256'],
+              'ENGINE_COMPILED_BY_RUN_ID': str(lock['simulator']['compiledByRunId']),
+              'ENGINE_COMPILED_BY_HEAD_SHA': lock['simulator']['compiledByHeadSha'],
+              'ENGINE_BUILD_FINGERPRINT': lock['simulator']['buildFingerprint'],
           }
           for key, value in values.items():
               print(f'{key}={shlex.quote(value)}')
@@ -101,6 +104,12 @@ jobs:
               raise SystemExit('Simulator patch set does not match repository lock')
           if manifest['configurationSHA256'] != os.environ['ENGINE_CONFIGURATION_SHA256']:
               raise SystemExit('Simulator producer configuration does not match repository lock')
+          if manifest['compiledBy']['workflowRunId'] != int(os.environ['ENGINE_COMPILED_BY_RUN_ID']):
+              raise SystemExit('Simulator compile run does not match repository lock')
+          if manifest['compiledBy']['commit'] != os.environ['ENGINE_COMPILED_BY_HEAD_SHA']:
+              raise SystemExit('Simulator compile snapshot does not match repository lock')
+          if manifest['compiledBy']['buildFingerprint'] != os.environ['ENGINE_BUILD_FINGERPRINT']:
+              raise SystemExit('Simulator build fingerprint does not match repository lock')
           PY
           python3 Tools/Engine/verify-engine-artifact.py \
             --contract Configuration/engine-artifact-simulator-v5.json .build/engine \

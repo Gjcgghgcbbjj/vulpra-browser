@@ -312,6 +312,9 @@ jobs:
           for field in ('source', 'patchSet', 'producer', 'configurationSHA256', 'abiVersion'):
               if device[field] != simulator[field]:
                   raise SystemExit(f'cross-target {field} identity mismatch')
+          for field in ('repository', 'commit', 'workflowRunId'):
+              if device['compiledBy'][field] != simulator['compiledBy'][field]:
+                  raise SystemExit(f'cross-target compiledBy {field} identity mismatch')
           if device['build']['platform'] != 'iphoneos' or \
                   simulator['build']['platform'] != 'iphonesimulator':
               raise SystemExit('artifact pair does not contain both native platforms')
@@ -322,6 +325,15 @@ jobs:
           summary = {
               'producerRunId': device['producer']['workflowRunId'],
               'producerCommit': device['producer']['commit'],
+              'compiledBy': {
+                  'repository': device['compiledBy']['repository'],
+                  'commit': device['compiledBy']['commit'],
+                  'workflowRunId': device['compiledBy']['workflowRunId'],
+                  'buildFingerprints': {
+                      platform: manifests[platform]['compiledBy']['buildFingerprint']
+                      for platform in manifests
+                  },
+              },
               'source': device['source'],
               'patchSet': device['patchSet'],
               'artifacts': {

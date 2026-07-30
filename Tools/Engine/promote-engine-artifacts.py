@@ -118,6 +118,11 @@ def require_matching_pair(
         producer = manifest.get("producer")
         if not isinstance(producer, dict) or producer.get("workflowRunId") != run_id:
             fail("artifact producer workflow run does not match selected run")
+    device_compile = device.get("compiledBy", {})
+    simulator_compile = simulator.get("compiledBy", {})
+    for field in ("repository", "commit", "workflowRunId"):
+        if device_compile.get(field) != simulator_compile.get(field):
+            fail(f"artifact pair compiledBy {field} mismatch")
     if device.get("build", {}).get("platform") != "iphoneos":
         fail("device artifact platform is invalid")
     if simulator.get("build", {}).get("platform") != "iphonesimulator":
@@ -145,6 +150,9 @@ def lock_entry(archive: Path, manifest: dict[str, object]) -> dict[str, object]:
         "sourceCommit": manifest["source"]["commit"],
         "patchSetSHA256": manifest["patchSet"]["sha256"],
         "configurationSHA256": manifest["configurationSHA256"],
+        "compiledByRunId": manifest["compiledBy"]["workflowRunId"],
+        "compiledByHeadSha": manifest["compiledBy"]["commit"],
+        "buildFingerprint": manifest["compiledBy"]["buildFingerprint"],
         "platform": build["platform"],
         "targetTriple": build["targetTriple"],
     }
