@@ -108,7 +108,8 @@ def validate_v5_contract(contract: dict[str, object], repository_root: Path) -> 
         "schemaVersion", "formatVersion", "artifactIdPrefix", "manifestFile",
         "platform", "targetTriple", "architecture", "deploymentTarget",
         "producerContract", "patchSeries", "requiredKernel", "requiredExports",
-        "requiredHeaders", "forbiddenRuntimeTokens", "runtimeResourceContainer",
+        "requiredInternalSymbols", "requiredHeaders", "forbiddenRuntimeTokens",
+        "runtimeResourceContainer",
         "runtimeKernelInstallPath", "allowedRoots", "nonEmptyRoots",
         "forbiddenSourceExtensions", "forbiddenProductExtensions", "forbiddenSegments",
     }
@@ -129,10 +130,14 @@ def validate_v5_contract(contract: dict[str, object], repository_root: Path) -> 
         fail("v5 contract patch series does not match the producer contract")
 
     exports = contract.get("requiredExports")
+    internal_symbols = contract.get("requiredInternalSymbols")
     producer_exports = producer.get("requiredExports")
     if (not isinstance(exports, list) or not exports or len(exports) != len(set(exports))
-            or exports != producer_exports):
-        fail("v5 contract required exports do not match the producer contract")
+            or not isinstance(internal_symbols, list) or not internal_symbols
+            or len(internal_symbols) != len(set(internal_symbols))
+            or set(exports) & set(internal_symbols)
+            or exports + internal_symbols != producer_exports):
+        fail("v5 external and internal symbols do not match the producer contract")
     headers = contract.get("requiredHeaders")
     if not isinstance(headers, dict) or not headers:
         fail("v5 contract requiredHeaders must be a non-empty object")
@@ -183,6 +188,28 @@ def global_exported_symbols(kernel: Path) -> set[str]:
         fail(f"cannot execute global symbol inspector: {error}")
     if result.returncode != 0:
         fail(f"global symbol inspection failed: {result.stderr.strip()}")
+    return {
+        fields[-1]
+        for line in result.stdout.splitlines()
+        if (fields := line.split())
+    }
+
+
+def defined_symbols(kernel: Path) -> set[str]:
+    command = shlex.split(os.environ.get("VULPRA_NM", "nm"))
+    if not command:
+        fail("VULPRA_NM is empty")
+    try:
+        result = subprocess.run(
+            [*command, "-U", str(kernel)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as error:
+        fail(f"cannot execute defined symbol inspector: {error}")
+    if result.returncode != 0:
+        fail(f"defined symbol inspection failed: {result.stderr.strip()}")
     return {
         fields[-1]
         for line in result.stdout.splitlines()
@@ -399,6 +426,10 @@ def validate_entries(root: Path, manifest: dict[str, object], contract: dict[str
         for export in contract["requiredExports"]:
             if export not in exported:
                 fail(f"required v5 exported symbol is missing: {export}")
+        defined = defined_symbols(root / required_kernel)
+        for symbol in contract["requiredInternalSymbols"]:
+            if symbol not in defined:
+                fail(f"required v5 internal symbol is missing: {symbol}")
         for relative, tokens in contract["requiredHeaders"].items():
             if relative not in declared:
                 fail(f"required v5 ABI header is missing: {relative}")

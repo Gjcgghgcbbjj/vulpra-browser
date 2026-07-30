@@ -180,8 +180,9 @@ def fake_nm(path: Path) -> None:
         "import os, pathlib, sys\n"
         "content = pathlib.Path(sys.argv[-1]).read_bytes()\n"
         "omit = os.environ.get('VULPRA_FAKE_NM_OMIT')\n"
-        "symbols = ('_MainProcessInit', '_GeckoViewOpenWindow', '_ChildProcessInit', "
-        "'_GeckoChildProcessDidChange')\n"
+        "exports = ('_MainProcessInit', '_GeckoViewOpenWindow', '_ChildProcessInit')\n"
+        "internal = ('_GeckoChildProcessDidChange',)\n"
+        "symbols = exports if '-gU' in sys.argv else exports + internal\n"
         "for symbol in symbols:\n"
         "    if symbol != omit and symbol.encode() in content:\n"
         "        print(f'0000000000000000 T {symbol}')\n",
@@ -260,8 +261,8 @@ def main() -> None:
         result = verify(
             device, "iphoneos", nm, omit_export="_GeckoChildProcessDidChange"
         )
-        require(result.returncode != 0 and "exported symbol is missing" in result.stderr,
-                "v5 verifier accepted a lifecycle token that is not globally exported")
+        require(result.returncode != 0 and "internal symbol is missing" in result.stderr,
+                "v5 verifier accepted a missing internal lifecycle symbol")
 
         repeat = base / "repeat"
         repeat_manifest = manifest_for("iphoneos", payload("iphoneos"), RUN_ID + 1)

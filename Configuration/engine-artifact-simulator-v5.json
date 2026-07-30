@@ -13,7 +13,9 @@
   "requiredExports": [
     "_MainProcessInit",
     "_GeckoViewOpenWindow",
-    "_ChildProcessInit",
+    "_ChildProcessInit"
+  ],
+  "requiredInternalSymbols": [
     "_GeckoChildProcessDidChange"
   ],
   "requiredHeaders": {
