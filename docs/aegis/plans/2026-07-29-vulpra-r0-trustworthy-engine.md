@@ -902,6 +902,17 @@ Files:
 Why: Promote only a matching, verified native pair and make source/patch/build
 identity part of the App dependency lock.
 
+Producer recovery boundary: A successful expensive native build is immediately
+materialized as a deterministic, content-inventoried `dist` packaging-input
+snapshot and uploaded before final packaging. Normal packaging re-extracts this
+snapshot, so the recovery path is continuously exercised. A manual run may set
+`reuse_build_run_id` to skip fetch/patch/bootstrap/build only when the snapshot
+matches the current source, patch series, producer contract, generated
+mozconfig, build script, target, and Xcode/SDK identity. Packaging or workflow
+changes do not invalidate the compiled snapshot; build-input changes do. The
+snapshot contains regular file bytes only, never source-tree symlinks or a
+portable whole-object-directory cache.
+
 Impact/Compatibility: v4 remains selected until the promotion command succeeds
 with real producer artifacts. After promotion, App and package builds select
 only v5; there is no runtime fallback.
@@ -956,6 +967,9 @@ git diff --check
   archive, and atomic promotion failure; run RED.
 - [ ] Implement v5 contracts/verifier and promotion tool. Keep v4 verifier
   support only while v4 remains selected during this task.
+- [ ] Upload a verified build snapshot before packaging and prove that a
+  `reuse_build_run_id` run rejects unsafe links, tampered content, and every
+  mismatched build identity while avoiding native recompilation.
 - [ ] Download both successful same-commit producer runs from Task 5. Compare
   their normalized device outputs and normalized Simulator outputs, then run
   promotion with the selected run's actual ID and inspect the resulting lock.

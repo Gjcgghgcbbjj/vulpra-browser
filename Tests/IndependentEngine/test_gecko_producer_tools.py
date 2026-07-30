@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -19,6 +20,7 @@ FETCH = ROOT / "Tools/GeckoProducer/fetch-source.sh"
 APPLY = ROOT / "Tools/GeckoProducer/apply-series.py"
 BUILD = ROOT / "Tools/GeckoProducer/build-runtime.sh"
 PACKAGE = ROOT / "Tools/GeckoProducer/package-runtime.py"
+SNAPSHOT = ROOT / "Tools/GeckoProducer/build-snapshot.py"
 WORKFLOW = ROOT / ".github/workflows/produce-gecko-v5.yml"
 PINNED_COMMIT = "27b462b22705a8860f7ab0d33aa5b4b658ae5932"
 
@@ -261,10 +263,110 @@ def test_package(base: Path) -> None:
             "packaging accepted a resource link outside the pinned source")
 
 
+def test_build_snapshot(base: Path) -> None:
+    source = base / "snapshot-source"
+    dist = source / "obj-aarch64-apple-ios-sim/dist"
+    mozconfig = source / ".mozconfig-vulpra-iphonesimulator"
+    write(mozconfig, "ac_add_options --target=aarch64-apple-ios-sim\n")
+    write(source / "LICENSE", "MPL 2.0 fixture\n")
+    write(source / "toolkit/content/license.html", "third party fixture\n")
+    write(dist / "bin/XUL", b"native-simulator-XUL", executable=True)
+    write(dist / "lib/libmozglue.dylib", b"native-simulator-dylib", executable=True)
+    linked_resource = source / "browser/app/application.ini"
+    write(linked_resource, "[App]\nName=Vulpra\n")
+    (dist / "bin/application.ini").symlink_to(linked_resource)
+    write(dist / "include/GeckoView/GeckoViewSwiftSupport.h", "// support\n")
+    write(dist / "include/GeckoView/IOSBootstrap.h", "// bootstrap\n")
+
+    archive = base / "snapshot.tar.gz"
+    common = [
+        "--contract", str(CONTRACT),
+        "--platform", "iphonesimulator",
+        "--xcode-build", "17E202",
+        "--sdk-build", "23E252",
+    ]
+    result = run([
+        "python3", str(SNAPSHOT), "create", *common,
+        "--source", str(source),
+        "--producer-commit", "1" * 40,
+        "--producer-run-id", "123",
+        "--output", str(archive),
+    ])
+    require(result.returncode == 0, result.stderr or result.stdout)
+    with tarfile.open(archive, "r:gz") as snapshot:
+        members = snapshot.getmembers()
+        require(all(not member.issym() and not member.islnk() for member in members),
+                "build snapshot contains a link")
+        linked = snapshot.extractfile("dist/bin/application.ini")
+        require(linked is not None and linked.read() == linked_resource.read_bytes(),
+                "build snapshot did not materialize a source-internal dist link")
+
+    extracted = base / "extracted-snapshot"
+    extract_common = [*common, "--expected-producer-run-id", "123"]
+    result = run([
+        "python3", str(SNAPSHOT), "extract", *extract_common,
+        "--archive", str(archive), "--output", str(extracted),
+    ])
+    require(result.returncode == 0, result.stderr or result.stdout)
+    require((extracted / "dist/bin/application.ini").read_bytes() == linked_resource.read_bytes(),
+            "verified build snapshot extraction lost resource content")
+    result = run([
+        "python3", str(SNAPSHOT), "extract", *common,
+        "--expected-producer-run-id", "124",
+        "--archive", str(archive), "--output", str(base / "wrong-run"),
+    ])
+    require(result.returncode != 0 and "producer run identity mismatch" in result.stderr,
+            "build snapshot accepted a different requested producer run")
+
+    tampered = base / "tampered-snapshot.tar.gz"
+    with tarfile.open(archive, "r:gz") as source_archive:
+        with tarfile.open(tampered, "w:gz") as target_archive:
+            for member in source_archive.getmembers():
+                source_file = source_archive.extractfile(member)
+                require(source_file is not None, "snapshot fixture contains a non-file member")
+                content = source_file.read()
+                if member.name == "dist/bin/application.ini":
+                    content += b"tampered\n"
+                    member.size = len(content)
+                target_archive.addfile(member, io.BytesIO(content))
+    result = run([
+        "python3", str(SNAPSHOT), "extract", *extract_common,
+        "--archive", str(tampered), "--output", str(base / "tampered-output"),
+    ])
+    require(result.returncode != 0 and "content identity mismatch" in result.stderr,
+            "build snapshot accepted content that disagrees with its inventory")
+
+    result = run([
+        "python3", str(SNAPSHOT), "extract",
+        *["17E203" if item == "17E202" else item for item in extract_common],
+        "--archive", str(archive), "--output", str(base / "wrong-toolchain"),
+    ])
+    require(result.returncode != 0 and "toolchain identity mismatch" in result.stderr,
+            "build snapshot accepted a different Xcode build")
+
+    outside = base / "outside-resource"
+    write(outside, "outside\n")
+    # Replace a captured resource with a link outside the pinned source tree.
+    unsafe = dist / "bin/unsafe-resource"
+    unsafe.symlink_to(outside)
+    result = run([
+        "python3", str(SNAPSHOT), "create", *common,
+        "--source", str(source),
+        "--producer-commit", "1" * 40,
+        "--producer-run-id", "124",
+        "--output", str(base / "unsafe-snapshot.tar.gz"),
+    ])
+    require(result.returncode != 0 and "resolves outside Gecko source" in result.stderr,
+            "build snapshot accepted a dist link outside the pinned source")
+
+
 def main() -> None:
-    for tool in (FETCH, APPLY, BUILD, PACKAGE):
+    for tool in (FETCH, APPLY, BUILD, PACKAGE, SNAPSHOT):
         require(tool.is_file(), f"missing producer tool: {tool.relative_to(ROOT)}")
-    source = "\n".join(tool.read_text(encoding="utf-8") for tool in (FETCH, APPLY, BUILD, PACKAGE))
+    source = "\n".join(
+        tool.read_text(encoding="utf-8")
+        for tool in (FETCH, APPLY, BUILD, PACKAGE, SNAPSHOT)
+    )
     forbidden_transform = "v" + "tool"
     require(forbidden_transform not in source and "set-build-version" not in source,
             "native producer retains a Mach-O platform transform")
@@ -275,6 +377,7 @@ def main() -> None:
         "workflow_dispatch:",
         "release_tag:",
         "publish_release:",
+        "reuse_build_run_id:",
         "default: vulpra-engine-v5-candidate",
         "default: false",
         "runs-on: macos-26",
@@ -283,6 +386,9 @@ def main() -> None:
         "fetch-source.sh",
         "apply-series.py",
         "build-runtime.sh",
+        "build-snapshot.py",
+        "gecko-v5-build-snapshot-${{ matrix.platform }}-${{ github.run_id }}",
+        "gh run download \"$reuse_run_id\"",
         "package-runtime.py",
         "Verify cross-target identity and native distinction",
         "retention-days: 30",
@@ -292,6 +398,12 @@ def main() -> None:
     require("produce-simulator-artifact.sh" not in workflow and
             forbidden_transform not in workflow and "--clobber" not in workflow,
             "Gecko v5 workflow retains an old or destructive producer path")
+    require(workflow.index("Upload verified build snapshot") <
+            workflow.index("Package content-bound runtime"),
+            "Gecko build snapshot is not persisted before fallible packaging")
+    require("dist=\".build/package-source/dist\"" in workflow and
+            ".build/gecko-source/obj-$triple/dist" not in workflow,
+            "normal packaging does not exercise the verified snapshot path")
 
     with tempfile.TemporaryDirectory(prefix="vulpra-gecko-producer-tools-") as temporary:
         base = Path(temporary)
@@ -299,6 +411,7 @@ def main() -> None:
         test_apply(base)
         test_build(base)
         test_package(base)
+        test_build_snapshot(base)
 
     print("PASS: native Gecko v5 producer and packaging fixtures")
 

@@ -21,8 +21,14 @@ on:
         required: true
         default: false
         type: boolean
+      reuse_build_run_id:
+        description: Repackage verified build snapshots from this producer run
+        required: false
+        default: ''
+        type: string
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -39,8 +45,10 @@ jobs:
       matrix:
         platform: [iphoneos, iphonesimulator]
     env:
+      GH_TOKEN: ${{ github.token }}
       MOZ_FETCHES_DIR: ${{ github.workspace }}/.build/fetches
       SCCACHE_DIR: ${{ github.workspace }}/.build/sccache
+      REUSE_BUILD_RUN_ID: ${{ inputs.reuse_build_run_id || '' }}
 
     steps:
       - name: Checkout producer source
@@ -80,6 +88,7 @@ jobs:
             | tee -a gecko-${{ matrix.platform }}-portable.log
 
       - name: Fetch and patch pinned Firefox
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -90,6 +99,7 @@ jobs:
             --source .build/gecko-source
 
       - name: Bootstrap Firefox build dependencies
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -105,11 +115,79 @@ jobs:
           } 2>&1 | tee gecko-${{ matrix.platform }}-bootstrap.log
 
       - name: Build native runtime
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
         shell: bash
         run: |
           set -euo pipefail
           ./Tools/GeckoProducer/build-runtime.sh '${{ matrix.platform }}' \
             .build/gecko-source 2>&1 | tee gecko-${{ matrix.platform }}-build.log
+
+      - name: Capture verified build snapshot
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          platform='${{ matrix.platform }}'
+          snapshot="gecko-v5-$platform-build-snapshot.tar.gz"
+          python3 Tools/GeckoProducer/build-snapshot.py create \
+            --contract Configuration/gecko-producer-v5.json \
+            --platform "$platform" \
+            --source .build/gecko-source \
+            --xcode-build "$VULPRA_XCODE_BUILD" \
+            --sdk-build "$VULPRA_SDK_BUILD" \
+            --producer-commit '${{ github.sha }}' \
+            --producer-run-id '${{ github.run_id }}' \
+            --output "$snapshot"
+          python3 Tools/GeckoProducer/build-snapshot.py extract \
+            --contract Configuration/gecko-producer-v5.json \
+            --platform "$platform" \
+            --xcode-build "$VULPRA_XCODE_BUILD" \
+            --sdk-build "$VULPRA_SDK_BUILD" \
+            --archive "$snapshot" \
+            --expected-producer-run-id '${{ github.run_id }}' \
+            --output .build/package-source
+
+      - name: Upload verified build snapshot
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gecko-v5-build-snapshot-${{ matrix.platform }}-${{ github.run_id }}
+          path: |
+            gecko-v5-${{ matrix.platform }}-build-snapshot.tar.gz
+            gecko-${{ matrix.platform }}-build.log
+            gecko-${{ matrix.platform }}-bootstrap.log
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Restore verified build snapshot
+        if: ${{ env.REUSE_BUILD_RUN_ID != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          reuse_run_id="$REUSE_BUILD_RUN_ID"
+          [[ "$reuse_run_id" =~ ^[1-9][0-9]*$ ]] || {
+            echo "reuse_build_run_id must be a positive integer" >&2
+            exit 1
+          }
+          platform='${{ matrix.platform }}'
+          mkdir -p .build/reused-snapshot
+          gh run download "$reuse_run_id" --repo "$GITHUB_REPOSITORY" \
+            --name "gecko-v5-build-snapshot-$platform-$reuse_run_id" \
+            --dir .build/reused-snapshot
+          snapshot=".build/reused-snapshot/gecko-v5-$platform-build-snapshot.tar.gz"
+          python3 Tools/GeckoProducer/build-snapshot.py extract \
+            --contract Configuration/gecko-producer-v5.json \
+            --platform "$platform" \
+            --xcode-build "$VULPRA_XCODE_BUILD" \
+            --sdk-build "$VULPRA_SDK_BUILD" \
+            --archive "$snapshot" \
+            --expected-producer-run-id "$reuse_run_id" \
+            --output .build/package-source
+          cp ".build/reused-snapshot/gecko-$platform-build.log" \
+            "gecko-$platform-build.log"
+          cp ".build/reused-snapshot/gecko-$platform-bootstrap.log" \
+            "gecko-$platform-bootstrap.log"
 
       - name: Package content-bound runtime
         shell: bash
@@ -118,16 +196,14 @@ jobs:
           platform='${{ matrix.platform }}'
           case "$platform" in
             iphoneos)
-              triple=aarch64-apple-ios
               archive=vulpra-engine-ios-arm64-v5.tar.gz
               ;;
             iphonesimulator)
-              triple=aarch64-apple-ios-sim
               archive=vulpra-engine-ios-simulator-native-arm64-v5.tar.gz
               ;;
           esac
-          dist=".build/gecko-source/obj-$triple/dist"
-          mozconfig=".build/gecko-source/.mozconfig-vulpra-$platform"
+          dist=".build/package-source/dist"
+          mozconfig=".build/package-source/.mozconfig-vulpra-$platform"
           python3 Tools/GeckoProducer/package-runtime.py \
             --contract Configuration/gecko-producer-v5.json \
             --platform "$platform" --dist "$dist" --mozconfig "$mozconfig" \
