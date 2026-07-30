@@ -132,6 +132,9 @@ def main() -> None:
             "Simulator gate does not build App and unit tests in one build phase")
     require('test-without-building > simulator-native-tests.log' in simulator,
             "native EngineKit execution still mixes compilation into its deadline")
+    require('grep -Fq "** TEST EXECUTE SUCCEEDED **" simulator-native-tests.log' in simulator and
+            '! grep -Fq "** TEST EXECUTE FAILED **" simulator-native-tests.log' in simulator,
+            "native EngineKit gate still checks the retired combined-test result markers")
     require("p95 > 15000" in summarizer and "maximum > 30000" in summarizer,
             "R0 summarizer does not enforce navigation performance thresholds")
     require("lock['simulator']['archive']" in simulator,

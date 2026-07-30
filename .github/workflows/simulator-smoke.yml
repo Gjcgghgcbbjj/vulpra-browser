@@ -253,8 +253,8 @@ jobs:
             echo "native EngineKit test process exited with $test_exit" >&2
             exit "$test_exit"
           fi
-          ! grep -Fq "** TEST FAILED **" simulator-native-tests.log
-          grep -Fq "** TEST SUCCEEDED **" simulator-native-tests.log
+          ! grep -Fq "** TEST EXECUTE FAILED **" simulator-native-tests.log
+          grep -Fq "** TEST EXECUTE SUCCEEDED **" simulator-native-tests.log
           grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeCreatesProtocolSessionWithRequestedConfiguration()' passed" simulator-native-tests.log
           grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeStartsStopped()' passed" simulator-native-tests.log
           grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseResolvesOnlyOnce()' passed" simulator-native-tests.log

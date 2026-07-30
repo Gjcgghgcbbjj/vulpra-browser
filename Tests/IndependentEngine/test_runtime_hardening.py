@@ -90,8 +90,8 @@ def main() -> None:
     for token in (
         'xcrun simctl boot "$test_udid"',
         'test_deadline=$((SECONDS + 600))',
-        '"** TEST SUCCEEDED **"',
-        '"** TEST FAILED **"',
+        '"** TEST EXECUTE SUCCEEDED **"',
+        '"** TEST EXECUTE FAILED **"',
         "testRuntimeCreatesProtocolSessionWithRequestedConfiguration()' passed",
         "testRuntimeStartsStopped()' passed",
         "testCallbackLeaseResolvesOnlyOnce()' passed",
