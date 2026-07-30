@@ -421,6 +421,9 @@ def validate_entries(root: Path, manifest: dict[str, object], contract: dict[str
         kernel_token = contract["requiredKernelToken"].encode("ascii")
         if kernel_content.count(kernel_token) != 1:
             fail("required kernel does not own the independent runtime layout")
+        resource_token = contract["runtimeResourceContainer"].encode("ascii")
+        if kernel_content.count(resource_token) != 1:
+            fail("required kernel does not own the declared runtime resource layout")
     else:
         exported = global_exported_symbols(root / required_kernel)
         for export in contract["requiredExports"]:
@@ -441,9 +444,6 @@ def validate_entries(root: Path, manifest: dict[str, object], contract: dict[str
             encoded = token.encode("ascii")
             if any(encoded in (root / relative).read_bytes() for relative in paths):
                 fail(f"forbidden v5 runtime token is present: {token}")
-    resource_token = contract["runtimeResourceContainer"].encode("ascii")
-    if kernel_content.count(resource_token) != 1:
-        fail("required kernel does not own the declared runtime resource layout")
     if not any(path.endswith(".dylib") and is_under(path, "runtime") for path in paths):
         fail("artifact must contain at least one runtime dylib")
     for required_root in contract["nonEmptyRoots"]:

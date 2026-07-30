@@ -42,7 +42,7 @@ def payload(platform: str, marker: bytes | None = None) -> dict[str, bytes]:
     kernel_marker = marker or (b"DEVICE-MACHO" if platform == "iphoneos" else b"SIMULATOR-MACHO")
     exports = b"\0".join((
         b"_MainProcessInit", b"_GeckoViewOpenWindow", b"_ChildProcessInit",
-        b"_GeckoChildProcessDidChange", b"VulpraEngineRuntime",
+        b"_GeckoChildProcessDidChange",
     ))
     return {
         "runtime/bin/XUL": kernel_marker + b"\0" + exports,
