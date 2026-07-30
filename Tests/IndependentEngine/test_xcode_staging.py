@@ -92,22 +92,31 @@ def main() -> None:
     require("GeckoView" not in scheme and "Vulpra Helper" not in scheme, "scheme retains old targets")
 
     simulator = SIMULATOR_WORKFLOW.read_text(encoding="utf-8")
+    harness = (ROOT / "Tools/CI/run-simulator-navigation.sh").read_text(encoding="utf-8")
+    summarizer = (ROOT / "Tools/CI/summarize-r0-engine-gate.py").read_text(encoding="utf-8")
     for token in (
-        "Engine view attached", "rendered_dark_pixels=", "simulator-rendering.log",
-        "simulator-performance.log", "load_to_location_ms=", "location_to_complete_ms=",
-        "set_active_dispatches=", "set_focused_dispatches=",
+        "Tools/CI/run-simulator-navigation.sh", "Tools/CI/summarize-r0-engine-gate.py",
+        "r0_attempts:", "name: r0-engine-gate",
     ):
         require(token in simulator, f"simulator evidence does not verify visible content: {token}")
-    require("active_dispatches > 4" in simulator and "focused_dispatches > 4" in simulator,
-            "simulator evidence does not reject repeated engine activation churn")
+    for token in (
+        "rendered_dark_pixels=", "lifecycleEvents", "requestedLaunchIDs",
+        "connectedLaunchIDs", "openLaunchIDs", "trap cleanup EXIT",
+        "(height / 4)..<(height * 3 / 4)",
+    ):
+        require(token in harness, f"Simulator harness is missing evidence field: {token}")
+    require("data-vulpra-engine-fixture" in simulator,
+            "Simulator workflow lacks a deterministic central page marker")
+    require("p95 > 15000" in summarizer and "maximum > 30000" in summarizer,
+            "R0 summarizer does not enforce navigation performance thresholds")
     require("lock['simulator']['archive']" in simulator,
             "simulator evidence does not use the pinned simulator engine")
     require("xcrun vtool" not in simulator and "derive_simulator_from_device" not in simulator,
             "simulator workflow still rewrites the device engine")
-    log_start = simulator.index("log stream --style compact --info --debug")
-    navigation_launch = simulator.index("launch_output=")
-    navigation_screenshot = simulator.index("screenshot simulator-navigation.png")
-    log_stop = simulator.index('kill "$system_log_pid"')
+    log_start = harness.index("log stream --style compact --info --debug")
+    navigation_launch = harness.index("LAUNCH_OUTPUT=")
+    navigation_screenshot = harness.index('screenshot "$PREFIX-navigation.png"')
+    log_stop = harness.rindex('kill "$SYSTEM_LOG_PID"')
     require(log_start < navigation_launch,
             "simulator logging must start before navigation launches")
     require(log_stop > navigation_screenshot,
