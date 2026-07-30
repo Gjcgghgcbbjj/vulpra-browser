@@ -19,7 +19,7 @@ def main() -> None:
         "workflow_dispatch:",
         "runs-on: macos-26",
         "engine_release_tag",
-        "vulpra-engine-v5-r0.1-candidate",
+        "vulpra-engine-v5-r0.2-candidate",
         "verify-engine-artifact.py",
         "engine-artifact-device-v5.json",
         "ENGINE_ABI_VERSION",
