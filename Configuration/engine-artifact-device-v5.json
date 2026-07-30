@@ -27,6 +27,13 @@
       "GeckoChildProcessDidChange"
     ]
   },
+  "requiredResourceArchives": {
+    "runtime/resources/omni.ja": [
+      "chrome.manifest",
+      "modules/AppConstants.sys.mjs",
+      "modules/XPCOMUtils.sys.mjs"
+    ]
+  },
   "forbiddenRuntimeTokens": [
     "jit-ready-fd",
     "ReportJITStatusForChild",

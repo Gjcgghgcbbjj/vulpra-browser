@@ -13,6 +13,7 @@ import stat
 import subprocess
 import tarfile
 import tempfile
+import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +26,11 @@ PRODUCER_CONTRACT = ROOT / "Configuration/gecko-producer-v5.json"
 SERIES = ROOT / "Engine/GeckoPatches/v5/series.json"
 RUN_ID = 123456789
 PRODUCER_COMMIT = "a" * 40
+REQUIRED_OMNIJAR_ENTRIES = (
+    "chrome.manifest",
+    "modules/AppConstants.sys.mjs",
+    "modules/XPCOMUtils.sys.mjs",
+)
 
 
 def require(condition: bool, message: str) -> None:
@@ -36,6 +42,16 @@ def artifact_prefix(platform: str) -> str:
     if platform == "iphoneos":
         return "vulpra-gecko-ios-arm64-v5-"
     return "vulpra-gecko-ios-simulator-native-arm64-v5-"
+
+
+def omnijar(entries: tuple[str, ...] = REQUIRED_OMNIJAR_ENTRIES) -> bytes:
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for path in entries:
+            info = zipfile.ZipInfo(path, (1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            archive.writestr(info, f"fixture:{path}\n".encode("utf-8"))
+    return output.getvalue()
 
 
 def payload(platform: str, marker: bytes | None = None) -> dict[str, bytes]:
@@ -51,7 +67,7 @@ def payload(platform: str, marker: bytes | None = None) -> dict[str, bytes]:
             b"GeckoChildProcessLifecycleObserver childProcessDidChangeWithLaunchID"
         ),
         "runtime/include/GeckoView/IOSBootstrap.h": b"GeckoChildProcessDidChange",
-        "runtime/resources/omni.ja": b"runtime-resource",
+        "runtime/resources/omni.ja": omnijar(),
         "licenses/MPL-2.0.txt": b"license",
         "licenses/FIREFOX-THIRD-PARTY.html": b"notice",
     }
@@ -220,10 +236,15 @@ def main() -> None:
         VERIFIER, PROMOTER, PROMOTION_WORKFLOW, DEVICE_CONTRACT, SIMULATOR_CONTRACT,
     ):
         require(path.is_file(), f"missing {path.relative_to(ROOT)}")
+    for contract_path in (DEVICE_CONTRACT, SIMULATOR_CONTRACT):
+        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+        require(contract.get("requiredResourceArchives") == {
+            "runtime/resources/omni.ja": list(REQUIRED_OMNIJAR_ENTRIES),
+        }, f"{contract_path.name} does not declare the required Gecko omnijar")
     workflow = PROMOTION_WORKFLOW.read_text(encoding="utf-8")
     for token in (
         "producer_run_id:", "repeat_producer_run_id:", "release_tag:",
-        "default: vulpra-engine-v5-r0.1-candidate", "runs-on: macos-26",
+        "default: vulpra-engine-v5-r0.2-candidate", "runs-on: macos-26",
         "workflow_call:", "gh run download \"$run_id\"",
         "gh release download \"$tag\"", "gh release upload \"$tag\"",
         "promote-engine-artifacts.py promote",
@@ -243,6 +264,24 @@ def main() -> None:
             result = verify(root, platform, nm)
             require(result.returncode == 0, result.stderr or result.stdout)
             require(result.stdout.startswith("engine-artifact-v5-ok "), "v5 verifier output is unstable")
+
+        missing_omnijar = base / "missing-omnijar"
+        missing_values = payload("iphoneos")
+        del missing_values["runtime/resources/omni.ja"]
+        write_root(missing_omnijar, "iphoneos", missing_values)
+        expect_invalid(missing_omnijar, "iphoneos", "required resource archive", nm)
+
+        corrupt_omnijar = base / "corrupt-omnijar"
+        corrupt_values = payload("iphoneos")
+        corrupt_values["runtime/resources/omni.ja"] = b"not-a-zip"
+        write_root(corrupt_omnijar, "iphoneos", corrupt_values)
+        expect_invalid(corrupt_omnijar, "iphoneos", "invalid resource archive", nm)
+
+        incomplete_omnijar = base / "incomplete-omnijar"
+        incomplete_values = payload("iphoneos")
+        incomplete_values["runtime/resources/omni.ja"] = omnijar(("chrome.manifest",))
+        write_root(incomplete_omnijar, "iphoneos", incomplete_values)
+        expect_invalid(incomplete_omnijar, "iphoneos", "required archive entry", nm)
 
         mutations = (
             ("source-mismatch", "source provenance", lambda value: value["source"].update(commit="b" * 40)),

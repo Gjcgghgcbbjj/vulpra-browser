@@ -13,6 +13,7 @@ import stat
 import subprocess
 import tarfile
 import tempfile
+import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -197,6 +198,10 @@ def test_package(base: Path) -> None:
     write(exported_resource, "[App]\nName=Vulpra\n")
     (dist / "bin").mkdir(parents=True, exist_ok=True)
     (dist / "bin/application.ini").symlink_to(exported_resource)
+    write(dist / "bin/chrome.manifest", "manifest chrome/toolkit.manifest\n")
+    write(dist / "bin/chrome/toolkit.manifest", "content global toolkit/content/\n")
+    write(dist / "bin/modules/AppConstants.sys.mjs", "export const AppConstants = {};\n")
+    write(dist / "bin/modules/XPCOMUtils.sys.mjs", "export const XPCOMUtils = {};\n")
     exported_header = source / "widget/uikit/GeckoViewSwiftSupport.h"
     write(exported_header, "// GeckoViewSwiftSupport.h\n")
     exported_path = dist / "include/GeckoView/GeckoViewSwiftSupport.h"
@@ -238,6 +243,8 @@ def test_package(base: Path) -> None:
                 "artifact contains an unsafe path")
         require("runtime/bin/XUL" in names and "runtime/lib/libmozglue.dylib" in names,
                 "artifact is missing native runtime binaries")
+        require("runtime/resources/omni.ja" in names,
+                "artifact is missing the Gecko omnijar")
         require("runtime/resources/plugin-container" not in names,
                 "artifact packaged a dist executable as a runtime resource")
         require(all(not member.mode & 0o111 for member in members
@@ -246,6 +253,16 @@ def test_package(base: Path) -> None:
         manifest_file = archive.extractfile("manifest.json")
         require(manifest_file is not None, "artifact manifest is missing")
         manifest = json.load(manifest_file)
+        omnijar_file = archive.extractfile("runtime/resources/omni.ja")
+        require(omnijar_file is not None, "artifact omnijar is missing")
+        with zipfile.ZipFile(io.BytesIO(omnijar_file.read())) as omnijar:
+            entries = set(omnijar.namelist())
+            require({
+                "chrome.manifest",
+                "chrome/toolkit.manifest",
+                "modules/AppConstants.sys.mjs",
+                "modules/XPCOMUtils.sys.mjs",
+            } <= entries, "artifact omnijar is missing required Gecko resources")
     require(manifest["formatVersion"] == 5 and
             manifest["source"]["commit"] == PINNED_COMMIT and
             manifest["build"]["platform"] == "iphonesimulator" and
@@ -445,7 +462,7 @@ def main() -> None:
         "reuse_build_run_id:",
         "promote_run_id:",
         "repeat_producer_run_id:",
-        "default: vulpra-engine-v5-r0.1-candidate",
+        "default: vulpra-engine-v5-r0.2-candidate",
         "runs-on: macos-26",
         "platform: [iphoneos, iphonesimulator]",
         "/Applications/Xcode_26.4.1.app",
@@ -481,6 +498,8 @@ def main() -> None:
             "workflow-only changes still trigger an expensive native rebuild")
     require("- Tests/IndependentEngine/test_gecko_producer_tools.py" not in workflow,
             "portable fixture changes still trigger an expensive native rebuild")
+    require("- '!Tools/GeckoProducer/package-runtime.py'" in workflow,
+            "packaging-only changes still trigger an expensive native rebuild")
 
     with tempfile.TemporaryDirectory(prefix="vulpra-gecko-producer-tools-") as temporary:
         base = Path(temporary)

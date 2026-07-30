@@ -25,7 +25,7 @@ on:
       release_tag:
         description: Prerelease tag containing the selected pair
         required: true
-        default: vulpra-engine-v5-r0.1-candidate
+        default: vulpra-engine-v5-r0.2-candidate
         type: string
 
 permissions:

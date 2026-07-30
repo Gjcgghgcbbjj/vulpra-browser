@@ -8,6 +8,7 @@ import re
 import shlex
 import subprocess
 import sys
+import zipfile
 
 from macho_content import MachOContentError, is_thin_macho64, repeat_identity
 
@@ -110,7 +111,8 @@ def validate_v5_contract(contract: dict[str, object], repository_root: Path) -> 
         "schemaVersion", "formatVersion", "artifactIdPrefix", "manifestFile",
         "platform", "targetTriple", "architecture", "deploymentTarget",
         "producerContract", "patchSeries", "requiredKernel", "requiredExports",
-        "requiredInternalSymbols", "requiredHeaders", "forbiddenRuntimeTokens",
+        "requiredInternalSymbols", "requiredHeaders", "requiredResourceArchives",
+        "forbiddenRuntimeTokens",
         "runtimeResourceContainer",
         "runtimeKernelInstallPath", "allowedRoots", "nonEmptyRoots",
         "forbiddenSourceExtensions", "forbiddenProductExtensions", "forbiddenSegments",
@@ -148,6 +150,18 @@ def validate_v5_contract(contract: dict[str, object], repository_root: Path) -> 
         if (not isinstance(tokens, list) or not tokens
                 or not all(isinstance(token, str) and token for token in tokens)):
             fail(f"v5 required header tokens are invalid: {path}")
+    resource_archives = contract.get("requiredResourceArchives")
+    if not isinstance(resource_archives, dict) or not resource_archives:
+        fail("v5 contract requiredResourceArchives must be a non-empty object")
+    for path, entries in resource_archives.items():
+        normalized_path(path, "required resource archive")
+        if (not is_under(path, "runtime/resources")
+                or not isinstance(entries, list) or not entries
+                or not all(isinstance(entry, str) and entry for entry in entries)
+                or entries != sorted(entries) or len(entries) != len(set(entries))):
+            fail(f"v5 required resource archive entries are invalid: {path}")
+        for entry in entries:
+            normalized_path(entry, "required resource archive entry")
     forbidden = contract.get("forbiddenRuntimeTokens")
     if (not isinstance(forbidden, list) or not forbidden or len(forbidden) != len(set(forbidden))
             or forbidden != producer.get("forbiddenRuntimeTokens")):
@@ -447,6 +461,7 @@ def validate_entries(root: Path, manifest: dict[str, object], contract: dict[str
             for token in tokens:
                 if token.encode("ascii") not in header:
                     fail(f"required v5 lifecycle header token is missing: {token}")
+        validate_resource_archives(root, declared, contract["requiredResourceArchives"])
         for token in contract["forbiddenRuntimeTokens"]:
             encoded = token.encode("ascii")
             if any(encoded in (root / relative).read_bytes() for relative in paths):
@@ -457,6 +472,37 @@ def validate_entries(root: Path, manifest: dict[str, object], contract: dict[str
         if not any(is_under(path, required_root) for path in paths):
             fail(f"artifact root must not be empty: {required_root}")
     return paths
+
+
+def validate_resource_archives(
+    root: Path, declared: set[str], archives: dict[str, list[str]],
+) -> None:
+    for relative, required_entries in archives.items():
+        if relative not in declared:
+            fail(f"missing required resource archive: {relative}")
+        try:
+            with zipfile.ZipFile(root / relative) as archive:
+                infos = archive.infolist()
+                names = [info.filename for info in infos]
+                if not names or len(names) != len(set(names)):
+                    fail(f"invalid resource archive entries: {relative}")
+                if len(infos) > 100_000 or sum(info.file_size for info in infos) > 1_073_741_824:
+                    fail(f"resource archive exceeds verification limits: {relative}")
+                for info in infos:
+                    normalized_path(info.filename, "resource archive entry")
+                    if info.is_dir() or info.flag_bits & 0x1:
+                        fail(f"unsafe resource archive entry: {relative}:{info.filename}")
+                    unix_mode = (info.external_attr >> 16) & 0o170000
+                    if unix_mode == 0o120000:
+                        fail(f"unsafe resource archive entry: {relative}:{info.filename}")
+                bad_entry = archive.testzip()
+                if bad_entry is not None:
+                    fail(f"invalid resource archive CRC: {relative}:{bad_entry}")
+        except (OSError, zipfile.BadZipFile, zipfile.LargeZipFile) as error:
+            fail(f"invalid resource archive: {relative}: {error}")
+        missing = sorted(set(required_entries) - set(names))
+        if missing:
+            fail(f"missing required archive entry: {relative}:{missing[0]}")
 
 
 def validate_legal_paths(manifest: dict[str, object], declared: set[str]) -> None:

@@ -16,7 +16,8 @@ import stat
 import subprocess
 import sys
 import tarfile
-from typing import Iterable
+from typing import Iterable, TypeAlias
+import zipfile
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -25,6 +26,7 @@ HEADERS = (
     "GeckoView/GeckoViewSwiftSupport.h",
     "GeckoView/IOSBootstrap.h",
 )
+PayloadSource: TypeAlias = Path | bytes
 
 
 class PackageError(ValueError):
@@ -91,8 +93,84 @@ def resource_files(dist: Path) -> Iterable[tuple[str, Path]]:
         yield f"runtime/resources/{relative}", path
 
 
+def is_omnijar_resource(relative: str) -> bool:
+    """Match Mozilla's OmniJarSubFormatter resource classification."""
+    parts = relative.split("/")
+    if relative.endswith(".manifest"):
+        return True
+    if parts[0] == "chrome":
+        return len(parts) == 1 or parts[1] != "icons"
+    if parts[0] == "components":
+        return relative.endswith((".js", ".xpt"))
+    if parts[0] == "res":
+        return len(parts) == 1 or parts[1] not in ("cursors", "touchbar", "MainMenu.nib")
+    if parts[0] == "defaults":
+        return len(parts) != 3 or not (
+            parts[2] == "channel-prefs.js" and parts[1] in ("pref", "preferences")
+        )
+    if len(parts) <= 2 and parts[-1] == "greprefs.js":
+        return True
+    return parts[0] in {
+        "modules", "moz-src", "actors", "dictionaries", "hyphenation",
+        "localization", "default.locale", "contentaccessible",
+    }
+
+
+def artifact_contract(platform: str) -> dict[str, object]:
+    name = "device" if platform == "iphoneos" else "simulator"
+    path = ROOT / f"Configuration/engine-artifact-{name}-v5.json"
+    try:
+        contract = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"cannot read v5 artifact contract: {error}")
+    archives = contract.get("requiredResourceArchives")
+    if not isinstance(archives, dict) or set(archives) != {"runtime/resources/omni.ja"}:
+        fail("v5 artifact contract does not declare the Gecko omnijar")
+    required = archives["runtime/resources/omni.ja"]
+    if (not isinstance(required, list) or not required
+            or not all(isinstance(entry, str) and entry for entry in required)):
+        fail("v5 artifact contract omnijar entries are invalid")
+    return contract
+
+
+def build_omnijar(dist: Path, source: Path, required_entries: list[str]) -> bytes:
+    entries: dict[str, Path] = {}
+    for archive_path, path in resource_files(dist):
+        relative = archive_path.removeprefix("runtime/resources/")
+        if not is_omnijar_resource(relative):
+            continue
+        resolved = ensure_regular_file(
+            path, archive_path, allowed_symlink_root=source
+        )
+        if resolved.stat().st_mode & 0o111:
+            continue
+        if relative in entries:
+            fail(f"duplicate omnijar entry: {relative}")
+        entries[relative] = resolved
+    missing = sorted(set(required_entries) - set(entries))
+    if missing:
+        fail(f"Gecko dist is missing required omnijar entry: {missing[0]}")
+
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
+        for relative, path in sorted(entries.items()):
+            info = zipfile.ZipInfo(relative, (1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.create_system = 3
+            info.external_attr = 0o100644 << 16
+            archive.writestr(
+                info, path.read_bytes(), compress_type=zipfile.ZIP_DEFLATED,
+                compresslevel=9,
+            )
+    return output.getvalue()
+
+
+def payload_bytes(source: PayloadSource) -> bytes:
+    return source if isinstance(source, bytes) else source.read_bytes()
+
+
 def add_payload(
-    payload: dict[str, Path], archive_path: str, source: Path,
+    payload: dict[str, PayloadSource], archive_path: str, source: Path,
     *, allowed_symlink_root: Path | None = None,
 ) -> None:
     source = ensure_regular_file(
@@ -103,7 +181,17 @@ def add_payload(
     payload[archive_path] = source
 
 
-def make_manifest(args: argparse.Namespace, payload: dict[str, Path]) -> dict[str, object]:
+def add_generated_payload(
+    payload: dict[str, PayloadSource], archive_path: str, content: bytes,
+) -> None:
+    if archive_path in payload:
+        fail(f"duplicate artifact path: {archive_path}")
+    payload[archive_path] = content
+
+
+def make_manifest(
+    args: argparse.Namespace, payload: dict[str, PayloadSource]
+) -> dict[str, object]:
     contract = json.loads(args.contract.read_text(encoding="utf-8"))
     series_path = ROOT / contract["patchSeries"]
     xcode_build, sdk_build = resolve_build_identity(args.platform)
@@ -137,7 +225,7 @@ def make_manifest(args: argparse.Namespace, payload: dict[str, Path]) -> dict[st
 
     files = []
     for relative, source in sorted(payload.items()):
-        content = source.read_bytes()
+        content = payload_bytes(source)
         files.append({
             "path": relative,
             "size": len(content),
@@ -184,7 +272,9 @@ def make_manifest(args: argparse.Namespace, payload: dict[str, Path]) -> dict[st
     return manifest
 
 
-def write_archive(output: Path, payload: dict[str, Path], manifest: dict[str, object]) -> None:
+def write_archive(
+    output: Path, payload: dict[str, PayloadSource], manifest: dict[str, object]
+) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     manifest_bytes = (json.dumps(manifest, indent=2) + "\n").encode()
     with output.open("wb") as raw:
@@ -192,8 +282,12 @@ def write_archive(output: Path, payload: dict[str, Path], manifest: dict[str, ob
             with tarfile.open(fileobj=compressed, mode="w", format=tarfile.PAX_FORMAT) as archive:
                 items: list[tuple[str, bytes, int]] = [("manifest.json", manifest_bytes, 0o644)]
                 for relative, source in payload.items():
-                    mode = 0o755 if source.stat().st_mode & stat.S_IXUSR else 0o644
-                    items.append((relative, source.read_bytes(), mode))
+                    mode = (
+                        0o755
+                        if isinstance(source, Path) and source.stat().st_mode & stat.S_IXUSR
+                        else 0o644
+                    )
+                    items.append((relative, payload_bytes(source), mode))
                 for relative, content, mode in sorted(items):
                     info = tarfile.TarInfo(relative)
                     info.size = len(content)
@@ -226,7 +320,10 @@ def main() -> int:
             return verification.returncode
         ensure_regular_file(args.mozconfig, "mozconfig")
         source = args.mozconfig.parent
-        payload: dict[str, Path] = {}
+        artifact = artifact_contract(args.platform)
+        required_archives = artifact["requiredResourceArchives"]
+        required_omnijar_entries = required_archives["runtime/resources/omni.ja"]
+        payload: dict[str, PayloadSource] = {}
         add_payload(
             payload, "runtime/bin/XUL", args.dist / "bin/XUL",
             allowed_symlink_root=source,
@@ -251,9 +348,16 @@ def main() -> int:
             )
             if resource.stat().st_mode & 0o111:
                 continue
+            archive_relative = relative.removeprefix("runtime/resources/")
+            if is_omnijar_resource(archive_relative):
+                continue
             add_payload(
                 payload, relative, resource, allowed_symlink_root=source
             )
+        add_generated_payload(
+            payload, "runtime/resources/omni.ja",
+            build_omnijar(args.dist, source, required_omnijar_entries),
+        )
 
         license_candidates = (source / "LICENSE", source / "MPL-2.0.txt")
         license_path = next((path for path in license_candidates if path.is_file()), None)
