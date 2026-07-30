@@ -32,7 +32,10 @@ permissions:
   contents: write
 
 concurrency:
-  group: vulpra-gecko-v5-${{ github.ref }}
+  group: >-
+    vulpra-gecko-v5-${{ github.ref }}-${{
+      github.event_name == 'workflow_dispatch' && github.run_id || 'push'
+    }}
   cancel-in-progress: false
 
 jobs:

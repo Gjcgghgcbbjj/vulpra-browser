@@ -913,6 +913,13 @@ changes do not invalidate the compiled snapshot; build-input changes do. The
 snapshot contains regular file bytes only, never source-tree symlinks or a
 portable whole-object-directory cache.
 
+A snapshot-reuse run is recovery evidence for the original compilation and
+does not count as the second independent repeat build. The repeat-build gate
+still requires two distinct native compilations from the same commit and build
+inputs. If downstream packaging fails after either compilation, a reuse run of
+that compilation may supply its successful final artifact without repeating
+the expensive compile.
+
 Impact/Compatibility: v4 remains selected until the promotion command succeeds
 with real producer artifacts. After promotion, App and package builds select
 only v5; there is no runtime fallback.
@@ -1209,7 +1216,8 @@ historical docs may describe retired evidence, but neither is a runtime owner.
   and the green package run ID, use `aegis:recording-architecture-decisions` to
   amend ADR-0004 and update the independent-engine baseline with only actual
   evidence. Run `python3 /root/.codex/aegis/scripts/aegis-workspace.py check
-  --root .`, every portable suite, and `git diff --check`; commit with
+  --root .`, `python3 Tests/IndependentEngine/test_cutover_readiness.py
+  --require-r0-complete`, every portable suite, and `git diff --check`; commit with
   `git commit -m "docs: record trustworthy Gecko v5 evidence"` and push. Do not
   claim physical-device runtime verification.
 

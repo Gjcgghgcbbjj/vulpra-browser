@@ -422,6 +422,7 @@ def main() -> None:
         "build-snapshot.py",
         "gecko-v5-build-snapshot-${{ matrix.platform }}-${{ github.run_id }}",
         "gh run download \"$reuse_run_id\"",
+        "github.event_name == 'workflow_dispatch' && github.run_id || 'push'",
         "package-runtime.py",
         "Verify cross-target identity and native distinction",
         "retention-days: 30",
@@ -431,6 +432,8 @@ def main() -> None:
     require("produce-simulator-artifact.sh" not in workflow and
             forbidden_transform not in workflow and "--clobber" not in workflow,
             "Gecko v5 workflow retains an old or destructive producer path")
+    require("cancel-in-progress: false" in workflow,
+            "Gecko producer may cancel an in-progress expensive compilation")
     require(workflow.index("Upload verified build snapshot") <
             workflow.index("Package content-bound runtime"),
             "Gecko build snapshot is not persisted before fallible packaging")
