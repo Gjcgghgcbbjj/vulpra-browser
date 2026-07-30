@@ -112,37 +112,35 @@ def main() -> None:
         require(key in settings, f"settings does not expose {key}")
 
     workflow = source(".github/workflows/simulator-smoke.yml")
+    navigation_harness = source("Tools/CI/run-simulator-navigation.sh")
     for token in (
-        "simulator-start-page.png",
-        "simulator-navigation.png",
-        "AppleLanguages -array zh-Hans",
-        "simulator_runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'",
+        "r0_attempts:",
+        "runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'",
         "smoke_url='http://127.0.0.1:8765/'",
-        'SIMCTL_CHILD_VULPRA_SMOKE_URL="$smoke_url"',
-        "for y in (height / 12)..<(height / 8)",
-        'curl --max-time 2 --fail --silent --show-error "$smoke_url"',
+        "Tools/CI/run-simulator-navigation.sh",
+        "Tools/CI/summarize-r0-engine-gate.py",
+        "name: r0-engine-gate",
     ):
         require(token in workflow, f"simulator workflow is missing {token}")
-    require("example.com" not in workflow,
+    for token in (
+        "AppleLanguages -array zh-Hans",
+        'SIMCTL_CHILD_VULPRA_SMOKE_URL="$URL"',
+        'simctl create "Vulpra-R0-',
+        'simctl install "$UDID" "$APP"',
+        'simctl io "$UDID" screenshot "$PREFIX-navigation.png"',
+        "for y in (height / 4)..<(height * 3 / 4)",
+        'simctl shutdown "$UDID"',
+        'simctl delete "$UDID"',
+    ):
+        require(token in navigation_harness, f"Simulator navigation harness is missing {token}")
+    require("example.com" not in workflow and "example.com" not in navigation_harness,
             "simulator workflow still depends on mutable external networking")
     require("32vh" not in workflow,
             "simulator fixture still changes proven page layout for pixel detection")
-    require(workflow.count("AppleLanguages -array zh-Hans") == 2,
-            "both simulator visual states must use the Chinese language preference")
-    require(workflow.index("simulator-start-page.png") < workflow.index("SIMCTL_CHILD_VULPRA_SMOKE_URL"),
-            "simulator workflow does not capture the start page before URL navigation")
-    between_launches = workflow[
-        workflow.index("simulator-start-page.png"):workflow.index("SIMCTL_CHILD_VULPRA_SMOKE_URL")
-    ]
-    require('simctl terminate "$udid" com.vulpra.browser' in between_launches
-            and 'simctl shutdown "$udid"' in between_launches
-            and 'simctl delete "$udid"' in between_launches
-            and 'Vulpra-Navigation-$GITHUB_RUN_ID' in between_launches,
-            "simulator workflow does not isolate renderer state between visual states")
-    require(workflow.count('simctl install "$udid" "$app"') == 2,
-            "both simulator visual states must install the same built app")
-    require('run_with_timeout 30 xcrun simctl terminate "$udid" com.vulpra.browser | tee simulator-start-page-terminate.log || true' in workflow,
-            "a bounded Simulator terminate timeout still prevents isolated navigation verification")
+    require(workflow.count("Tools/CI/run-simulator-navigation.sh") == 1,
+            "Simulator navigation must have one reusable harness owner")
+    require(navigation_harness.count("AppleLanguages -array zh-Hans") == 1,
+            "the reusable Simulator harness must apply the Chinese language preference")
 
     over = [
         (path.relative_to(ROOT), len(path.read_text(encoding="utf-8").splitlines()))

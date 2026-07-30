@@ -39,10 +39,15 @@ FORBIDDEN_PATH_TOKENS = (
     "/patches/",
     "/vendor/firefox/",
 )
-REQUIRED_KERNEL_TOKEN = b"VulpraEngineRuntime"
 BUILD_IDENTITY_PATH = Path(__file__).resolve().parents[2] / "Configuration/build-identity.json"
+ENGINE_LOCK_PATH = Path(__file__).resolve().parents[2] / "Configuration/engine-artifact-lock.json"
 EXTERNAL_SIGNING_PROFILE = "external-signing"
 TROLLSTORE_PROFILE = "trollstore"
+FORBIDDEN_RUNTIME_TOKENS = (
+    b"jit-ready-fd",
+    b"ReportJITStatusForChild",
+    b"WaitForJITReadySignal",
+)
 
 
 class PackageError(ValueError):
@@ -131,6 +136,45 @@ def load_manifest(path: Path) -> dict[str, object]:
     return value
 
 
+def validate_manifest_lock(manifest: dict[str, object], lock_path: Path) -> None:
+    try:
+        lock = json.loads(lock_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail(f"invalid engine artifact lock: {lock_path}: {error}")
+    if not isinstance(lock, dict) or lock.get("schemaVersion") != 2 or \
+            lock.get("artifactFormatVersion") != 5:
+        fail("engine artifact lock is not a complete v5 pair")
+    device = lock.get("device")
+    if (not isinstance(device, dict)
+            or device.get("platform") != "iphoneos"
+            or device.get("targetTriple") != "aarch64-apple-ios"):
+        fail("engine artifact lock device entry is not native iOS")
+    producer = manifest.get("producer")
+    compiled_by = manifest.get("compiledBy")
+    source = manifest.get("source")
+    patch_set = manifest.get("patchSet")
+    build = manifest.get("build")
+    if (manifest.get("formatVersion") != 5
+            or manifest.get("artifactId") != device.get("artifactId")
+            or manifest.get("abiVersion") != device.get("abiVersion")
+            or not isinstance(source, dict)
+            or source.get("commit") != device.get("sourceCommit")
+            or not isinstance(patch_set, dict)
+            or patch_set.get("sha256") != device.get("patchSetSHA256")
+            or manifest.get("configurationSHA256") != device.get("configurationSHA256")
+            or not isinstance(producer, dict)
+            or producer.get("workflowRunId") != lock.get("producerRunId")
+            or producer.get("commit") != lock.get("producerHeadSha")
+            or not isinstance(compiled_by, dict)
+            or compiled_by.get("workflowRunId") != device.get("compiledByRunId")
+            or compiled_by.get("commit") != device.get("compiledByHeadSha")
+            or compiled_by.get("buildFingerprint") != device.get("buildFingerprint")
+            or not isinstance(build, dict)
+            or build.get("platform") != "iphoneos"
+            or build.get("targetTriple") != "aarch64-apple-ios"):
+        fail("engine manifest provenance does not match the v5 device lock")
+
+
 def load_build_identity() -> dict[str, str]:
     try:
         value = json.loads(BUILD_IDENTITY_PATH.read_text(encoding="utf-8"))
@@ -167,8 +211,11 @@ def expected_runtime(manifest: dict[str, object]) -> dict[str, tuple[str, str]]:
     return expected
 
 
-def validate(package: Path, manifest_path: Path, require_signatures: bool) -> tuple[int, str]:
+def validate(
+    package: Path, manifest_path: Path, lock_path: Path, require_signatures: bool
+) -> tuple[int, str]:
     manifest = load_manifest(manifest_path)
+    validate_manifest_lock(manifest, lock_path)
     build_identity = load_build_identity()
     expected = expected_runtime(manifest)
     if not expected:
@@ -262,17 +309,17 @@ def validate(package: Path, manifest_path: Path, require_signatures: bool) -> tu
                 if packaged_identity != source_identity:
                     fail(f"engine binary content mismatch: {packaged}")
 
-        kernel_name = "Payload/Vulpra.app/Frameworks/XUL"
-        if archive.read(kernel_name).count(REQUIRED_KERNEL_TOKEN) != 1:
-            fail("engine kernel does not own the independent runtime layout")
-
         runtime_binaries = [
             name
             for name in expected
             if name.endswith("/XUL") or name.endswith(".dylib")
         ]
         for name in runtime_binaries:
-            architectures, signed = macho_identity(archive.read(name), name)
+            content = archive.read(name)
+            for token in FORBIDDEN_RUNTIME_TOKENS:
+                if token in content:
+                    fail(f"retired runtime token remains in package: {token.decode('ascii')}")
+            architectures, signed = macho_identity(content, name)
             if architectures != {0x0100000C}:
                 fail(f"runtime binary is not arm64-only: {name}")
             if require_signatures and not signed:
@@ -286,6 +333,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("package", type=Path)
     parser.add_argument("--manifest", type=Path, default=root / ".build/engine/manifest.json")
+    parser.add_argument("--lock", type=Path, default=ENGINE_LOCK_PATH)
     parser.add_argument("--require-signatures", action="store_true")
     return parser.parse_args()
 
@@ -293,7 +341,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     try:
-        count, artifact_id = validate(args.package, args.manifest, args.require_signatures)
+        count, artifact_id = validate(
+            args.package, args.manifest, args.lock, args.require_signatures
+        )
     except (PackageError, FileNotFoundError, OSError) as error:
         print(f"vulpra-package-error: {error}", file=sys.stderr)
         return 1

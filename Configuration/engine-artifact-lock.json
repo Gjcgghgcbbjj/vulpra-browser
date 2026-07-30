@@ -1,22 +1,35 @@
 {
-  "schemaVersion": 1,
-  "releaseTag": "vulpra-engine-v4-candidate",
+  "schemaVersion": 2,
+  "artifactFormatVersion": 5,
+  "releaseTag": "vulpra-engine-v5-r0.1-candidate",
+  "producerRunId": 30547176227,
+  "producerHeadSha": "10df6cb5440f18ab682a91de86a5caa7c1f04c4c",
   "device": {
-    "archive": "vulpra-engine-ios-arm64-v4.tar.gz",
-    "archiveSHA256": "9d62f558514f3749b93e8ee69d9063919c0545f7bc8f2a172024919b556bdcde",
-    "artifactId": "vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9",
-    "sourceCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932"
+    "archive": "vulpra-engine-ios-arm64-v5.tar.gz",
+    "archiveSHA256": "138a3c72cfa8ef337cf3c8647d4f3ee058192a62f9a3285e71adc9bcf8a19f11",
+    "artifactId": "vulpra-gecko-ios-arm64-v5-326d1897e62cf49a6ffcc903a220c1dccad46e131499abda886f0ef54ecde282",
+    "abiVersion": "gecko-ios-v5-abi-1",
+    "sourceCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932",
+    "patchSetSHA256": "df86a45fef6b75116ef364b869d8b07a86feb7d7e2620696d6bc16470abe5747",
+    "configurationSHA256": "8a31a73774c01c6523a0b7af013fa6d53a68a76ad7e6d04ee2c2a0fbee2ab444",
+    "compiledByRunId": 30547176227,
+    "compiledByHeadSha": "10df6cb5440f18ab682a91de86a5caa7c1f04c4c",
+    "buildFingerprint": "225fc6e1cf384afb7a3e955a8cac5f93de2d562d5160536ad2aabc0b6f5477ca",
+    "platform": "iphoneos",
+    "targetTriple": "aarch64-apple-ios"
   },
   "simulator": {
-    "archive": "vulpra-engine-ios-simulator-vtool-arm64-v4.tar.gz",
-    "archiveSHA256": "5f5f68d9ca9757348806ba2a8f67e39f836a9351105547ae5446720fdc616adc",
-    "artifactId": "vulpra-gecko-ios-simulator-arm64-v4-1789137b7a44f05988751fe76ecd9ed44016207bd1e34a39b3778283766e7d5d",
-    "abiVersion": "firefox-152.0.6-ios-abi-1",
+    "archive": "vulpra-engine-ios-simulator-native-arm64-v5.tar.gz",
+    "archiveSHA256": "1a0d154ed1c36b6d04ade1fa7afa5679c400a23e66f28153366abf7f0ecc3bae",
+    "artifactId": "vulpra-gecko-ios-simulator-native-arm64-v5-979e5ef48aca5a0d3d594d1ccc7589672f58fad497365c16af831cb99b71273f",
+    "abiVersion": "gecko-ios-v5-abi-1",
     "sourceCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932",
-    "producerRunId": 30361153382,
-    "producerHeadSha": "a84e040fd4b5d811862c782faf674e5e478145d4",
-    "producedFromArtifactId": "vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9",
-    "producerTool": "Tools/Engine/produce-simulator-artifact.sh",
-    "producerPolicy": "apple-vtool-set-build-version-iossim-15"
+    "patchSetSHA256": "df86a45fef6b75116ef364b869d8b07a86feb7d7e2620696d6bc16470abe5747",
+    "configurationSHA256": "8a31a73774c01c6523a0b7af013fa6d53a68a76ad7e6d04ee2c2a0fbee2ab444",
+    "compiledByRunId": 30547176227,
+    "compiledByHeadSha": "10df6cb5440f18ab682a91de86a5caa7c1f04c4c",
+    "buildFingerprint": "0a32c325f8ae5661d49035e3231a4f1e29f37286404c9abf0d950a2b7a19feeb",
+    "platform": "iphonesimulator",
+    "targetTriple": "aarch64-apple-ios-sim"
   }
 }

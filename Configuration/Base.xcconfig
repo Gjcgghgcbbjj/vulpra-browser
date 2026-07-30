@@ -14,7 +14,7 @@ CLANG_ENABLE_OBJC_ARC = YES
 CODE_SIGN_STYLE = Automatic
 VULPRA_DISTRIBUTION_PROFILE = external-signing
 VULPRA_ENGINE_ROOT = $(SRCROOT)/.build/engine
-VULPRA_ENGINE_CONTRACT = $(SRCROOT)/Configuration/engine-artifact-v4.json
-VULPRA_ENGINE_CONTRACT[sdk=iphonesimulator*] = $(SRCROOT)/Configuration/engine-artifact-simulator-v4.json
+VULPRA_ENGINE_CONTRACT = $(SRCROOT)/Configuration/engine-artifact-device-v5.json
+VULPRA_ENGINE_CONTRACT[sdk=iphonesimulator*] = $(SRCROOT)/Configuration/engine-artifact-simulator-v5.json
 HEADER_SEARCH_PATHS = $(inherited)
 LIBRARY_SEARCH_PATHS = $(inherited)

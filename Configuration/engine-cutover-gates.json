@@ -1,11 +1,24 @@
 {
   "schemaVersion": 1,
   "targetState": "independent",
+  "r0Evidence": {
+    "repeatProducerRunIds": [30547145772, 30547176227],
+    "repeatCompileRunIds": [30547145772, 30547176227],
+    "selectedProducerRunId": 30547176227,
+    "promotionRunId": 30575980634,
+    "simulatorGateRunId": null,
+    "packageRunId": null
+  },
   "gates": [
     {
-      "id": "verified-v4-artifact",
+      "id": "verified-v5-artifact",
       "status": "verified",
-      "evidence": ["Configuration/engine-artifact-v4.json", "run:30214371123:engine-artifact-v4-ok"]
+      "evidence": [
+        "Configuration/engine-artifact-lock.json",
+        "run:30547145772:repeat-native-gecko-v5-pair",
+        "run:30547176227:selected-native-gecko-v5-pair",
+        "run:30575980634:repeat-verified-immutable-promotion"
+      ]
     },
     {
       "id": "verified-abi-inventory",

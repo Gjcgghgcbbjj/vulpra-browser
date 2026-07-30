@@ -47,49 +47,51 @@ def main() -> None:
             "simulator workflow does not account for Xcode debug dylib binaries")
     require("lock['simulator']['archive']" in simulator and "xcrun vtool" not in simulator,
             "simulator workflow does not use the repository simulator lock")
-    require(lock.get("releaseTag") == "vulpra-engine-v4-candidate",
-            "artifact lock release tag is wrong")
+    require(lock.get("schemaVersion") == 2 and lock.get("artifactFormatVersion") == 5,
+            "artifact lock is not a complete v5 pair")
+    require(lock.get("releaseTag") == "vulpra-engine-v5-r0.1-candidate",
+            "artifact lock release tag is not the promoted v5 release")
+    require(type(lock.get("producerRunId")) is int and lock["producerRunId"] > 0 and
+            isinstance(lock.get("producerHeadSha"), str) and len(lock["producerHeadSha"]) == 40,
+            "artifact lock producer identity is incomplete")
     device = lock.get("device", {})
-    require(device.get("archiveSHA256") ==
-            "9d62f558514f3749b93e8ee69d9063919c0545f7bc8f2a172024919b556bdcde",
-            "device archive SHA-256 is not pinned")
-    require(device.get("artifactId") ==
-            "vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9",
-            "device artifact ID is not pinned")
+    require(device.get("platform") == "iphoneos" and
+            device.get("targetTriple") == "aarch64-apple-ios",
+            "device artifact is not native iOS")
+    require(isinstance(device.get("archiveSHA256"), str) and len(device["archiveSHA256"]) == 64 and
+            str(device.get("artifactId", "")).startswith("vulpra-gecko-ios-arm64-v5-"),
+            "device v5 content identity is not pinned")
     require(device.get("sourceCommit") == "27b462b22705a8860f7ab0d33aa5b4b658ae5932",
             "device source commit is not pinned")
     simulator_lock = lock.get("simulator", {})
-    require(simulator_lock.get("archiveSHA256") ==
-            "5f5f68d9ca9757348806ba2a8f67e39f836a9351105547ae5446720fdc616adc",
-            "simulator archive SHA-256 is not pinned to the validated runtime")
-    require(simulator_lock.get("artifactId") ==
-            "vulpra-gecko-ios-simulator-arm64-v4-1789137b7a44f05988751fe76ecd9ed44016207bd1e34a39b3778283766e7d5d",
-            "simulator content identity is not pinned")
-    require(simulator_lock.get("abiVersion") == "firefox-152.0.6-ios-abi-1",
-            "simulator ABI version is not pinned")
-    require(simulator_lock.get("producerRunId") == 30361153382,
-            "Simulator producer run is not pinned")
-    require(simulator_lock.get("producerHeadSha") ==
-            "a84e040fd4b5d811862c782faf674e5e478145d4",
-            "Simulator producer snapshot is not pinned")
-    require(simulator_lock.get("producedFromArtifactId") == device.get("artifactId"),
-            "Simulator producer source artifact is not the verified device artifact")
-    require(simulator_lock.get("producerTool") ==
-            "Tools/Engine/produce-simulator-artifact.sh",
-            "Simulator producer owner is not traceable")
-    require(simulator_lock.get("producerPolicy") ==
-            "apple-vtool-set-build-version-iossim-15",
-            "Simulator producer policy is not explicit")
-    require("derivedFromArtifactId" not in simulator_lock and
-            "derivationTool" not in simulator_lock and
-            "derivationPolicy" not in simulator_lock,
-            "retired device-to-Simulator derivation remains in the lock")
+    require(simulator_lock.get("platform") == "iphonesimulator" and
+            simulator_lock.get("targetTriple") == "aarch64-apple-ios-sim",
+            "Simulator artifact is not a native Simulator build")
+    require(isinstance(simulator_lock.get("archiveSHA256"), str) and
+            len(simulator_lock["archiveSHA256"]) == 64 and
+            str(simulator_lock.get("artifactId", "")).startswith(
+                "vulpra-gecko-ios-simulator-native-arm64-v5-"
+            ), "Simulator v5 content identity is not pinned")
+    for key in (
+        "abiVersion", "sourceCommit", "patchSetSHA256",
+        "configurationSHA256", "compiledByRunId", "compiledByHeadSha",
+    ):
+        require(device.get(key) == simulator_lock.get(key),
+                f"native pair {key} identity does not match")
+    for retired in (
+        "producedFromArtifactId", "producerTool", "producerPolicy",
+        "derivedFromArtifactId", "derivationTool", "derivationPolicy",
+    ):
+        require(retired not in simulator_lock, f"retired lock field remains: {retired}")
     for token in (
         "ENGINE_ARTIFACT_ID",
         "ENGINE_ABI_VERSION",
         "ENGINE_PRODUCER_RUN_ID",
-        "ENGINE_PRODUCED_FROM_ARTIFACT_ID",
-        "apple-vtool-set-build-version-iossim-15",
+        "ENGINE_PATCH_SET_SHA256",
+        "ENGINE_CONFIGURATION_SHA256",
+        "ENGINE_COMPILED_BY_RUN_ID",
+        "ENGINE_COMPILED_BY_HEAD_SHA",
+        "ENGINE_BUILD_FINGERPRINT",
     ):
         require(token in simulator,
                 f"simulator workflow does not enforce locked runtime policy: {token}")

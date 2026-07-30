@@ -141,7 +141,7 @@ def main() -> None:
             "session-window-creation",
             "event-bridge",
             "child-process-bootstrap",
-            "interpreter-mode-startup",
+            "child-process-lifecycle",
         ],
         "ABI investigation questions are incomplete or out of order",
     )

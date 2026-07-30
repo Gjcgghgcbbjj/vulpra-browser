@@ -24,7 +24,7 @@ def plain_macho() -> bytes:
 
 
 def signed_kernel(signature: bytes) -> bytes:
-    text = b"VulpraEngineRuntime\x00independent-section-content"
+    text = b"native-gecko-kernel\x00independent-section-content"
     text_offset = 512
     signature_offset = 1024
     text_segment_size = 72 + 80
@@ -88,9 +88,12 @@ def write_package(path: Path, kernel: bytes, resource: bytes) -> None:
             archive.writestr(name, content)
 
 
-def validate(package: Path, manifest: Path) -> subprocess.CompletedProcess[str]:
+def validate(package: Path, manifest: Path, lock: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["python3", str(VALIDATOR), "--manifest", str(manifest), str(package)],
+        [
+            "python3", str(VALIDATOR), "--manifest", str(manifest),
+            "--lock", str(lock), str(package),
+        ],
         text=True, capture_output=True, check=False,
     )
 
@@ -110,25 +113,106 @@ def main() -> None:
             destination.parent.mkdir(parents=True, exist_ok=True)
             destination.write_bytes(content)
         manifest = root / "manifest.json"
-        manifest.write_text(json.dumps({
-            "artifactId": "fixture-v4",
+        artifact_id = "vulpra-gecko-ios-arm64-v5-" + "a" * 64
+        source_commit = "2" * 40
+        patch_sha = "3" * 64
+        configuration_sha = "4" * 64
+        producer_commit = "5" * 40
+        abi_version = "gecko-ios-v5-abi-1"
+        manifest_value = {
+            "formatVersion": 5,
+            "artifactId": artifact_id,
+            "abiVersion": abi_version,
+            "source": {"repository": "https://example.invalid/firefox", "commit": source_commit},
+            "patchSet": {"series": "fixture-series.json", "sha256": patch_sha},
+            "producer": {
+                "repository": "https://example.invalid/vulpra",
+                "commit": producer_commit,
+                "workflowRunId": 123,
+            },
+            "compiledBy": {
+                "repository": "https://example.invalid/vulpra",
+                "commit": producer_commit, "workflowRunId": 123,
+                "buildFingerprint": "7" * 64,
+            },
+            "configurationSHA256": configuration_sha,
+            "build": {
+                "platform": "iphoneos", "targetTriple": "aarch64-apple-ios",
+                "architecture": "arm64", "deploymentTarget": "15.0",
+                "mozconfigSHA256": "6" * 64, "xcodeBuild": "17E202", "sdkBuild": "23E252",
+            },
             "files": [
                 {"path": relative, "size": len(content),
                  "sha256": hashlib.sha256(content).hexdigest()}
                 for relative, content in payload.items()
             ],
+        }
+        manifest.write_text(json.dumps(manifest_value), encoding="utf-8")
+        lock = root / "engine-artifact-lock.json"
+        lock.write_text(json.dumps({
+            "schemaVersion": 2,
+            "artifactFormatVersion": 5,
+            "producerRunId": 123,
+            "producerHeadSha": producer_commit,
+            "device": {
+                "artifactId": artifact_id,
+                "abiVersion": abi_version,
+                "sourceCommit": source_commit,
+                "patchSetSHA256": patch_sha,
+                "configurationSHA256": configuration_sha,
+                "platform": "iphoneos",
+                "targetTriple": "aarch64-apple-ios",
+                "compiledByRunId": 123,
+                "compiledByHeadSha": producer_commit,
+                "buildFingerprint": "7" * 64,
+            },
         }), encoding="utf-8")
 
         resigned = root / "resigned.ipa"
         write_package(resigned, signed_kernel(b"replacement-signature-is-a-different-size"), b"[App]\n")
-        result = validate(resigned, manifest)
+        result = validate(resigned, manifest, lock)
         require(result.returncode == 0, f"valid re-signing was rejected: {result.stderr.strip()}")
 
         tampered = root / "tampered.tipa"
         write_package(tampered, original_kernel, b"[App]\ntampered=true\n")
-        result = validate(tampered, manifest)
+        result = validate(tampered, manifest, lock)
         require(result.returncode != 0 and "checksum mismatch" in result.stderr,
                 "TIPA resource tampering was not rejected")
+
+        forbidden_kernel = original_kernel + b"\0jit-ready-fd"
+        (root / "runtime/bin/XUL").write_bytes(forbidden_kernel)
+        forbidden_manifest = json.loads(json.dumps(manifest_value))
+        for entry in forbidden_manifest["files"]:
+            if entry["path"] == "runtime/bin/XUL":
+                entry["size"] = len(forbidden_kernel)
+                entry["sha256"] = hashlib.sha256(forbidden_kernel).hexdigest()
+        manifest.write_text(json.dumps(forbidden_manifest), encoding="utf-8")
+        forbidden_package = root / "retired-token.ipa"
+        write_package(forbidden_package, forbidden_kernel, b"[App]\n")
+        result = validate(forbidden_package, manifest, lock)
+        require(result.returncode != 0 and "retired runtime token" in result.stderr,
+                "package validator accepted a retired JIT protocol token")
+
+        mismatched_manifest = json.loads(json.dumps(manifest_value))
+        mismatched_manifest["producer"]["workflowRunId"] = 124
+        manifest.write_text(json.dumps(mismatched_manifest), encoding="utf-8")
+        result = validate(resigned, manifest, lock)
+        require(result.returncode != 0 and "provenance" in result.stderr,
+                "package validator accepted producer provenance outside the lock")
+
+        mismatched_compile = json.loads(json.dumps(manifest_value))
+        mismatched_compile["compiledBy"]["workflowRunId"] = 124
+        manifest.write_text(json.dumps(mismatched_compile), encoding="utf-8")
+        result = validate(resigned, manifest, lock)
+        require(result.returncode != 0 and "provenance" in result.stderr,
+                "package validator accepted compilation provenance outside the lock")
+
+        v4_manifest = dict(manifest_value)
+        v4_manifest["formatVersion"] = 4
+        manifest.write_text(json.dumps(v4_manifest), encoding="utf-8")
+        result = validate(resigned, manifest, lock)
+        require(result.returncode != 0 and "provenance" in result.stderr,
+                "package validator accepted a v4 engine manifest")
     print("PASS: package validator distinguishes signatures from engine content")
 
 
