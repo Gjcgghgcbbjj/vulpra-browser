@@ -82,6 +82,20 @@ def verify_root(platform: str, root: Path) -> dict[str, object]:
     return load_manifest(root)
 
 
+def verify_repeat(platform: str, selected: Path, repeat: Path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable, str(VERIFIER), "--contract", str(CONTRACTS[platform]),
+            "--compare", str(repeat), str(selected),
+        ],
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        fail(result.stderr.strip() or result.stdout.strip())
+
+
 def inspect_macho_platform(kernel: Path) -> str:
     command = shlex.split(os.environ.get("VULPRA_VTOOL", "xcrun vtool"))
     if not command:
@@ -179,17 +193,22 @@ def write_lock_atomic(path: Path, value: dict[str, object]) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--release-tag", required=True)
-    parser.add_argument("--producer-run-id", required=True, type=int)
-    parser.add_argument("--device-archive", required=True, type=Path)
-    parser.add_argument("--simulator-archive", required=True, type=Path)
-    parser.add_argument("--lock", required=True, type=Path)
+    commands = parser.add_subparsers(dest="command", required=True)
+    verify_parser = commands.add_parser("verify-pair")
+    promote_parser = commands.add_parser("promote")
+    for command_parser in (verify_parser, promote_parser):
+        command_parser.add_argument("--producer-run-id", required=True, type=int)
+        command_parser.add_argument("--device-archive", required=True, type=Path)
+        command_parser.add_argument("--simulator-archive", required=True, type=Path)
+    promote_parser.add_argument("--release-tag", required=True)
+    promote_parser.add_argument("--repeat-producer-run-id", required=True, type=int)
+    promote_parser.add_argument("--repeat-device-archive", required=True, type=Path)
+    promote_parser.add_argument("--repeat-simulator-archive", required=True, type=Path)
+    promote_parser.add_argument("--lock", required=True, type=Path)
     args = parser.parse_args()
     try:
         if args.producer_run_id <= 0:
             fail("producer run ID must be positive")
-        if not args.release_tag or any(character.isspace() for character in args.release_tag):
-            fail("release tag is invalid")
         with tempfile.TemporaryDirectory(prefix="vulpra-engine-v5-promotion-") as temporary:
             root = Path(temporary)
             device_root = root / "device"
@@ -201,6 +220,28 @@ def main() -> int:
             require_matching_pair(
                 device, simulator, args.producer_run_id, device_root, simulator_root
             )
+            if args.command == "verify-pair":
+                print(f"PASS: verified native Gecko v5 pair run={args.producer_run_id}")
+                return 0
+
+            if args.repeat_producer_run_id <= 0:
+                fail("repeat producer run ID must be positive")
+            if args.repeat_producer_run_id == args.producer_run_id:
+                fail("repeat producer run must be independent from the selected run")
+            if not args.release_tag or any(character.isspace() for character in args.release_tag):
+                fail("release tag is invalid")
+            repeat_device_root = root / "repeat-device"
+            repeat_simulator_root = root / "repeat-simulator"
+            extract_archive(args.repeat_device_archive, repeat_device_root)
+            extract_archive(args.repeat_simulator_archive, repeat_simulator_root)
+            repeat_device = verify_root("iphoneos", repeat_device_root)
+            repeat_simulator = verify_root("iphonesimulator", repeat_simulator_root)
+            require_matching_pair(
+                repeat_device, repeat_simulator, args.repeat_producer_run_id,
+                repeat_device_root, repeat_simulator_root,
+            )
+            verify_repeat("iphoneos", device_root, repeat_device_root)
+            verify_repeat("iphonesimulator", simulator_root, repeat_simulator_root)
             producer = device["producer"]
             lock = {
                 "schemaVersion": 2,
@@ -215,7 +256,10 @@ def main() -> int:
     except (OSError, KeyError, TypeError, PromotionError) as error:
         print(f"engine-artifact-promotion-error: {error}", file=sys.stderr)
         return 1
-    print(f"PASS: promoted native Gecko v5 pair run={args.producer_run_id}")
+    print(
+        f"PASS: promoted repeat-verified native Gecko v5 pair "
+        f"runs={args.producer_run_id},{args.repeat_producer_run_id}"
+    )
     return 0
 
 

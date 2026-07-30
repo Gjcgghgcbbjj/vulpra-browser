@@ -5,24 +5,28 @@ on:
     branches:
       - fix/browser-performance-20260729
     paths:
-      - .github/workflows/produce-gecko-v5.yml
       - Engine/GeckoPatches/v5/**
       - Tools/GeckoProducer/**
       - Tests/IndependentEngine/test_gecko_producer_tools.py
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Prerelease tag for a verified native artifact pair
+        description: R0 prerelease tag for repeat-verified promotion
         required: true
-        default: vulpra-engine-v5-candidate
+        default: vulpra-engine-v5-r0-candidate
         type: string
-      publish_release:
-        description: Publish the verified pair to the prerelease
-        required: true
-        default: false
-        type: boolean
       reuse_build_run_id:
         description: Repackage verified build snapshots from this producer run
+        required: false
+        default: ''
+        type: string
+      promote_run_id:
+        description: Existing producer run selected for repeat-gated promotion
+        required: false
+        default: ''
+        type: string
+      repeat_producer_run_id:
+        description: Independent producer run used for repeat comparison
         required: false
         default: ''
         type: string
@@ -41,6 +45,7 @@ concurrency:
 jobs:
   build:
     name: Build native ${{ matrix.platform }} runtime
+    if: ${{ inputs.promote_run_id == '' }}
     runs-on: macos-26
     timeout-minutes: 360
     strategy:
@@ -291,12 +296,10 @@ jobs:
           set -euo pipefail
           device='candidate/iphoneos/vulpra-engine-ios-arm64-v5.tar.gz'
           simulator='candidate/iphonesimulator/vulpra-engine-ios-simulator-native-arm64-v5.tar.gz'
-          python3 Tools/Engine/promote-engine-artifacts.py \
-            --release-tag '${{ inputs.release_tag || 'vulpra-engine-v5-candidate' }}' \
+          python3 Tools/Engine/promote-engine-artifacts.py verify-pair \
             --producer-run-id '${{ github.run_id }}' \
             --device-archive "$device" \
-            --simulator-archive "$simulator" \
-            --lock candidate/verified-pair-lock.json
+            --simulator-archive "$simulator"
           python3 - <<'PY'
           import hashlib
           import json
@@ -372,33 +375,13 @@ jobs:
           name: gecko-v5-pair-${{ github.run_id }}
           path: |
             candidate/pair-verification.json
-            candidate/verified-pair-lock.json
           if-no-files-found: error
           retention-days: 30
 
-      - name: Publish verified prerelease pair
-        if: ${{ inputs.publish_release }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          tag='${{ inputs.release_tag }}'
-          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease \
-              --title "$tag" --notes "Verified native Gecko v5 device and Simulator pair."
-          fi
-          stage=$(mktemp -d)
-          for asset in \
-            candidate/iphoneos/vulpra-engine-ios-arm64-v5.tar.gz \
-            candidate/iphonesimulator/vulpra-engine-ios-simulator-native-arm64-v5.tar.gz; do
-            name=$(basename "$asset")
-            if gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
-                --pattern "$name" --dir "$stage" >/dev/null 2>&1; then
-              test "$(shasum -a 256 "$asset" | awk '{print $1}')" = \
-                "$(shasum -a 256 "$stage/$name" | awk '{print $1}')" || {
-                  echo "release asset exists with different content: $name" >&2
-                  exit 1
-                }
-            else
-              gh release upload "$tag" "$asset" --repo "$GITHUB_REPOSITORY"
-            fi
-          done
+  promote-repeat-verified-pair:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.promote_run_id != '' }}
+    uses: ./.github/workflows/promote-gecko-v5.yml
+    with:
+      producer_run_id: ${{ inputs.promote_run_id }}
+      repeat_producer_run_id: ${{ inputs.repeat_producer_run_id }}
+      release_tag: ${{ inputs.release_tag }}

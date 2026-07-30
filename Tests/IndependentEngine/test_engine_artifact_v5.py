@@ -194,17 +194,23 @@ def fake_nm(path: Path) -> None:
 
 
 def promote(
-    device_archive: Path, simulator_archive: Path, lock: Path, inspector: Path, nm: Path,
+    device_archive: Path, simulator_archive: Path,
+    repeat_device_archive: Path, repeat_simulator_archive: Path,
+    lock: Path, inspector: Path, nm: Path,
 ) -> subprocess.CompletedProcess[str]:
     environment = os.environ.copy()
     environment["VULPRA_VTOOL"] = str(inspector)
     environment["VULPRA_NM"] = str(nm)
     return subprocess.run([
         "python3", str(PROMOTER),
+        "promote",
         "--release-tag", "vulpra-engine-v5-candidate",
         "--producer-run-id", str(RUN_ID),
+        "--repeat-producer-run-id", str(RUN_ID + 1),
         "--device-archive", str(device_archive),
         "--simulator-archive", str(simulator_archive),
+        "--repeat-device-archive", str(repeat_device_archive),
+        "--repeat-simulator-archive", str(repeat_simulator_archive),
         "--lock", str(lock),
     ], env=environment, text=True, capture_output=True, check=False)
 
@@ -216,9 +222,13 @@ def main() -> None:
         require(path.is_file(), f"missing {path.relative_to(ROOT)}")
     workflow = PROMOTION_WORKFLOW.read_text(encoding="utf-8")
     for token in (
-        "producer_run_id:", "release_tag:", "runs-on: macos-26",
-        "gh run download \"$run_id\"", "gh release download \"$release_tag\"",
-        "promote-engine-artifacts.py", "engine-v5-promotion-${{ inputs.producer_run_id }}",
+        "producer_run_id:", "repeat_producer_run_id:", "release_tag:",
+        "default: vulpra-engine-v5-r0-candidate", "runs-on: macos-26",
+        "workflow_call:", "gh run download \"$run_id\"",
+        "gh release download \"$tag\"", "gh release upload \"$tag\"",
+        "promote-engine-artifacts.py promote",
+        "Publish repeat-verified prerelease pair",
+        "engine-v5-promotion-${{ inputs.producer_run_id }}",
     ):
         require(token in workflow, f"v5 promotion workflow is missing {token!r}")
     with tempfile.TemporaryDirectory(prefix="vulpra-engine-v5-") as temporary:
@@ -294,10 +304,30 @@ def main() -> None:
         simulator_archive = base / "vulpra-engine-ios-simulator-native-arm64-v5.tar.gz"
         archive_root(device, device_archive)
         archive_root(simulator, simulator_archive)
+        repeat_device = base / "repeat-device"
+        repeat_simulator = base / "repeat-simulator"
+        repeat_device_values = payload("iphoneos")
+        repeat_simulator_values = payload("iphonesimulator")
+        write_root(
+            repeat_device, "iphoneos", repeat_device_values,
+            manifest_for("iphoneos", repeat_device_values, RUN_ID + 1),
+        )
+        write_root(
+            repeat_simulator, "iphonesimulator", repeat_simulator_values,
+            manifest_for("iphonesimulator", repeat_simulator_values, RUN_ID + 1),
+        )
+        repeat_device_archive = base / "repeat-device.tar.gz"
+        repeat_simulator_archive = base / "repeat-simulator.tar.gz"
+        archive_root(repeat_device, repeat_device_archive)
+        archive_root(repeat_simulator, repeat_simulator_archive)
         inspector = base / "vtool"
         fake_vtool(inspector)
         lock = base / "engine-artifact-lock.json"
-        result = promote(device_archive, simulator_archive, lock, inspector, nm)
+        result = promote(
+            device_archive, simulator_archive,
+            repeat_device_archive, repeat_simulator_archive,
+            lock, inspector, nm,
+        )
         require(result.returncode == 0, result.stderr or result.stdout)
         promoted = json.loads(lock.read_text(encoding="utf-8"))
         require(promoted["schemaVersion"] == 2 and promoted["artifactFormatVersion"] == 5,
@@ -317,7 +347,11 @@ def main() -> None:
             info = tarfile.TarInfo("../escape")
             info.size = 1
             archive.addfile(info, io.BytesIO(b"x"))
-        result = promote(device_archive, unsafe, lock, inspector, nm)
+        result = promote(
+            device_archive, unsafe,
+            repeat_device_archive, repeat_simulator_archive,
+            lock, inspector, nm,
+        )
         require(result.returncode != 0 and lock.read_bytes() == original_lock,
                 "unsafe archive changed the lock before atomic promotion completed")
 
@@ -326,7 +360,11 @@ def main() -> None:
         write_root(same_platform_root, "iphonesimulator", same_values)
         same_platform_archive = base / "same-platform.tar.gz"
         archive_root(same_platform_root, same_platform_archive)
-        result = promote(device_archive, same_platform_archive, lock, inspector, nm)
+        result = promote(
+            device_archive, same_platform_archive,
+            repeat_device_archive, repeat_simulator_archive,
+            lock, inspector, nm,
+        )
         require(result.returncode != 0 and "not a native iOS Simulator" in result.stderr and
                 lock.read_bytes() == original_lock,
                 "promotion accepted same-platform binaries or changed the existing lock")

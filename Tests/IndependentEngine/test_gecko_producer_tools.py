@@ -442,10 +442,10 @@ def main() -> None:
     for token in (
         "workflow_dispatch:",
         "release_tag:",
-        "publish_release:",
         "reuse_build_run_id:",
-        "default: vulpra-engine-v5-candidate",
-        "default: false",
+        "promote_run_id:",
+        "repeat_producer_run_id:",
+        "default: vulpra-engine-v5-r0-candidate",
         "runs-on: macos-26",
         "platform: [iphoneos, iphonesimulator]",
         "/Applications/Xcode_26.4.1.app",
@@ -457,10 +457,10 @@ def main() -> None:
         "gh run download \"$reuse_run_id\"",
         "github.event_name == 'workflow_dispatch' && github.run_id || 'push'",
         "package-runtime.py",
-        "promote-engine-artifacts.py",
+        "promote-engine-artifacts.py verify-pair",
         "Verify cross-target identity and native distinction",
         "retention-days: 30",
-        "gh release upload",
+        "uses: ./.github/workflows/promote-gecko-v5.yml",
     ):
         require(token in workflow, f"Gecko v5 workflow is missing {token!r}")
     require("produce-simulator-artifact.sh" not in workflow and
@@ -474,9 +474,11 @@ def main() -> None:
     require("dist=\".build/package-source/dist\"" in workflow and
             ".build/gecko-source/obj-$triple/dist" not in workflow,
             "normal packaging does not exercise the verified snapshot path")
-    require(workflow.index("promote-engine-artifacts.py") <
-            workflow.index("Publish verified prerelease pair"),
-            "full artifact verification does not precede release publication")
+    require("publish_release:" not in workflow and
+            "Publish verified prerelease pair" not in workflow,
+            "single producer run retains direct release publication ownership")
+    require("- .github/workflows/produce-gecko-v5.yml" not in workflow,
+            "workflow-only changes still trigger an expensive native rebuild")
 
     with tempfile.TemporaryDirectory(prefix="vulpra-gecko-producer-tools-") as temporary:
         base = Path(temporary)

@@ -1,21 +1,36 @@
 name: Verify and Promote Gecko v5 Pair
 
 on:
+  workflow_call:
+    inputs:
+      producer_run_id:
+        required: true
+        type: string
+      repeat_producer_run_id:
+        required: true
+        type: string
+      release_tag:
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       producer_run_id:
         description: Successful producer run containing the native pair
         required: true
         type: string
+      repeat_producer_run_id:
+        description: Independent successful producer run for repeat comparison
+        required: true
+        type: string
       release_tag:
         description: Prerelease tag containing the selected pair
         required: true
-        default: vulpra-engine-v5-candidate
+        default: vulpra-engine-v5-r0-candidate
         type: string
 
 permissions:
   actions: read
-  contents: read
+  contents: write
 
 jobs:
   promote:
@@ -52,32 +67,74 @@ jobs:
             --name "gecko-v5-iphoneos-$run_id" --dir candidate/iphoneos
           gh run download "$run_id" --repo "$GITHUB_REPOSITORY" \
             --name "gecko-v5-iphonesimulator-$run_id" --dir candidate/iphonesimulator
+          repeat_run_id='${{ inputs.repeat_producer_run_id }}'
+          [[ "$repeat_run_id" =~ ^[1-9][0-9]*$ && "$repeat_run_id" != "$run_id" ]] || {
+            echo "repeat_producer_run_id must be a different positive integer" >&2
+            exit 1
+          }
+          mkdir -p repeat/iphoneos repeat/iphonesimulator
+          gh run download "$repeat_run_id" --repo "$GITHUB_REPOSITORY" \
+            --name "gecko-v5-iphoneos-$repeat_run_id" --dir repeat/iphoneos
+          gh run download "$repeat_run_id" --repo "$GITHUB_REPOSITORY" \
+            --name "gecko-v5-iphonesimulator-$repeat_run_id" --dir repeat/iphonesimulator
 
-      - name: Verify release assets and produce atomic lock
+      - name: Verify repeat pair and produce atomic lock
         shell: bash
         run: |
           set -euo pipefail
           run_id='${{ inputs.producer_run_id }}'
+          repeat_run_id='${{ inputs.repeat_producer_run_id }}'
           release_tag='${{ inputs.release_tag }}'
           device='candidate/iphoneos/vulpra-engine-ios-arm64-v5.tar.gz'
           simulator='candidate/iphonesimulator/vulpra-engine-ios-simulator-native-arm64-v5.tar.gz'
-          release_dir="$(mktemp -d)"
-          gh release download "$release_tag" --repo "$GITHUB_REPOSITORY" \
-            --pattern 'vulpra-engine-ios*-v5.tar.gz' --dir "$release_dir"
-          for archive in "$device" "$simulator"; do
-            name="$(basename "$archive")"
-            test -f "$release_dir/$name"
-            test "$(shasum -a 256 "$archive" | awk '{print $1}')" = \
-              "$(shasum -a 256 "$release_dir/$name" | awk '{print $1}')"
-          done
           mkdir -p candidate/promotion
-          python3 Tools/Engine/promote-engine-artifacts.py \
+          python3 Tools/Engine/promote-engine-artifacts.py promote \
             --release-tag "$release_tag" \
             --producer-run-id "$run_id" \
+            --repeat-producer-run-id "$repeat_run_id" \
             --device-archive "$device" \
             --simulator-archive "$simulator" \
+            --repeat-device-archive repeat/iphoneos/vulpra-engine-ios-arm64-v5.tar.gz \
+            --repeat-simulator-archive \
+              repeat/iphonesimulator/vulpra-engine-ios-simulator-native-arm64-v5.tar.gz \
             --lock candidate/promotion/engine-artifact-lock.json
           cat candidate/promotion/engine-artifact-lock.json
+
+      - name: Publish repeat-verified prerelease pair
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag='${{ inputs.release_tag }}'
+          if ! gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$tag" --repo "$GITHUB_REPOSITORY" --prerelease \
+              --title "$tag" --notes "Repeat-verified native Gecko v5 R0 device and Simulator pair."
+          fi
+          stage="$(mktemp -d)"
+          for asset in \
+            candidate/iphoneos/vulpra-engine-ios-arm64-v5.tar.gz \
+            candidate/iphonesimulator/vulpra-engine-ios-simulator-native-arm64-v5.tar.gz; do
+            name="$(basename "$asset")"
+            if gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+                --pattern "$name" --dir "$stage" >/dev/null 2>&1; then
+              test "$(shasum -a 256 "$asset" | awk '{print $1}')" = \
+                "$(shasum -a 256 "$stage/$name" | awk '{print $1}')" || {
+                  echo "release asset exists with different content: $name" >&2
+                  exit 1
+                }
+            else
+              gh release upload "$tag" "$asset" --repo "$GITHUB_REPOSITORY"
+            fi
+          done
+          roundtrip="$(mktemp -d)"
+          gh release download "$tag" --repo "$GITHUB_REPOSITORY" \
+            --pattern 'vulpra-engine-ios*-v5.tar.gz' --dir "$roundtrip"
+          for asset in \
+            candidate/iphoneos/vulpra-engine-ios-arm64-v5.tar.gz \
+            candidate/iphonesimulator/vulpra-engine-ios-simulator-native-arm64-v5.tar.gz; do
+            name="$(basename "$asset")"
+            test "$(shasum -a 256 "$asset" | awk '{print $1}')" = \
+              "$(shasum -a 256 "$roundtrip/$name" | awk '{print $1}')"
+          done
 
       - name: Upload verified lock candidate
         uses: actions/upload-artifact@v4

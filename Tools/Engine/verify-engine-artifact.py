@@ -9,6 +9,8 @@ import shlex
 import subprocess
 import sys
 
+from macho_content import MachOContentError, is_thin_macho64, repeat_identity
+
 
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 COMMIT_PATTERN = re.compile(r"^[0-9a-f]{40}$")
@@ -483,11 +485,22 @@ def verify(contract_path: Path, artifact_root: Path) -> tuple[str, int]:
     return manifest["artifactId"], len(paths)
 
 
-def normalized_repeat_manifest(manifest: dict[str, object]) -> dict[str, object]:
+def normalized_repeat_manifest(
+    manifest: dict[str, object], root: Path
+) -> dict[str, object]:
     normalized = json.loads(json.dumps(manifest))
     normalized["artifactId"] = ""
     normalized["producer"]["workflowRunId"] = 0
     normalized["compiledBy"]["workflowRunId"] = 0
+    for entry in normalized["files"]:
+        path = root / entry["path"]
+        content = path.read_bytes()
+        if is_thin_macho64(content):
+            try:
+                entry["sha256"] = repeat_identity(content, entry["path"])
+            except MachOContentError as error:
+                fail(str(error))
+            entry["size"] = 0
     return normalized
 
 
@@ -496,7 +509,9 @@ def compare_repeat_builds(contract_path: Path, first: Path, second: Path) -> Non
     verify(contract_path, second)
     first_manifest = load_json(first / "manifest.json", "first artifact manifest")
     second_manifest = load_json(second / "manifest.json", "second artifact manifest")
-    if normalized_repeat_manifest(first_manifest) != normalized_repeat_manifest(second_manifest):
+    if normalized_repeat_manifest(first_manifest, first) != normalized_repeat_manifest(
+        second_manifest, second
+    ):
         fail("repeat v5 build content or provenance differs")
 
 
