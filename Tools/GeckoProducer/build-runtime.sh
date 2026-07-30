@@ -38,6 +38,13 @@ import sys
 print(json.load(open(sys.argv[1], encoding="utf-8"))["targets"][sys.argv[2]])
 PY
 )
+read -r MOZ_BUILD_DATE SOURCE_DATE_EPOCH < <(python3 - "$CONTRACT" <<'PY'
+import json
+import sys
+value = json.load(open(sys.argv[1], encoding="utf-8"))["reproducibleBuild"]
+print(value["mozBuildDate"], value["sourceDateEpoch"])
+PY
+)
 [[ "$TARGET" == "$EXPECTED_TARGET" ]] || {
   echo "gecko-build-error: target does not match producer contract" >&2
   exit 1
@@ -83,6 +90,7 @@ fi
   MOZCONFIG="$MOZCONFIG" MOZBUILD_STATE_PATH="$MOZBUILD_STATE_PATH" \
   CC="$TARGET_CC" CXX="$TARGET_CXX" HOST_CC="$TARGET_CC" HOST_CXX="$TARGET_CXX" \
   WASM_CC="$WASM_CC" WASM_CXX="$WASM_CXX" \
+  MOZ_BUILD_DATE="$MOZ_BUILD_DATE" SOURCE_DATE_EPOCH="$SOURCE_DATE_EPOCH" \
   "$MACH" build)
 printf 'PASS: built Gecko runtime platform=%s target=%s mozconfig=%s\n' \
   "$PLATFORM" "$TARGET" "$MOZCONFIG"

@@ -132,6 +132,7 @@ def build_identity(
         "platform": platform,
         "targetTriple": target,
         "deploymentTarget": contract.get("deploymentTarget"),
+        "reproducibleBuild": contract.get("reproducibleBuild"),
         "mozconfigSHA256": mozconfig_sha256,
         "toolchain": {"xcodeBuild": xcode_build, "sdkBuild": sdk_build},
     }

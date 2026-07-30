@@ -336,7 +336,7 @@ def validate_v5_manifest_identity(
     build = manifest.get("build")
     expected_build_keys = {
         "mozconfigSHA256", "xcodeBuild", "sdkBuild", "platform", "targetTriple",
-        "architecture", "deploymentTarget",
+        "architecture", "deploymentTarget", "mozBuildDate", "sourceDateEpoch",
     }
     if not isinstance(build, dict) or set(build) != expected_build_keys:
         fail("manifest v5 build identity is invalid")
@@ -349,6 +349,11 @@ def validate_v5_manifest_identity(
     for key in ("platform", "targetTriple", "architecture", "deploymentTarget"):
         if build.get(key) != contract.get(key):
             fail(f"manifest build {key} does not match contract")
+    reproducible_build = producer_contract.get("reproducibleBuild")
+    if (not isinstance(reproducible_build, dict)
+            or build.get("mozBuildDate") != reproducible_build.get("mozBuildDate")
+            or build.get("sourceDateEpoch") != reproducible_build.get("sourceDateEpoch")):
+        fail("manifest reproducible build inputs do not match the producer contract")
 
 
 def validate_entries(root: Path, manifest: dict[str, object], contract: dict[str, object]) -> list[str]:

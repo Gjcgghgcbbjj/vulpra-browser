@@ -101,6 +101,8 @@ def manifest_for(platform: str, values: dict[str, bytes], run_id: int = RUN_ID) 
             "targetTriple": producer["targets"][platform],
             "architecture": "arm64",
             "deploymentTarget": "15.0",
+            "mozBuildDate": producer["reproducibleBuild"]["mozBuildDate"],
+            "sourceDateEpoch": producer["reproducibleBuild"]["sourceDateEpoch"],
         },
         "licenses": ["licenses/MPL-2.0.txt"],
         "notices": ["licenses/FIREFOX-THIRD-PARTY.html"],

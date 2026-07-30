@@ -130,8 +130,9 @@ def test_build(base: Path) -> None:
     mach_log = base / "mach.log"
     fake_mach = base / "fake-mach"
     write(fake_mach, """#!/bin/sh
-printf '%s|%s|%s|%s|%s|%s\\n' \
+printf '%s|%s|%s|%s|%s|%s|%s|%s\\n' \
   "$MOZCONFIG" "$*" "$CC" "$HOST_CC" "$WASM_CC" "$MOZBUILD_STATE_PATH" \
+  "$MOZ_BUILD_DATE" "$SOURCE_DATE_EPOCH" \
   > "$VULPRA_MACH_LOG"
 """, executable=True)
     environment = os.environ.copy()
@@ -167,6 +168,8 @@ printf '%s|%s|%s|%s|%s|%s\\n' \
                 "build did not keep target and host compilation on Xcode clang")
         require("/.build/gecko-toolchains/clang/bin/clang|" in mach_invocation,
                 "build did not isolate WASI compilation to the bootstrapped Gecko clang")
+        require("|20260713164006|1783960806" in mach_invocation,
+                "build did not pin Firefox build time to the upstream commit")
 
     source_mach = source / "mach"
     write(source_mach,
@@ -247,6 +250,8 @@ def test_package(base: Path) -> None:
             manifest["source"]["commit"] == PINNED_COMMIT and
             manifest["build"]["platform"] == "iphonesimulator" and
             manifest["build"]["targetTriple"] == "aarch64-apple-ios-sim" and
+            manifest["build"]["mozBuildDate"] == "20260713164006" and
+            manifest["build"]["sourceDateEpoch"] == 1783960806 and
             manifest["build"]["mozconfigSHA256"] == hashlib.sha256(mozconfig.read_bytes()).hexdigest() and
             manifest["producer"]["workflowRunId"] == 0,
             "artifact manifest lost producer content identity")
@@ -332,6 +337,12 @@ def test_build_snapshot(base: Path) -> None:
         linked = snapshot.extractfile("dist/bin/application.ini")
         require(linked is not None and linked.read() == linked_resource.read_bytes(),
                 "build snapshot did not materialize a source-internal dist link")
+        snapshot_manifest = snapshot.extractfile("snapshot.json")
+        require(snapshot_manifest is not None and
+                json.load(snapshot_manifest)["buildIdentity"]["reproducibleBuild"] == {
+                    "mozBuildDate": "20260713164006",
+                    "sourceDateEpoch": 1783960806,
+                }, "build snapshot lost reproducible build inputs")
 
     extracted = base / "extracted-snapshot"
     extract_common = [*common, "--expected-producer-run-id", "123"]

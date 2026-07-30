@@ -20,6 +20,10 @@ TARGETS = {
     "iphoneos": "aarch64-apple-ios",
     "iphonesimulator": "aarch64-apple-ios-sim",
 }
+REPRODUCIBLE_BUILD = {
+    "mozBuildDate": "20260713164006",
+    "sourceDateEpoch": 1783960806,
+}
 REQUIRED_EXPORTS = {
     "_MainProcessInit",
     "_GeckoViewOpenWindow",
@@ -99,6 +103,7 @@ def validate_contract(contract: dict[str, Any]) -> None:
             "upstream",
             "patchSeries",
             "deploymentTarget",
+            "reproducibleBuild",
             "targets",
             "requiredExports",
             "forbiddenRuntimeTokens",
@@ -128,6 +133,11 @@ def validate_contract(contract: dict[str, Any]) -> None:
         raise ContractError("patchSeries must be a safe repository-relative path")
     if contract["deploymentTarget"] != "15.0":
         raise ContractError("deploymentTarget must be 15.0")
+    reproducible_build = contract["reproducibleBuild"]
+    if reproducible_build != REPRODUCIBLE_BUILD:
+        raise ContractError(
+            "reproducibleBuild must match the pinned upstream commit timestamp"
+        )
 
     targets = contract["targets"]
     if not isinstance(targets, dict):

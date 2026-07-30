@@ -171,6 +171,8 @@ def make_manifest(args: argparse.Namespace, payload: dict[str, Path]) -> dict[st
             "targetTriple": contract["targets"][args.platform],
             "architecture": "arm64",
             "deploymentTarget": contract["deploymentTarget"],
+            "mozBuildDate": contract["reproducibleBuild"]["mozBuildDate"],
+            "sourceDateEpoch": contract["reproducibleBuild"]["sourceDateEpoch"],
         },
         "licenses": ["licenses/MPL-2.0.txt"],
         "notices": ["licenses/FIREFOX-THIRD-PARTY.html"],

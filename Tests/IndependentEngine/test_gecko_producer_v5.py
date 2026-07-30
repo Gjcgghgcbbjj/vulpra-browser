@@ -32,6 +32,10 @@ def valid_contract() -> dict[str, object]:
         },
         "patchSeries": "Engine/GeckoPatches/v5/series.json",
         "deploymentTarget": "15.0",
+        "reproducibleBuild": {
+            "mozBuildDate": "20260713164006",
+            "sourceDateEpoch": 1783960806,
+        },
         "targets": {
             "iphoneos": "aarch64-apple-ios",
             "iphonesimulator": "aarch64-apple-ios-sim",
@@ -204,6 +208,14 @@ def main() -> None:
         non_ios = copy.deepcopy(valid)
         non_ios["targets"]["iphonesimulator"] = "aarch64-apple-darwin"  # type: ignore[index]
         invalid.append(("non-ios-target", non_ios, "unexpected target triple"))
+
+        wrong_build_date = copy.deepcopy(valid)
+        wrong_build_date["reproducibleBuild"]["mozBuildDate"] = "20260730084917"  # type: ignore[index]
+        invalid.append(("wrong-build-date", wrong_build_date, "reproducibleBuild"))
+
+        wrong_epoch = copy.deepcopy(valid)
+        wrong_epoch["reproducibleBuild"]["sourceDateEpoch"] = 1785398400  # type: ignore[index]
+        invalid.append(("wrong-source-date-epoch", wrong_epoch, "reproducibleBuild"))
 
         duplicate_export = copy.deepcopy(valid)
         duplicate_export["requiredExports"].append("_MainProcessInit")  # type: ignore[union-attr]
