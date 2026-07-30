@@ -71,11 +71,11 @@ def ensure_regular_file(
 ) -> Path:
     if not path.is_file():
         fail(f"missing or unsafe {label}: {path}")
-    if not path.is_symlink():
+    resolved = path.resolve(strict=True)
+    if not path.is_symlink() and resolved == path.absolute():
         return path
     if allowed_symlink_root is None:
         fail(f"missing or unsafe {label}: {path}")
-    resolved = path.resolve(strict=True)
     root = allowed_symlink_root.resolve(strict=True)
     if not resolved.is_file() or not resolved.is_relative_to(root):
         fail(f"symlinked {label} resolves outside Gecko source: {path}")

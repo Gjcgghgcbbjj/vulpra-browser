@@ -8,6 +8,7 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import stat
 import subprocess
 import tarfile
@@ -261,6 +262,21 @@ def test_package(base: Path) -> None:
     ], env=environment)
     require(result.returncode != 0 and "resolves outside Gecko source" in result.stderr,
             "packaging accepted a resource link outside the pinned source")
+    (dist / "bin/unsafe-resource").unlink()
+
+    exported_directory = dist / "include/GeckoView"
+    shutil.rmtree(exported_directory)
+    outside_headers = base / "outside-headers"
+    write(outside_headers / "GeckoViewSwiftSupport.h", "// outside support\n")
+    write(outside_headers / "IOSBootstrap.h", "// outside bootstrap\n")
+    exported_directory.symlink_to(outside_headers, target_is_directory=True)
+    result = run([
+        "python3", str(PACKAGE), "--contract", str(CONTRACT),
+        "--platform", "iphonesimulator", "--dist", str(dist),
+        "--mozconfig", str(mozconfig), "--output", str(base / "unsafe-parent.tar.gz"),
+    ], env=environment)
+    require(result.returncode != 0 and "resolves outside Gecko source" in result.stderr,
+            "packaging accepted an ABI header beneath an escaping parent link")
 
 
 def test_build_snapshot(base: Path) -> None:
@@ -358,6 +374,23 @@ def test_build_snapshot(base: Path) -> None:
     ])
     require(result.returncode != 0 and "resolves outside Gecko source" in result.stderr,
             "build snapshot accepted a dist link outside the pinned source")
+    unsafe.unlink()
+
+    exported_directory = dist / "include/GeckoView"
+    shutil.rmtree(exported_directory)
+    outside_headers = base / "snapshot-outside-headers"
+    write(outside_headers / "GeckoViewSwiftSupport.h", "// outside support\n")
+    write(outside_headers / "IOSBootstrap.h", "// outside bootstrap\n")
+    exported_directory.symlink_to(outside_headers, target_is_directory=True)
+    result = run([
+        "python3", str(SNAPSHOT), "create", *common,
+        "--source", str(source),
+        "--producer-commit", "1" * 40,
+        "--producer-run-id", "125",
+        "--output", str(base / "unsafe-parent-snapshot.tar.gz"),
+    ])
+    require(result.returncode != 0 and "resolves outside Gecko source" in result.stderr,
+            "build snapshot accepted a header beneath an escaping parent link")
 
 
 def main() -> None:

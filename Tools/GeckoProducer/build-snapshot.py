@@ -58,7 +58,7 @@ def regular_source(path: Path, source_root: Path, label: str) -> Path:
     if not path.is_file():
         fail(f"missing build snapshot input {label}: {path}")
     resolved = path.resolve(strict=True)
-    if path.is_symlink() and not resolved.is_relative_to(source_root):
+    if not resolved.is_relative_to(source_root):
         fail(f"symlinked {label} resolves outside Gecko source: {path}")
     if not resolved.is_file():
         fail(f"unsafe build snapshot input {label}: {path}")
