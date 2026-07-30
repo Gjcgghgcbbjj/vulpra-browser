@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "formatVersion": 5,
+  "artifactIdPrefix": "vulpra-gecko-ios-simulator-native-arm64-v5-",
+  "manifestFile": "manifest.json",
+  "platform": "iphonesimulator",
+  "targetTriple": "aarch64-apple-ios-sim",
+  "architecture": "arm64",
+  "deploymentTarget": "15.0",
+  "producerContract": "Configuration/gecko-producer-v5.json",
+  "patchSeries": "Engine/GeckoPatches/v5/series.json",
+  "requiredKernel": "runtime/bin/XUL",
+  "requiredExports": [
+    "_MainProcessInit",
+    "_GeckoViewOpenWindow",
+    "_ChildProcessInit",
+    "_GeckoChildProcessDidChange"
+  ],
+  "requiredHeaders": {
+    "runtime/include/GeckoView/GeckoViewSwiftSupport.h": [
+      "GeckoChildProcessLifecycleObserver",
+      "childProcessDidChangeWithLaunchID"
+    ],
+    "runtime/include/GeckoView/IOSBootstrap.h": [
+      "GeckoChildProcessDidChange"
+    ]
+  },
+  "forbiddenRuntimeTokens": [
+    "jit-ready-fd",
+    "ReportJITStatusForChild",
+    "WaitForJITReadySignal"
+  ],
+  "runtimeResourceContainer": "VulpraEngineRuntime",
+  "runtimeKernelInstallPath": "GeckoView.framework/XUL",
+  "runtimeKernelBundleIdentifier": "com.vulpra.browser.simulator-engine-runtime",
+  "allowedRoots": [
+    "runtime/bin",
+    "runtime/lib",
+    "runtime/include",
+    "runtime/resources",
+    "licenses"
+  ],
+  "nonEmptyRoots": [
+    "runtime/include",
+    "runtime/resources",
+    "licenses"
+  ],
+  "forbiddenSourceExtensions": [
+    ".swift",
+    ".m",
+    ".mm",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".cxx",
+    ".rs",
+    ".patch",
+    ".diff"
+  ],
+  "forbiddenProductExtensions": [
+    ".app",
+    ".appex",
+    ".framework"
+  ],
+  "forbiddenSegments": [
+    "JIT",
+    "Patches",
+    "Sources"
+  ]
+}
