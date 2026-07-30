@@ -107,6 +107,14 @@ def main() -> None:
         require(token in harness, f"Simulator harness is missing evidence field: {token}")
     require("data-vulpra-engine-fixture" in simulator,
             "Simulator workflow lacks a deterministic central page marker")
+    require('VulpraEngineRuntime/Frameworks/omni.ja' in simulator,
+            "Simulator gate does not require the staged Gecko omnijar")
+    require('test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"'
+            not in simulator,
+            "Simulator gate still requires the retired unpacked omnijar layout")
+    require('modules/AppConstants.sys.mjs' in simulator and
+            'modules/XPCOMUtils.sys.mjs' in simulator,
+            "Simulator gate does not inspect required omnijar entries")
     require("p95 > 15000" in summarizer and "maximum > 30000" in summarizer,
             "R0 summarizer does not enforce navigation performance thresholds")
     require("lock['simulator']['archive']" in simulator,

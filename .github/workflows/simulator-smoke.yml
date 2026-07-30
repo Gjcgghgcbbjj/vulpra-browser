@@ -136,7 +136,26 @@ jobs:
           test "$(plutil -extract CFBundleIdentifier raw "$app/Frameworks/GeckoView.framework/Info.plist")" = \
             com.vulpra.browser.simulator-engine-runtime
           test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/application.ini"
-          test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"
+          omnijar="$app/Frameworks/VulpraEngineRuntime/Frameworks/omni.ja"
+          test -f "$omnijar"
+          cmp -s .build/engine/runtime/resources/omni.ja "$omnijar"
+          test ! -e "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"
+          python3 - "$omnijar" <<'PY'
+          import sys, zipfile
+
+          required = {
+              'chrome.manifest',
+              'modules/AppConstants.sys.mjs',
+              'modules/XPCOMUtils.sys.mjs',
+          }
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              missing = sorted(required - set(archive.namelist()))
+              if missing:
+                  raise SystemExit(f'staged omnijar is missing: {missing[0]}')
+              bad_entry = archive.testzip()
+              if bad_entry is not None:
+                  raise SystemExit(f'staged omnijar has invalid CRC: {bad_entry}')
+          PY
           test ! -e "$app/Frameworks/GeckoView.framework/Frameworks/application.ini"
           otool -D "$app/Frameworks/GeckoView.framework/XUL" \
             | grep -Fq '@rpath/GeckoView.framework/XUL'
