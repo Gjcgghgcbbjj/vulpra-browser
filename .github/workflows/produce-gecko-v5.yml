@@ -267,6 +267,12 @@ jobs:
       GH_TOKEN: ${{ github.token }}
 
     steps:
+      - name: Checkout pair verifier
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
       - name: Download device runtime
         uses: actions/download-artifact@v4
         with:
@@ -283,6 +289,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          device='candidate/iphoneos/vulpra-engine-ios-arm64-v5.tar.gz'
+          simulator='candidate/iphonesimulator/vulpra-engine-ios-simulator-native-arm64-v5.tar.gz'
+          python3 Tools/Engine/promote-engine-artifacts.py \
+            --release-tag '${{ inputs.release_tag || 'vulpra-engine-v5-candidate' }}' \
+            --producer-run-id '${{ github.run_id }}' \
+            --device-archive "$device" \
+            --simulator-archive "$simulator" \
+            --lock candidate/verified-pair-lock.json
           python3 - <<'PY'
           import hashlib
           import json
@@ -356,7 +370,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gecko-v5-pair-${{ github.run_id }}
-          path: candidate/pair-verification.json
+          path: |
+            candidate/pair-verification.json
+            candidate/verified-pair-lock.json
           if-no-files-found: error
           retention-days: 30
 

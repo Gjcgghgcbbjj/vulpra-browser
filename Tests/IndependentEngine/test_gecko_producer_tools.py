@@ -189,6 +189,7 @@ def test_package(base: Path) -> None:
     write(source / "toolkit/content/license.html", "third party fixture\n")
     write(dist / "bin/XUL", b"native-simulator-XUL", executable=True)
     write(dist / "bin/libmozglue.dylib", b"native-simulator-dylib", executable=True)
+    write(dist / "bin/plugin-container", b"unused-child-tool", executable=True)
     exported_resource = source / "browser/app/application.ini"
     write(exported_resource, "[App]\nName=Vulpra\n")
     (dist / "bin").mkdir(parents=True, exist_ok=True)
@@ -234,6 +235,11 @@ def test_package(base: Path) -> None:
                 "artifact contains an unsafe path")
         require("runtime/bin/XUL" in names and "runtime/lib/libmozglue.dylib" in names,
                 "artifact is missing native runtime binaries")
+        require("runtime/resources/plugin-container" not in names,
+                "artifact packaged a dist executable as a runtime resource")
+        require(all(not member.mode & 0o111 for member in members
+                    if member.name.startswith("runtime/resources/")),
+                "artifact resource unexpectedly retains an executable mode")
         manifest_file = archive.extractfile("manifest.json")
         require(manifest_file is not None, "artifact manifest is missing")
         manifest = json.load(manifest_file)
@@ -440,6 +446,7 @@ def main() -> None:
         "gh run download \"$reuse_run_id\"",
         "github.event_name == 'workflow_dispatch' && github.run_id || 'push'",
         "package-runtime.py",
+        "promote-engine-artifacts.py",
         "Verify cross-target identity and native distinction",
         "retention-days: 30",
         "gh release upload",
@@ -456,6 +463,9 @@ def main() -> None:
     require("dist=\".build/package-source/dist\"" in workflow and
             ".build/gecko-source/obj-$triple/dist" not in workflow,
             "normal packaging does not exercise the verified snapshot path")
+    require(workflow.index("promote-engine-artifacts.py") <
+            workflow.index("Publish verified prerelease pair"),
+            "full artifact verification does not precede release publication")
 
     with tempfile.TemporaryDirectory(prefix="vulpra-gecko-producer-tools-") as temporary:
         base = Path(temporary)

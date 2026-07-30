@@ -244,6 +244,11 @@ def main() -> int:
                 allowed_symlink_root=source,
             )
         for relative, resource in resource_files(args.dist):
+            resource = ensure_regular_file(
+                resource, relative, allowed_symlink_root=source
+            )
+            if resource.stat().st_mode & 0o111:
+                continue
             add_payload(
                 payload, relative, resource, allowed_symlink_root=source
             )
