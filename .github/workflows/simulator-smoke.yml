@@ -127,7 +127,7 @@ jobs:
             -derivedDataPath "$DERIVED_DATA" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build 2>&1 | tee simulator-build.log
+            build-for-testing 2>&1 | tee simulator-build.log
           test -d "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
           app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
           test ! -e "$app/Frameworks/XUL"
@@ -228,7 +228,7 @@ jobs:
             -resultBundlePath "$PWD/simulator-native-tests.xcresult" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            test > simulator-native-tests.log 2>&1 &
+            test-without-building > simulator-native-tests.log 2>&1 &
           test_pid=$!
           while kill -0 "$test_pid" >/dev/null 2>&1; do
             if (( SECONDS >= test_deadline )); then

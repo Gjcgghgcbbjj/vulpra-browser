@@ -35,6 +35,13 @@ def main() -> None:
 
     require(text.count("isa = PBXNativeTarget;") == 5, "Xcode target set is not canonical")
     require(len(text.splitlines()) < 800, "project.pbxproj exceeds 800-line budget")
+    test_target = text.split(
+        '/* VulpraEngineKitTests */ = {isa = PBXNativeTarget;', 1
+    )[1].split('};', 1)[0]
+    require('B00000000000000000000006' not in test_target,
+            "EngineKit unit tests still depend on the production App test host")
+    require('TEST_HOST =' not in text and 'BUNDLE_LOADER =' not in text,
+            "EngineKit unit tests still launch through the production App main")
 
     app = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "App").rglob("*.swift"))
     require("import VulpraEngineKit" in app, "App is not migrated to VulpraEngineKit")
@@ -115,6 +122,10 @@ def main() -> None:
     require('modules/AppConstants.sys.mjs' in simulator and
             'modules/XPCOMUtils.sys.mjs' in simulator,
             "Simulator gate does not inspect required omnijar entries")
+    require('build-for-testing 2>&1 | tee simulator-build.log' in simulator,
+            "Simulator gate does not build App and unit tests in one build phase")
+    require('test-without-building > simulator-native-tests.log' in simulator,
+            "native EngineKit execution still mixes compilation into its deadline")
     require("p95 > 15000" in summarizer and "maximum > 30000" in summarizer,
             "R0 summarizer does not enforce navigation performance thresholds")
     require("lock['simulator']['archive']" in simulator,
