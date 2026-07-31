@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 from pathlib import Path
+from zipfile import ZipFile
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -11,6 +12,23 @@ RESOURCES = ROOT / ".build/engine/runtime/resources"
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise SystemExit(f"FAIL: {message}")
+
+
+def load_runtime_evidence() -> str:
+    sources = [
+        path.read_text(encoding="utf-8", errors="ignore")
+        for path in RESOURCES.rglob("*")
+        if path.is_file() and path.suffix in {".js", ".mjs"}
+    ]
+    omnijar = RESOURCES / "omni.ja"
+    if omnijar.is_file():
+        with ZipFile(omnijar) as archive:
+            sources.extend(
+                archive.read(name).decode("utf-8", errors="ignore")
+                for name in archive.namelist()
+                if name.endswith((".js", ".mjs"))
+            )
+    return "\n".join(sources)
 
 
 def main() -> None:
@@ -32,10 +50,7 @@ def main() -> None:
             names.append(name)
     require(len(names) == len(set(names)), "message names must be unique")
 
-    evidence = "\n".join(
-        path.read_text(encoding="utf-8", errors="ignore")
-        for path in RESOURCES.rglob("*") if path.is_file() and path.suffix in {".js", ".mjs"}
-    )
+    evidence = load_runtime_evidence()
     compiled_only = {
         "GeckoView:ExternalResponse",
         "GeckoView:ExternalResponseProgress",
