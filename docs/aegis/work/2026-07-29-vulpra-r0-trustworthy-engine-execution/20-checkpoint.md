@@ -25,3 +25,135 @@
 - commit:d5577c3
 - Blocked on: none
 - Next step: Inspect historical patch inventory and dependencies, add failing full-series fixtures, then implement strict series verification.
+
+## Checkpoint Update
+
+- Current todo: Task 9: produce, compare, and atomically promote the native Gecko v5 pair
+- Active slice: Run the pinned dual-platform producer to green twice, compare normalized artifacts, publish one pair, and promote the lock.
+- Completed todos:
+- Task 1: v5 producer contract (d5577c3)
+- Task 2: audited Gecko iOS v5 patch series (5d4da42)
+- Task 3: native runtime producer tools (996dc8b)
+- Task 4: dual-platform producer workflow (3fd8445 and follow-up fixes)
+- Task 5: lifecycle ABI and producer hardening through f11d5d3; successful pair still pending
+- Task 6: internal child lifecycle owner (b749de8, f635168)
+- Task 7: typed ExtensionKit requests (71ee8fa)
+- Task 8: activation replay retirement (47c8319)
+- Evidence refs:
+- run:30480717151:host-linker-fixed-cbindgen-missing
+- commit:01c20bc
+- commit:f11d5d3
+- Blocked on: none
+- Next step: Wait for producer run 30481555028, repair only its first typed producer failure if needed, then obtain two green same-commit runs.
+
+## DriftCheckDraft
+
+- Scope status: Tasks 1-8 remain inside the approved R0 producer, lifecycle, process-host, and App workaround boundaries; Task 9 implementation is local but unpromoted.
+- Compatibility status: The checked-in lock remains v4 until real v5 pair promotion; no runtime fallback or user-data migration was added.
+- Retirement status: Activation replay and dead bootstrap ownership are retired; v4/vtool paths remain only until the replacement producer and R0 gates pass.
+- New risk signals:
+- GitHub Xcode 26 producer dependencies must be explicit; host linker is fixed and cbindgen is now pinned, but the new run is pending.
+- Advisory decision: needs-verification
+
+## Checkpoint Update - Verified Producer Recovery Boundary
+
+- Current todo: Task 9: produce, compare, and atomically promote the native Gecko v5 pair
+- Active slice: Prove the generalized `dist` packaging fix, establish one verified build snapshot pair, reuse it for the second same-commit producer run, compare outputs, and promote.
+- Additional completed work:
+- Both native builds in run `30483927701` completed; packaging exposed an exported-header symlink.
+- Both native builds in run `30496390637` completed; packaging exposed a second legitimate Mozilla `dist/bin` resource symlink.
+- Generalized source-contained `dist` symlink materialization committed at `3c0cdd9`; escaping links remain rejected.
+- Deterministic, content-inventoried build snapshot recovery committed at `0cc03f0`; normal and reuse packaging share the verified snapshot path.
+- Evidence refs:
+- run:30483927701:native-builds-green-header-packaging-failure
+- run:30496390637:native-builds-green-resource-packaging-failure
+- commit:3c0cdd9
+- commit:0cc03f0
+- run:30521266433:generalized-packaging-verification-in-progress
+- run:30524481875:build-snapshot-producer-pending
+- Blocked on: none
+- Next step: Observe run `30521266433`; then let `30524481875` establish both snapshots, dispatch a same-commit reuse run, compare both native pairs, publish one pair, and atomically promote the lock.
+
+## DriftCheckDraft - Producer Recovery
+
+- Scope status: Recovery remains producer-side and preserves the approved precompiled-artifact boundary.
+- Compatibility status: App runtime, v4 selected lock, user data, user retry, and physical-device verification status are unchanged.
+- Retirement status: Direct packaging from the transient Gecko objdir is replaced by one continuously exercised verified snapshot path; no runtime fallback was added.
+- New risk signals:
+- The first snapshot-producing run must prove GitHub artifact size and cross-run download behavior on `macos-26`.
+- Advisory decision: needs-verification
+
+## Checkpoint Update
+
+- Current todo: Task 9: produce, compare, and atomically promote the native Gecko v5 pair
+- Active slice: Wait for the remaining iphoneos compilation in run 30527839573, repackage its two snapshots on b720f05, compare both independent compile pairs, publish one pair, and promote.
+- Completed todos:
+- Tasks 1-8: implementation complete
+- Task 9 recovery boundary: verified snapshot create/upload/restore and final pair for compile run 30527818938 via producer run 30538440725
+- Evidence refs:
+- run:30527818938:independent-native-pair-and-snapshots-success
+- run:30527839573:simulator-native-snapshot-success-device-pending
+- run:30538440725:snapshot-reuse-pair-success
+- manifest:30538440725:producer-b720f05-compiledBy-30527818938-3478b01
+- Blocked on: none
+- Next step: When run 30527839573 uploads the iphoneos snapshot, dispatch a b720f05 reuse run with publish_release=true, then download and compare both quick-run artifacts.
+
+## DriftCheckDraft
+
+- Scope status: Tasks 1-8 remain inside approved R0 boundaries; Task 9 has proved one independent native pair and the snapshot recovery path, while the second device compilation remains pending.
+- Compatibility status: The repository lock remains v4; no runtime fallback, fixed process count, user-data migration, or physical-device claim was added.
+- Retirement status: v4/vtool paths remain only until native pair promotion and the 20-attempt gate pass; remote rollback assets remain untouched.
+- New risk signals:
+- The second independent iphoneos compile has not yet reached snapshot upload.
+- Advisory decision: needs-verification
+
+## Checkpoint Update
+
+- Current todo: Task 9: prove reproducible native Gecko v5 pair and atomically promote
+- Active slice: Run two independent native builds from 10df6cb with pinned MOZ_BUILD_DATE/SOURCE_DATE_EPOCH, then compare every file and promote one verified pair.
+- Completed todos:
+- Tasks 1-8: implementation complete
+- Snapshot recovery proved by quick runs 30538440725 and 30541283317
+- Full artifact verification moved before publication; executable tool payloads and false kernel/staging coupling retired
+- Evidence refs:
+- run:30545348862:valid-pair-compiledBy-30527818938
+- run:30545352638:valid-pair-compiledBy-30527839573
+- compare:30545348862-vs-30545352638:build-date-nondeterminism-detected
+- commit:10df6cb:pin-reproducible-build-time
+- run:30547145772:reproducible-native-build-1
+- run:30547176227:reproducible-native-build-2
+- Blocked on: none
+- Next step: Wait for both 10df6cb native pairs, require full verifier success, download and compare normalized content, then publish a fresh tag through quick provenance packaging.
+
+## DriftCheckDraft
+
+- Scope status: Task 9 remains producer-side; real artifacts exposed and corrected contract classification, staging ownership, and build-time nondeterminism before lock promotion.
+- Compatibility status: Repository lock remains v4; no runtime fallback, fixed process count, user-data change, or physical-device claim was added.
+- Retirement status: Shallow producer verification, executable dist tools, and v5 kernel-to-App-container string coupling are retired; v4 paths await successful native promotion and Simulator gate.
+- New risk signals:
+- Pinned build time must eliminate all binary/resource differences across runs 30547145772 and 30547176227.
+- Advisory decision: needs-verification
+
+## Checkpoint Update
+
+- Current todo: Task 10: run the 20-attempt R0 Simulator gate
+- Active slice: Use the promoted v5 r0.3 lock to build and run 20 fresh Simulator navigation attempts.
+- Completed todos:
+- Tasks 1-8: implementation complete
+- Task 9: two independent native v5 pairs repeat-compared and promoted (runs 30598301958, 30598347174; promotion 30613021710)
+- Evidence refs:
+- run:30598301958:device-and-simulator-builds-green
+- run:30598347174:device-and-simulator-builds-green
+- run:30613021710:repeat-compare-promotion-release-lock
+- Blocked on: none
+- Next step: Commit and push the v5 lock/workflow tag update, dispatch simulator-smoke.yml with engine_release_tag=vulpra-engine-v5-r0.3-candidate and r0_attempts=20, then download and reverify the gate.
+
+## DriftCheckDraft
+
+- Scope status: Tasks 1-9 remain producer/runtime-boundary work; v5 native pair promotion is complete and Task 10 is the next bounded gate.
+- Compatibility status: v5 r0.3 lock and release are promoted; App identity, persistence, package shape, and user retry are unchanged.
+- Retirement status: v4/vtool paths remain until the 20-attempt Simulator gate and package/retirement Task 11 pass.
+- New risk signals:
+- Physical-device runtime and JIT evidence remain external and unverified.
+- Simulator gate must execute from pushed 8fa770c lock/workflow state.
+- Advisory decision: needs-verification

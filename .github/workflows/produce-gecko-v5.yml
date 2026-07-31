@@ -13,7 +13,7 @@ on:
       release_tag:
         description: R0 prerelease tag for repeat-verified promotion
         required: true
-        default: vulpra-engine-v5-r0.2-candidate
+        default: vulpra-engine-v5-r0.3-candidate
         type: string
       reuse_build_run_id:
         description: Repackage verified build snapshots from this producer run

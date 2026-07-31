@@ -11,7 +11,7 @@ on:
       engine_release_tag:
         description: Release containing the verified native Gecko v5 engine
         required: true
-        default: vulpra-engine-v5-r0.2-candidate
+        default: vulpra-engine-v5-r0.3-candidate
         type: string
 
 permissions:

@@ -1,15 +1,18 @@
 {
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-29-vulpra-r0-trustworthy-engine-execution",
-  "currentTodo": "Task 2: materialize and audit the iOS patch series",
+  "currentTodo": "Task 10: run the 20-attempt R0 Simulator gate",
   "completedTodos": [
-    "Task 1: v5 producer contract committed at d5577c3"
+    "Tasks 1-8: implementation complete",
+    "Task 9: two independent native v5 pairs repeat-compared and promoted (runs 30598301958, 30598347174; promotion 30613021710)"
   ],
-  "activeSlice": "Extract historical patch candidates, establish the minimal buildable series, remove JIT coordination, and bind every patch by digest.",
+  "activeSlice": "Use the promoted v5 r0.3 lock to build and run 20 fresh Simulator navigation attempts.",
   "evidenceRefs": [
-    "commit:d5577c3"
+    "run:30598301958:device-and-simulator-builds-green",
+    "run:30598347174:device-and-simulator-builds-green",
+    "run:30613021710:repeat-compare-promotion-release-lock"
   ],
   "blockedOn": null,
-  "nextStep": "Inspect historical patch inventory and dependencies, add failing full-series fixtures, then implement strict series verification.",
-  "updatedAt": "2026-07-29"
+  "nextStep": "Commit and push the v5 lock/workflow tag update, dispatch simulator-smoke.yml with engine_release_tag=vulpra-engine-v5-r0.3-candidate and r0_attempts=20, then download and reverify the gate.",
+  "updatedAt": "2026-07-31"
 }

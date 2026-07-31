@@ -2,9 +2,10 @@
   "schemaVersion": "aegis.schema.v0",
   "taskId": "2026-07-29-vulpra-r0-trustworthy-engine-execution",
   "lastCheckpointRef": "docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/todo-checkpoint-draft.json",
-  "resumeInstruction": "Read the approved plan, this checkpoint, and commit d5577c3; continue Task 2 without changing the App or v4 lock.",
+  "resumeInstruction": "Read this checkpoint, the R0 plan Task 10, and the promoted lock. Do not run Simulator smoke from an unpushed lock or use r0.2.",
   "knownPartialWork": [
-    "Task 1: v5 producer contract committed at d5577c3"
+    "Tasks 1-8: implementation complete",
+    "Task 9: two independent native v5 pairs repeat-compared and promoted (runs 30598301958, 30598347174; promotion 30613021710)"
   ],
   "mustReadBeforeContinuing": [
     "docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/10-intent.md",
@@ -12,6 +13,7 @@
     "docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/todo-checkpoint-draft.json"
   ],
   "unsafeToAssume": [
-    "Historical Patches are trusted or all historical patches are required."
+    "Physical-device runtime and JIT behavior remain unverified.",
+    "The 20-attempt Simulator gate has not passed until its artifact is downloaded and summarized."
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task9-native-pair-305983",
+  "type": "github-promotion",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30613021710",
+  "summary": "Two independent native device/Simulator producer runs 30598301958 and 30598347174 on 8fa770c completed with matching build fingerprints; promotion repeat-compare and atomic lock passed, and r0.3 prerelease assets were roundtrip-verified.",
+  "verifier": "GitHub run 30613021710 promote-repeat-verified-pair job; Configuration/engine-artifact-lock.json"
+}

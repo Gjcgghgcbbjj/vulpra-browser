@@ -462,7 +462,7 @@ def main() -> None:
         "reuse_build_run_id:",
         "promote_run_id:",
         "repeat_producer_run_id:",
-        "default: vulpra-engine-v5-r0.2-candidate",
+        "default: vulpra-engine-v5-r0.3-candidate",
         "runs-on: macos-26",
         "platform: [iphoneos, iphonesimulator]",
         "/Applications/Xcode_26.4.1.app",
