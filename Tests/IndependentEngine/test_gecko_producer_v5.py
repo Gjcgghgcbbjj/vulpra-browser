@@ -174,6 +174,12 @@ def verify_lifecycle_source_contract() -> None:
     require("GeckoViewRuntimeSupport.h" not in uikit_build,
             "retired JIT runtime-support header remains in the iOS export graph")
 
+    app_runner = checked_in_patch("toolkit/xre/nsAppRunner.cpp")
+    require('+    rv = greDir->AppendNative("VulpraEngineRuntime"_ns);' in app_runner,
+            "iOS Gecko does not resolve its verified runtime resource container")
+    require('+    rv = greDir->AppendNative("GeckoView.framework"_ns);' not in app_runner,
+            "iOS Gecko still resolves resources through the retired kernel carrier")
+
 
 def main() -> None:
     require(VERIFIER.is_file(), "missing Tools/GeckoProducer/verify-producer.py")

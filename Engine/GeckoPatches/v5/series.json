@@ -2460,6 +2460,16 @@
       "upstreamPaths": [
         "build/moz.configure/toolchain.configure"
       ]
+    },
+    {
+      "order": 247,
+      "path": "platform/toolkit/xre/nsAppRunner.cpp.patch",
+      "sha256": "85acc8790d13593b4dbe9bfadd3c01a8f9c2fb91d82fb7de838ee83b1365ace2",
+      "owner": "engine-platform",
+      "purpose": "Resolve iOS Gecko runtime resources from the verified platform-independent container.",
+      "upstreamPaths": [
+        "toolkit/xre/nsAppRunner.cpp"
+      ]
     }
   ]
 }
