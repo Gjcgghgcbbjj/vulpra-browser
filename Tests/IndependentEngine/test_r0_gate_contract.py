@@ -141,8 +141,7 @@ fi
             "Simulator harness lost functional, lifecycle, or timing evidence")
     log = operations.read_text(encoding="utf-8")
     for command in (
-        "simctl create", "simctl spawn fixture-udid /bin/kill -0",
-        "simctl spawn fixture-udid log show", "simctl terminate",
+        "simctl create", "simctl spawn fixture-udid log show", "simctl terminate",
         "simctl shutdown", "simctl delete",
     ):
         require(command in log, f"Simulator harness did not execute {command}")

@@ -85,9 +85,7 @@ PY
 }
 
 app_is_running() {
-  [[ "$APP_PID" =~ ^[1-9][0-9]*$ ]] && \
-    run_with_timeout 10 xcrun simctl spawn "$UDID" /bin/kill -0 "$APP_PID" \
-      >/dev/null 2>&1
+  [[ "$APP_PID" =~ ^[1-9][0-9]*$ ]] && /bin/kill -0 "$APP_PID" >/dev/null 2>&1
 }
 
 set +e
