@@ -39,6 +39,7 @@ run_with_timeout() {
 
 UDID=
 SYSTEM_LOG_PID=
+LOG_PREDICATE='process == "Vulpra" OR process CONTAINS[c] "Vulpra Engine" OR senderImagePath CONTAINS[c] "Vulpra" OR eventMessage CONTAINS[c] "Vulpra"'
 cleanup() {
   if [[ -n "$SYSTEM_LOG_PID" ]]; then
     kill "$SYSTEM_LOG_PID" >/dev/null 2>&1 || true
@@ -62,10 +63,30 @@ xcrun simctl spawn "$UDID" defaults write NSGlobalDomain AppleLocale -string zh_
 run_with_timeout 300 xcrun simctl install "$UDID" "$APP"
 
 xcrun simctl spawn "$UDID" log stream --style compact --info --debug \
-  --predicate 'process == "Vulpra" OR process CONTAINS[c] "Vulpra Engine" OR senderImagePath CONTAINS[c] "Vulpra" OR eventMessage CONTAINS[c] "Vulpra"' \
-  > "$PREFIX-system.log" 2>&1 &
+  --predicate "$LOG_PREDICATE" > "$PREFIX-stream.log" 2>&1 &
 SYSTEM_LOG_PID=$!
 sleep 2
+
+navigation_completed() {
+  python3 - "$PREFIX-stream.log" "$URL" <<'PY'
+from pathlib import Path
+import sys
+
+lines = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
+location = next((index for index, line in enumerate(lines)
+                 if f"Engine location: {sys.argv[2]}" in line), None)
+complete = location is not None and any(
+    "Engine page completed: true" in line for line in lines[location + 1:]
+)
+raise SystemExit(0 if complete else 1)
+PY
+}
+
+app_is_running() {
+  [[ "$APP_PID" =~ ^[1-9][0-9]*$ ]] && \
+    run_with_timeout 10 xcrun simctl spawn "$UDID" /bin/kill -0 "$APP_PID" \
+      >/dev/null 2>&1
+}
 
 set +e
 LAUNCH_OUTPUT=$(SIMCTL_CHILD_VULPRA_SMOKE_URL="$URL" \
@@ -76,27 +97,29 @@ printf '%s\n' "$LAUNCH_OUTPUT" > "$PREFIX-launch.log"
 APP_PID=${LAUNCH_OUTPUT##*: }
 
 if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
-  for _ in {1..45}; do
-    if grep -Fq "Engine location: $URL" "$PREFIX-system.log" \
-        && grep -Fq 'Engine page completed: true' "$PREFIX-system.log"; then
+  for _ in {1..90}; do
+    if navigation_completed; then
       break
     fi
-    if ! /bin/kill -0 "$APP_PID" >/dev/null 2>&1; then
+    if ! app_is_running; then
       break
     fi
     sleep 1
   done
-  sleep 2
+  sleep 5
 fi
 
 APP_SURVIVED=false
-if [[ "$APP_PID" =~ ^[1-9][0-9]*$ ]] && /bin/kill -0 "$APP_PID" >/dev/null 2>&1; then
+if app_is_running; then
   APP_SURVIVED=true
 fi
 run_with_timeout 60 xcrun simctl io "$UDID" screenshot "$PREFIX-navigation.png"
 kill "$SYSTEM_LOG_PID" >/dev/null 2>&1 || true
 wait "$SYSTEM_LOG_PID" >/dev/null 2>&1 || true
 SYSTEM_LOG_PID=
+sleep 2
+run_with_timeout 30 xcrun simctl spawn "$UDID" log show --style compact --info --debug \
+  --last 10m --predicate "$LOG_PREDICATE" > "$PREFIX-system.log" 2>&1
 
 mkdir -p "$PREFIX-crashes"
 : > "$PREFIX-crash-paths.log"
@@ -215,6 +238,7 @@ for line in lines:
         "failureCode": failure_names[failure_value],
         "reason": None if reason == "none" else reason,
     })
+events.sort(key=lambda event: event["monotonicTimestampNanoseconds"])
 
 requested = sorted({event["launchID"] for event in events if event["stage"] == "requested"})
 connected = sorted({event["launchID"] for event in events if event["stage"] == "ipcConnected"})
