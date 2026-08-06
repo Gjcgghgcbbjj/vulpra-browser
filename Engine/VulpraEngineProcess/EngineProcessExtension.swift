@@ -47,15 +47,6 @@ final class VulpraEngineProcessMain: NSObject, NSExtensionRequestHandling {
         connection.interruptionHandler = { Self.finish(identifier: identifier) }
         connection.invalidationHandler = { Self.finish(identifier: identifier) }
         connection.resume()
-        requests[identifier] = RequestOwner(
-            connection: connection,
-            context: context,
-            launchID: request.launchID,
-            childID: request.childID
-        )
-        // VULPRA: Signal the host before Gecko claims the libxpc connection so
-        // the bootstrap round trip is not serialized behind ChildProcessInit.
-        (connection.remoteObjectProxyWithErrorHandler { _ in } as? EngineBootstrapPing)?.ping()
         do {
             try VulpraEngineProcessHost.start(connection: connection)
         } catch {
@@ -65,6 +56,13 @@ final class VulpraEngineProcessMain: NSObject, NSExtensionRequestHandling {
         logger.notice(
             "Engine process connected launch=\(request.launchID) child=\(request.childID)"
         )
+        requests[identifier] = RequestOwner(
+            connection: connection,
+            context: context,
+            launchID: request.launchID,
+            childID: request.childID
+        )
+        (connection.remoteObjectProxyWithErrorHandler { _ in } as? EngineBootstrapPing)?.ping()
     }
 
     private static func finish(identifier: ObjectIdentifier) {
