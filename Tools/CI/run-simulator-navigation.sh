@@ -2,7 +2,7 @@
 set -euo pipefail
 
 usage() {
-  echo "usage: $0 --app PATH --runtime ID --device-type ID --attempt N --output DIR --url URL" >&2
+  echo "usage: $0 --app PATH --runtime ID --device-type ID --attempt N --output DIR --url URL [--navigation-seconds SECONDS]" >&2
   exit 64
 }
 
@@ -13,6 +13,7 @@ ATTEMPT=
 OUTPUT=
 URL=
 BUNDLE_ID=com.vulpra.browser
+NAVIGATION_SECONDS=180
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --app) APP=$2; shift 2 ;;
@@ -22,12 +23,13 @@ while [[ $# -gt 0 ]]; do
     --output) OUTPUT=$2; shift 2 ;;
     --url) URL=$2; shift 2 ;;
     --bundle-id) BUNDLE_ID=$2; shift 2 ;;
+    --navigation-seconds) NAVIGATION_SECONDS=$2; shift 2 ;;
     *) usage ;;
   esac
 done
 
 [[ -d "$APP" && -n "$RUNTIME" && -n "$DEVICE_TYPE" && "$ATTEMPT" =~ ^[1-9][0-9]*$ \
-  && -n "$OUTPUT" && "$URL" == http://* ]] || usage
+  && -n "$OUTPUT" && "$URL" == http://* && "$NAVIGATION_SECONDS" =~ ^[1-9][0-9]*$ ]] || usage
 mkdir -p "$OUTPUT"
 OUTPUT=$(CDPATH='' cd -- "$OUTPUT" && pwd)
 
@@ -97,7 +99,7 @@ printf '%s\n' "$LAUNCH_OUTPUT" > "$PREFIX-launch.log"
 APP_PID=${LAUNCH_OUTPUT##*: }
 
 if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
-  for _ in {1..90}; do
+  for ((_attempt = 1; _attempt <= NAVIGATION_SECONDS; _attempt++)); do
     if navigation_completed; then
       break
     fi
