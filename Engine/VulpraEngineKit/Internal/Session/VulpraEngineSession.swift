@@ -20,6 +20,8 @@ public final class VulpraEngineSession: EngineSession {
     private var readinessObservation: UUID?
     private var requestedWindowID: String?
     private var pendingCommands: [(type: String, message: [String: Any])] = []
+    private var pendingInitialLoadCommands: [(type: String, message: [String: Any])] = []
+    private var awaitingInitialPageStop = false
     private var stoppedByUser = false
     private var navigationFailureReported = false
     private var navigation = EngineNavigationEvent(
@@ -94,6 +96,9 @@ public final class VulpraEngineSession: EngineSession {
             }
             Self.logger.notice("Engine window opened")
             navigationObserver?.engineSessionDidOpen(id)
+            if !pendingInitialLoadCommands.isEmpty {
+                awaitingInitialPageStop = true
+            }
             flushPendingCommands()
         }
     }
@@ -103,6 +108,8 @@ public final class VulpraEngineSession: EngineSession {
         readinessObservation = nil
         requestedWindowID = nil
         pendingCommands.removeAll()
+        pendingInitialLoadCommands.removeAll()
+        awaitingInitialPageStop = false
         guard lifecycle.beginClose() else { return }
         guard let window else { lifecycle.finishClose(); return }
         self.window = nil
@@ -138,6 +145,10 @@ public final class VulpraEngineSession: EngineSession {
             Self.logger.error("Engine command rejected while session is closed: \(type, privacy: .public)")
             return
         }
+        if type == "GeckoView:LoadUri" {
+            pendingInitialLoadCommands.append((type, message))
+            return
+        }
         pendingCommands.append((type, message))
     }
 
@@ -153,6 +164,8 @@ public final class VulpraEngineSession: EngineSession {
         readinessObservation = nil
         requestedWindowID = nil
         pendingCommands.removeAll()
+        pendingInitialLoadCommands.removeAll()
+        awaitingInitialPageStop = false
         lifecycle.fail(failure)
         Self.logger.error("Engine session failed: \(failure.code, privacy: .public)")
         progressObserver?.engineSession(id, didUpdate: .failed(sessionID: id, failure: failure))
@@ -204,6 +217,12 @@ public final class VulpraEngineSession: EngineSession {
                 progressObserver?.engineSession(id, didUpdate: .completed(sessionID: id, succeeded: succeeded))
             } else if !navigationFailureReported { reportNavigationFailure(payload) }
             stoppedByUser = false
+            if awaitingInitialPageStop {
+                awaitingInitialPageStop = false
+                let initialLoads = pendingInitialLoadCommands
+                pendingInitialLoadCommands.removeAll()
+                for command in initialLoads { dispatch(command.type, command.message) }
+            }
         case "GeckoView:ProgressChanged":
             let value = (payload["progress"] as? NSNumber)?.doubleValue ?? 0
             progressObserver?.engineSession(id, didUpdate: .changed(sessionID: id, fraction: max(0, min(1, value / 100))))

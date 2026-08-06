@@ -113,13 +113,28 @@ APP_SURVIVED=false
 if app_is_running; then
   APP_SURVIVED=true
 fi
+set +e
 run_with_timeout 60 xcrun simctl io "$UDID" screenshot "$PREFIX-navigation.png"
+SCREENSHOT_STATUS=$?
+set -e
+printf 'screenshot_status=%s\n' "$SCREENSHOT_STATUS" >> "$PREFIX-device.log"
 kill "$SYSTEM_LOG_PID" >/dev/null 2>&1 || true
 wait "$SYSTEM_LOG_PID" >/dev/null 2>&1 || true
 SYSTEM_LOG_PID=
 sleep 2
+LOG_EVIDENCE="$PREFIX-system.log"
+set +e
 run_with_timeout 30 xcrun simctl spawn "$UDID" log show --style compact --info --debug \
   --last 10m --predicate "$LOG_PREDICATE" > "$PREFIX-system.log" 2>&1
+LOG_SHOW_STATUS=$?
+set -e
+printf 'log_show_status=%s\n' "$LOG_SHOW_STATUS" >> "$PREFIX-device.log"
+if [[ "$LOG_SHOW_STATUS" -ne 0 ]]; then
+  printf 'log_show_status=%s; stream_log_fallback=true\n' "$LOG_SHOW_STATUS" >> "$PREFIX-system.log"
+  if grep -q "Engine load requested" "$PREFIX-stream.log"; then
+    LOG_EVIDENCE="$PREFIX-stream.log"
+  fi
+fi
 
 mkdir -p "$PREFIX-crashes"
 : > "$PREFIX-crash-paths.log"
@@ -138,6 +153,7 @@ CRASH_COUNT=$(find "$PREFIX-crashes" -type f | wc -l | tr -d ' ')
 run_with_timeout 30 xcrun simctl terminate "$UDID" "$BUNDLE_ID" \
   > "$PREFIX-terminate.log" 2>&1 || true
 
+set +e
 swift - "$PREFIX-navigation.png" <<'SWIFT' > "$PREFIX-rendering.log"
 import CoreGraphics
 import Darwin
@@ -175,8 +191,13 @@ for y in (height / 4)..<(height * 3 / 4) {
 }
 print("rendered_dark_pixels=\(darkPixels)")
 SWIFT
+SWIFT_STATUS=$?
+set -e
+if [[ "$SWIFT_STATUS" -ne 0 ]]; then
+  printf 'rendered_dark_pixels=0\n' > "$PREFIX-rendering.log"
+fi
 
-python3 - "$ATTEMPT" "$URL" "$PREFIX-system.log" "$PREFIX-rendering.log" \
+python3 - "$ATTEMPT" "$URL" "$LOG_EVIDENCE" "$PREFIX-rendering.log" \
   "$APP_SURVIVED" "$CRASH_COUNT" "$PREFIX.json" <<'PY'
 from datetime import datetime
 import json
@@ -199,7 +220,9 @@ def find_event(marker, start=0):
 
 load = find_event(f"Engine load requested: {smoke_url}")
 location = find_event(f"Engine location: {smoke_url}", (load[0] + 1) if load else 0)
-complete = find_event("Engine page completed: true", (location[0] + 1) if location else 0)
+complete = None
+if location is not None:
+    complete = find_event("Engine page completed: true", location[0] + 1)
 load_to_complete = -1
 if load and complete:
     load_to_complete = round((complete[1] - load[1]).total_seconds() * 1000)
