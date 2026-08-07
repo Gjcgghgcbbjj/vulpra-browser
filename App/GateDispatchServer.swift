@@ -14,7 +14,7 @@ final class GateDispatchServer {
     private let logger = Logger(subsystem: "com.vulpra.browser", category: "gate")
     private let listener: NWListener
     private let onOpen: (URL) -> Void
-    private var connections = Set<NWConnection>()
+    private var connections: [ObjectIdentifier: NWConnection] = [:]
     private let queue = DispatchQueue(label: "com.vulpra.browser.gate.dispatch")
 
     init?(portText: String, onOpen: @escaping (URL) -> Void) {
@@ -54,7 +54,7 @@ final class GateDispatchServer {
         queue.async { [weak self] in
             guard let self else { return }
             self.listener.cancel()
-            for connection in self.connections {
+            for connection in self.connections.values {
                 connection.cancel()
             }
             self.connections.removeAll()
@@ -64,7 +64,7 @@ final class GateDispatchServer {
     private func accept(_ connection: NWConnection) {
         queue.async { [weak self] in
             guard let self else { return }
-            self.connections.insert(connection)
+            self.connections[ObjectIdentifier(connection)] = connection
             connection.stateUpdateHandler = { [weak self] state in
                 guard case .failed(let error) = state else { return }
                 self?.logger.error("Vulpra gate dispatch connection failed: \(error.localizedDescription, privacy: .public)")
@@ -156,7 +156,7 @@ final class GateDispatchServer {
 
     private func close(_ connection: NWConnection) {
         queue.async { [weak self] in
-            self?.connections.remove(connection)
+            self?.connections.removeValue(forKey: ObjectIdentifier(connection))
             connection.cancel()
         }
     }
