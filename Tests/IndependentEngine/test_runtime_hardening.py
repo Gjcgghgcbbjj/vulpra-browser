@@ -116,7 +116,7 @@ def main() -> None:
     require("Tools/CI/run-simulator-navigation.sh" in simulator_workflow and
             "Tools/CI/summarize-r0-engine-gate.py" in simulator_workflow and
             "r0_attempts:" in simulator_workflow and
-            "timeout-minutes: 240" in simulator_workflow,
+            "timeout-minutes: 420" in simulator_workflow,
             "workflow does not own the reusable repeated R0 gate")
     require('"loadToCompleteMs": load_to_complete' in simulator_harness and
             'max(0, load_to_complete)' not in simulator_harness,

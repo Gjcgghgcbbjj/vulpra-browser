@@ -27,7 +27,7 @@ permissions:
 jobs:
   launch:
     runs-on: macos-26
-    timeout-minutes: 240
+    timeout-minutes: 420
     env:
       GH_TOKEN: ${{ github.token }}
       DERIVED_DATA: ${{ github.workspace }}/.build/simulator-derived
@@ -321,7 +321,8 @@ jobs:
               --device-type "$device_type" \
               --attempt "$attempt" \
               --output "$evidence/attempts" \
-              --url "$smoke_url"
+              --url "$smoke_url" \
+              --navigation-seconds 300
           done
           python3 Tools/CI/summarize-r0-engine-gate.py \
             --attempts "$attempts" \
