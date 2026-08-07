@@ -199,9 +199,17 @@ jobs:
           }
           download_dir="$(mktemp -d)"
           gh run download "$run_id" -n vulpra-simulator-app -D "$download_dir"
-          test -d "$download_dir/Vulpra.app"
+          # upload-artifact stores the app bundle either as Vulpra.app/ (older
+          # layouts) or flattened into the artifact root; normalize both.
+          if [[ -d "$download_dir/Vulpra.app" ]]; then
+            app_stage="$download_dir/Vulpra.app"
+          else
+            app_stage="$download_dir"
+          fi
+          test -f "$app_stage/Info.plist"
+          test -f "$app_stage/Vulpra"
           mkdir -p "$DERIVED_DATA/Build/Products/Debug-iphonesimulator"
-          cp -a "$download_dir/Vulpra.app" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          cp -a "$app_stage" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
           echo "restored reusable Simulator App bundle from run $run_id"
 
       - name: Run native EngineKit tests
