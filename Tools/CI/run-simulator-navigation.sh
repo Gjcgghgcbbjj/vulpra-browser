@@ -17,6 +17,9 @@ NAVIGATION_SECONDS=180
 GATE_DISPATCH_PORT="${VULPRA_GATE_DISPATCH_PORT:-8766}"
 GATE_DISPATCH_URL="${VULPRA_GATE_DISPATCH_URL:-http://127.0.0.1:8766/open}"
 OPENURL_GRACE_SECONDS="${OPENURL_GRACE_SECONDS:-6}"
+SIMCTL_OPENURL_FIRST="${SIMCTL_OPENURL_FIRST:-1}"
+WARM_SETTLE_SECONDS="${WARM_SETTLE_SECONDS:-30}"
+QUIESCE_IDLE_SECONDS="${QUIESCE_IDLE_SECONDS:-8}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --app) APP=$2; shift 2 ;;
@@ -113,6 +116,58 @@ app_is_running() {
   [[ "$APP_PID" =~ ^[1-9][0-9]*$ ]] && /bin/kill -0 "$APP_PID" >/dev/null 2>&1
 }
 
+gate_http_dispatch() {
+  DELIVERY_METHOD=gate-http-dispatch
+  printf 'gate_http_dispatch=true\ndispatch_deep_link=%s\n' "$DEEP_LINK" >> "$PREFIX-device.log"
+  set +e
+  run_with_timeout 30 curl --fail --silent --show-error \
+    -H 'Content-Type: application/json' \
+    --data "{\"deepLink\": \"$DEEP_LINK\"}" \
+    "$GATE_DISPATCH_URL" >> "$PREFIX-device.log" 2>&1
+  DISPATCH_STATUS=$?
+  set -e
+  printf 'gate_dispatch_status=%s\n' "$DISPATCH_STATUS" >> "$PREFIX-device.log"
+  if [[ "$DISPATCH_STATUS" -ne 0 ]]; then
+    for _retry in {1..10}; do
+      sleep 1
+      set +e
+      run_with_timeout 5 curl --fail --silent --show-error \
+        -H 'Content-Type: application/json' \
+        --data "{\"deepLink\": \"$DEEP_LINK\"}" \
+        "$GATE_DISPATCH_URL" >> "$PREFIX-device.log" 2>&1
+      DISPATCH_STATUS=$?
+      set -e
+      if [[ "$DISPATCH_STATUS" -eq 0 ]]; then
+        break
+      fi
+    done
+  fi
+  printf 'gate_dispatch_status_final=%s\n' "$DISPATCH_STATUS" >> "$PREFIX-device.log"
+}
+
+wait_for_engine_settle() {
+  printf 'warm_settle_start=true\n' >> "$PREFIX-device.log"
+  local started quiet baseline count
+  started=$(date +%s)
+  baseline=$(grep -c '\[com.vulpra.browser.engine-kit:child-lifecycle\]' "$PREFIX-stream.log" 2>/dev/null || true)
+  quiet=$started
+  for ((_attempt = 1; _attempt <= WARM_SETTLE_SECONDS; _attempt++)); do
+    count=$(grep -c '\[com.vulpra.browser.engine-kit:child-lifecycle\]' "$PREFIX-stream.log" 2>/dev/null || true)
+    if [[ "$count" -eq "$baseline" ]]; then
+      if (( $(date +%s) - quiet >= QUIESCE_IDLE_SECONDS )); then
+        break
+      fi
+    else
+      baseline=$count
+      quiet=$(date +%s)
+    fi
+    sleep 1
+  done
+  printf 'warm_settle_waited_seconds=%s\nquiesce_idle_seconds=%s\n' \
+    "$(( $(date +%s) - started ))" "$QUIESCE_IDLE_SECONDS" >> "$PREFIX-device.log"
+}
+
+
 set +e
 LAUNCH_OUTPUT=$(SIMCTL_CHILD_VULPRA_SMOKE_URL="$WARM_URL" \
   SIMCTL_CHILD_VULPRA_GATE_DISPATCH_PORT="$GATE_DISPATCH_PORT" \
@@ -135,50 +190,33 @@ if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
 
   DELIVERY_METHOD=simctl-openurl
   if app_is_running; then
-    set +e
-    run_with_timeout 60 xcrun simctl openurl "$UDID" "$DEEP_LINK" >> "$PREFIX-device.log" 2>&1
-    OPENURL_STATUS=$?
-    set -e
-    printf 'openurl_status=%s\n' "$OPENURL_STATUS" >> "$PREFIX-device.log"
-    for ((_attempt = 1; _attempt <= OPENURL_GRACE_SECONDS; _attempt++)); do
-      if navigation_completed "$URL"; then
-        break
-      fi
-      if ! app_is_running; then
-        break
-      fi
-      sleep 1
-    done
-    if ! navigation_completed "$URL" && app_is_running; then
-      DELIVERY_METHOD=gate-http-dispatch
-      printf 'gate_http_dispatch=true\ndispatch_deep_link=%s\n' "$DEEP_LINK" >> "$PREFIX-device.log"
-      if grep -Fq 'SBUserNotificationAlert' "$PREFIX-stream.log" 2>/dev/null; then
-        printf 'openurl_blocked_by_system_prompt=true\n' >> "$PREFIX-device.log"
-      fi
+    if navigation_completed "$WARM_URL"; then
+      wait_for_engine_settle
+    fi
+    if [[ "$SIMCTL_OPENURL_FIRST" != "1" ]]; then
+      printf 'openurl_status=skipped\nopenurl_blocked_by_system_prompt=skipped-ios26\n' >> "$PREFIX-device.log"
+      gate_http_dispatch
+    else
       set +e
-      run_with_timeout 30 curl --fail --silent --show-error \
-        -H 'Content-Type: application/json' \
-        --data "{\"deepLink\": \"$DEEP_LINK\"}" \
-        "$GATE_DISPATCH_URL" >> "$PREFIX-device.log" 2>&1
-      DISPATCH_STATUS=$?
+      run_with_timeout 60 xcrun simctl openurl "$UDID" "$DEEP_LINK" >> "$PREFIX-device.log" 2>&1
+      OPENURL_STATUS=$?
       set -e
-      printf 'gate_dispatch_status=%s\n' "$DISPATCH_STATUS" >> "$PREFIX-device.log"
-      if [[ "$DISPATCH_STATUS" -ne 0 ]]; then
-        for _retry in {1..10}; do
-          sleep 1
-          set +e
-          run_with_timeout 5 curl --fail --silent --show-error \
-            -H 'Content-Type: application/json' \
-            --data "{\"deepLink\": \"$DEEP_LINK\"}" \
-            "$GATE_DISPATCH_URL" >> "$PREFIX-device.log" 2>&1
-          DISPATCH_STATUS=$?
-          set -e
-          if [[ "$DISPATCH_STATUS" -eq 0 ]]; then
-            break
-          fi
-        done
+      printf 'openurl_status=%s\n' "$OPENURL_STATUS" >> "$PREFIX-device.log"
+      for ((_attempt = 1; _attempt <= OPENURL_GRACE_SECONDS; _attempt++)); do
+        if navigation_completed "$URL"; then
+          break
+        fi
+        if ! app_is_running; then
+          break
+        fi
+        sleep 1
+      done
+      if ! navigation_completed "$URL" && app_is_running; then
+        if grep -Fq 'SBUserNotificationAlert' "$PREFIX-stream.log" 2>/dev/null; then
+          printf 'openurl_blocked_by_system_prompt=true\n' >> "$PREFIX-device.log"
+        fi
+        gate_http_dispatch
       fi
-      printf 'gate_dispatch_status_final=%s\n' "$DISPATCH_STATUS" >> "$PREFIX-device.log"
     fi
     for ((_attempt = 1; _attempt <= NAVIGATION_SECONDS; _attempt++)); do
       if navigation_completed "$URL"; then

@@ -338,6 +338,12 @@ jobs:
           preferred = [item for item in values if "Pro" in item["name"]]
           print((preferred or values)[-1]["identifier"])
           ')"
+          # iOS 26.4 headless Simulator always blocks `simctl openurl` behind an
+          # untappable SpringBoard "Open in Vulpra?" prompt (defaults write does not
+          # disable it). Route the measured deep link through the debug loopback
+          # GateDispatchServer directly, after the warm-up engine has settled.
+          export SIMCTL_OPENURL_FIRST=0
+          export WARM_SETTLE_SECONDS=${WARM_SETTLE_SECONDS:-45}
           evidence='.build/r0-engine-gate'
           rm -rf "$evidence"
           mkdir -p "$evidence/attempts"
