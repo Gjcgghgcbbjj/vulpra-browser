@@ -20,6 +20,11 @@ on:
         required: true
         default: 1
         type: number
+      app_bundle_run_id:
+        description: Reuse Vulpra.app built by a prior green simulator run at the same commit instead of rebuilding
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -116,6 +121,7 @@ jobs:
             | tee simulator-engine-verification.log
 
       - name: Build Vulpra for Simulator
+        if: ${{ inputs.app_bundle_run_id == '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -178,7 +184,28 @@ jobs:
               raise SystemExit('simulator App binaries do not contain the UI fingerprint')
           PY
 
+      - name: Restore reusable Simulator App bundle
+        if: ${{ inputs.app_bundle_run_id != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id='${{ inputs.app_bundle_run_id }}'
+          [[ "$run_id" =~ ^[0-9]+$ ]] || { echo "app_bundle_run_id must be a numeric run id" >&2; exit 1; }
+          actual_sha="$(gh run view "$run_id" --json headSha --jq .headSha)"
+          current_sha="$(git rev-parse HEAD)"
+          [[ "$actual_sha" == "$current_sha" ]] || {
+            echo "reusable App bundle is from commit $actual_sha, not current $current_sha" >&2
+            exit 1
+          }
+          download_dir="$(mktemp -d)"
+          gh run download "$run_id" -n vulpra-simulator-app -D "$download_dir"
+          test -d "$download_dir/Vulpra.app"
+          mkdir -p "$DERIVED_DATA/Build/Products/Debug-iphonesimulator"
+          cp -a "$download_dir/Vulpra.app" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          echo "restored reusable Simulator App bundle from run $run_id"
+
       - name: Run native EngineKit tests
+        if: ${{ inputs.app_bundle_run_id == '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -329,6 +356,14 @@ jobs:
             --input "$evidence/attempts" \
             --output "$evidence/summary.json" \
             | tee simulator-r0-summary.log
+
+      - name: Upload reusable Simulator App bundle
+        if: ${{ inputs.app_bundle_run_id == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-simulator-app
+          path: ${{ github.workspace }}/.build/simulator-derived/Build/Products/Debug-iphonesimulator/Vulpra.app
+          retention-days: 14
 
       - name: Upload R0 engine gate
         if: always()
