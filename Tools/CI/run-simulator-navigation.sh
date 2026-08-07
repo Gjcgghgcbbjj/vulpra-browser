@@ -30,6 +30,7 @@ done
 
 [[ -d "$APP" && -n "$RUNTIME" && -n "$DEVICE_TYPE" && "$ATTEMPT" =~ ^[1-9][0-9]*$ \
   && -n "$OUTPUT" && "$URL" == http://* && "$NAVIGATION_SECONDS" =~ ^[1-9][0-9]*$ ]] || usage
+WARM_URL="${URL}?vulpra-warm=1"
 mkdir -p "$OUTPUT"
 OUTPUT=$(CDPATH='' cd -- "$OUTPUT" && pwd)
 
@@ -70,13 +71,29 @@ SYSTEM_LOG_PID=$!
 sleep 2
 
 navigation_completed() {
-  python3 - "$PREFIX-stream.log" "$URL" <<'PY'
+  python3 - "$PREFIX-stream.log" "${1:-$URL}" <<'PY'
+from pathlib import Path
+import sys
+
+lines = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
+locations = [index for index, line in enumerate(lines)
+             if f"Engine location: {sys.argv[2]}" in line]
+location = locations[-1] if locations else None
+complete = location is not None and any(
+    "Engine page completed: true" in line for line in lines[location + 1:]
+)
+raise SystemExit(0 if complete else 1)
+PY
+}
+
+engine_ready() {
+  python3 - "$PREFIX-stream.log" <<'PY'
 from pathlib import Path
 import sys
 
 lines = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
 location = next((index for index, line in enumerate(lines)
-                 if f"Engine location: {sys.argv[2]}" in line), None)
+                 if "Engine location: about:blank" in line), None)
 complete = location is not None and any(
     "Engine page completed: true" in line for line in lines[location + 1:]
 )
@@ -89,8 +106,7 @@ app_is_running() {
 }
 
 set +e
-LAUNCH_OUTPUT=$(SIMCTL_CHILD_VULPRA_SMOKE_URL="$URL" \
-  run_with_timeout 180 xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1)
+LAUNCH_OUTPUT=$(run_with_timeout 180 xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1)
 LAUNCH_STATUS=$?
 set -e
 printf '%s\n' "$LAUNCH_OUTPUT" > "$PREFIX-launch.log"
@@ -98,7 +114,7 @@ APP_PID=${LAUNCH_OUTPUT##*: }
 
 if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
   for ((_attempt = 1; _attempt <= NAVIGATION_SECONDS; _attempt++)); do
-    if navigation_completed; then
+    if engine_ready; then
       break
     fi
     if ! app_is_running; then
@@ -106,6 +122,41 @@ if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
     fi
     sleep 1
   done
+
+  if app_is_running; then
+    set +e
+    run_with_timeout 60 xcrun simctl openurl "$UDID" "$WARM_URL" >> "$PREFIX-device.log" 2>&1
+    OPENURL_STATUS=$?
+    set -e
+    printf 'openurl_status=%s\n' "$OPENURL_STATUS" >> "$PREFIX-device.log"
+    for ((_attempt = 1; _attempt <= NAVIGATION_SECONDS; _attempt++)); do
+      if navigation_completed "$WARM_URL"; then
+        break
+      fi
+      if ! app_is_running; then
+        break
+      fi
+      sleep 1
+    done
+  fi
+
+  if app_is_running; then
+    set +e
+    run_with_timeout 60 xcrun simctl openurl "$UDID" "$URL" >> "$PREFIX-device.log" 2>&1
+    OPENURL_STATUS=$?
+    set -e
+    printf 'openurl_status=%s\n' "$OPENURL_STATUS" >> "$PREFIX-device.log"
+    for ((_attempt = 1; _attempt <= NAVIGATION_SECONDS; _attempt++)); do
+      if navigation_completed "$URL"; then
+        break
+      fi
+      if ! app_is_running; then
+        break
+      fi
+      sleep 1
+    done
+  fi
+
   sleep 5
 fi
 
@@ -218,8 +269,25 @@ def find_event(marker, start=0):
             return index, datetime.fromisoformat(match.group(1))
     return None
 
-load = find_event(f"Engine load requested: {smoke_url}")
-location = find_event(f"Engine location: {smoke_url}", (load[0] + 1) if load else 0)
+def find_events(marker):
+    events = []
+    for index, line in enumerate(lines):
+        if marker not in line:
+            continue
+        match = timestamp.match(line)
+        if match:
+            events.append((index, datetime.fromisoformat(match.group(1))))
+    return events
+
+load_events = find_events(f"Engine load requested: {smoke_url}")
+location_events = find_events(f"Engine location: {smoke_url}")
+load = load_events[-1] if load_events else None
+location = None
+if load is not None:
+    for index, at in location_events:
+        if index > load[0]:
+            location = (index, at)
+            break
 complete = None
 if location is not None:
     complete = find_event("Engine page completed: true", location[0] + 1)

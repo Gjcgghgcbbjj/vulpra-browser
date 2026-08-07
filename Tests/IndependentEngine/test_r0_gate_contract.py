@@ -84,30 +84,39 @@ if [ "$1" = simctl ] && [ "$2" = create ]; then
   echo fixture-udid
 elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" = stream ]; then
   cat <<'LOG'
-2026-07-30 12:00:00.000 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:00.000 Engine load requested: http://127.0.0.1:8765/?vulpra-warm=1
 2026-07-30 12:00:00.010 launch=1 child=1 type=content pid=0 stage=1 monotonic_ns=1000000000 failure=0 reason=none
 2026-07-30 12:00:00.500 Engine location: about:blank
 2026-07-30 12:00:00.510 Engine page completed: true
-2026-07-30 12:00:01.000 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:01.000 Engine location: http://127.0.0.1:8765/?vulpra-warm=1
 2026-07-30 12:00:02.000 Engine page completed: true
+2026-07-30 12:00:02.500 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:03.000 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:04.000 Engine page completed: true
 LOG
 elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" = show ]; then
   cat <<'LOG'
-2026-07-30 12:00:00.000 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:00.000 Engine load requested: http://127.0.0.1:8765/?vulpra-warm=1
 2026-07-30 12:00:00.010 launch=1 child=1 type=content pid=0 stage=1 monotonic_ns=1000000000 failure=0 reason=none
 2026-07-30 12:00:00.020 launch=1 child=1 type=content pid=0 stage=2 monotonic_ns=1002000000 failure=0 reason=none
 2026-07-30 12:00:00.030 launch=1 child=1 type=content pid=321 stage=3 monotonic_ns=1003000000 failure=0 reason=none
 2026-07-30 12:00:00.040 launch=1 child=1 type=content pid=321 stage=4 monotonic_ns=1005000000 failure=0 reason=none
 2026-07-30 12:00:00.500 Engine location: about:blank
 2026-07-30 12:00:00.510 Engine page completed: true
-2026-07-30 12:00:01.000 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:01.000 Engine location: http://127.0.0.1:8765/?vulpra-warm=1
 2026-07-30 12:00:02.000 Engine page completed: true
+2026-07-30 12:00:02.500 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:03.000 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:04.000 Engine page completed: true
 LOG
 elif [ "$1" = simctl ] && [ "$2" = launch ]; then
   /bin/sleep 300 >/dev/null 2>&1 &
   pid=$!
   printf '%s\n' "$pid" > "$VULPRA_FAKE_APP_PID"
   echo "com.vulpra.browser: $pid"
+elif [ "$1" = simctl ] && [ "$2" = openurl ]; then
+  printf 'openurl:%s\n' "$5" >> "$VULPRA_FAKE_SIMCTL_LOG"
+  :
 elif [ "$1" = simctl ] && [ "$2" = io ]; then
   for value in "$@"; do output=$value; done
   printf 'fixture-png' > "$output"
@@ -137,12 +146,12 @@ fi
     evidence = json.loads((output / "attempt-01.json").read_text(encoding="utf-8"))
     require(evidence["locationMatched"] and evidence["pageCompleted"] and
             evidence["appSurvived"] and evidence["connectedLaunchIDs"] == [1] and
-            evidence["loadToCompleteMs"] == 2000,
+            evidence["loadToCompleteMs"] == 1500,
             "Simulator harness lost functional, lifecycle, or timing evidence")
     log = operations.read_text(encoding="utf-8")
     for command in (
-        "simctl create", "simctl spawn fixture-udid log show", "simctl terminate",
-        "simctl shutdown", "simctl delete",
+        "simctl create", "simctl openurl", "simctl spawn fixture-udid log show",
+        "simctl terminate", "simctl shutdown", "simctl delete",
     ):
         require(command in log, f"Simulator harness did not execute {command}")
     result = run(output, count=1)

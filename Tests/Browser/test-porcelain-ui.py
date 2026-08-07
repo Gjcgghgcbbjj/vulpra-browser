@@ -124,7 +124,8 @@ def main() -> None:
         require(token in workflow, f"simulator workflow is missing {token}")
     for token in (
         "AppleLanguages -array zh-Hans",
-        'SIMCTL_CHILD_VULPRA_SMOKE_URL="$URL"',
+        'openurl "$UDID" "$WARM_URL"',
+        'openurl "$UDID" "$URL"',
         'simctl create "Vulpra-R0-',
         'simctl install "$UDID" "$APP"',
         'simctl io "$UDID" screenshot "$PREFIX-navigation.png"',
