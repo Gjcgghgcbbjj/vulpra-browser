@@ -177,6 +177,14 @@ def expect_failure(base: Path, name: str, values: list[dict[str, object]], token
 def main() -> None:
     require(SUMMARIZER.is_file(), "missing Tools/CI/summarize-r0-engine-gate.py")
     require(HARNESS.is_file(), "missing Tools/CI/run-simulator-navigation.sh")
+    harness_text = HARNESS.read_text(encoding="utf-8")
+    for token in (
+        "defaults write com.apple.iphonesimulator ConfirmOpenURLInSimulator",
+        "gate-http-dispatch",
+        "VULPRA_GATE_DISPATCH_PORT",
+        'openurl "$UDID" "$DEEP_LINK"',
+    ):
+        require(token in harness_text, f"R0 harness is missing {token}")
     with tempfile.TemporaryDirectory(prefix="vulpra-r0-gate-") as temporary:
         base = Path(temporary)
         test_harness(base)

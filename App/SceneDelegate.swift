@@ -6,6 +6,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private let logger = Logger(subsystem: "com.vulpra.browser", category: "build")
     var window: UIWindow?
     private var browser: BrowserViewController?
+#if DEBUG
+    private var gateDispatchServer: GateDispatchServer?
+#endif
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
@@ -28,6 +31,15 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         self.browser = browser
         self.window = window
         window.makeKeyAndVisible()
+#if DEBUG
+        if let port = ProcessInfo.processInfo.environment["VULPRA_GATE_DISPATCH_PORT"],
+           let server = GateDispatchServer(portText: port, onOpen: { [weak self] url in
+               self?.browser?.open(url)
+           }) {
+            gateDispatchServer = server
+            server.start()
+        }
+#endif
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
@@ -40,6 +52,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidEnterBackground(_ scene: UIScene) { browser?.setActive(false) }
     func sceneDidDisconnect(_ scene: UIScene) {
         browser?.shutdown()
+#if DEBUG
+        gateDispatchServer?.stop()
+        gateDispatchServer = nil
+#endif
         browser = nil
         window = nil
     }
