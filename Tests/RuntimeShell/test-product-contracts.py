@@ -76,6 +76,8 @@ def main() -> None:
             "simulator navigation evidence input must remain Debug-only")
     require('VULPRA_GATE_DISPATCH_PORT' in scene and 'GateDispatchServer(' in scene,
             "simulator gate dispatch hook must be wired in SceneDelegate")
+    require(scene.count("RuntimeURLRouter.resolve") >= 2,
+            "gate dispatch and URL contexts must both normalize through RuntimeURLRouter")
     gate = (ROOT / "App/GateDispatchServer.swift").read_text(encoding="utf-8")
     require(gate.lstrip().startswith("#if DEBUG") and "#endif" in gate,
             "gate dispatch server must remain Debug-only")

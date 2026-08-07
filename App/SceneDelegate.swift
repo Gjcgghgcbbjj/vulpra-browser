@@ -34,7 +34,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 #if DEBUG
         if let port = ProcessInfo.processInfo.environment["VULPRA_GATE_DISPATCH_PORT"],
            let server = GateDispatchServer(portText: port, onOpen: { [weak self] url in
-               self?.browser?.open(url)
+               // Mirror scene openURLContexts: normalize the deep link back to the
+               // target web URL before handing it to the browser/engine.
+               guard let resolved = RuntimeURLRouter.resolve(url) else { return }
+               self?.browser?.open(resolved)
            }) {
             gateDispatchServer = server
             server.start()
