@@ -14,6 +14,7 @@ ATTEMPT_KEYS = {
     "attempt", "locationMatched", "pageCompleted", "renderedDarkPixels",
     "loadToCompleteMs", "appSurvived", "crashCount", "lifecycleEvents",
     "requestedLaunchIDs", "connectedLaunchIDs", "failedLaunchIDs", "openLaunchIDs",
+    "deliveryMethod", "warmSettleSeconds", "gateDispatchStatus", "openurlStatus",
 }
 EVENT_KEYS = {
     "launchID", "childID", "processType", "pid", "stage",
@@ -173,6 +174,17 @@ def validate_attempt(value: object) -> dict[str, object]:
     integer(value["loadToCompleteMs"], f"attempt {attempt} loadToCompleteMs")
     if integer(value["crashCount"], f"attempt {attempt} crashCount") != 0:
         fail(f"attempt {attempt} contains a crash")
+    delivery = value["deliveryMethod"]
+    if not isinstance(delivery, str) or delivery not in {"gate-http-dispatch", "simctl-openurl"}:
+        fail(f"attempt {attempt} deliveryMethod is invalid")
+    if delivery != "gate-http-dispatch":
+        fail(f"attempt {attempt} deliveryMethod must be gate-http-dispatch")
+    if not isinstance(value["openurlStatus"], str) or not value["openurlStatus"]:
+        fail(f"attempt {attempt} openurlStatus is invalid")
+    integer(value["warmSettleSeconds"], f"attempt {attempt} warmSettleSeconds")
+    gate_status = integer(value["gateDispatchStatus"], f"attempt {attempt} gateDispatchStatus", -1)
+    if gate_status != 0:
+        fail(f"attempt {attempt} gate dispatch did not succeed: status {gate_status}")
     derived = validate_lifecycle(value["lifecycleEvents"])
     labels = ("requestedLaunchIDs", "connectedLaunchIDs", "failedLaunchIDs", "openLaunchIDs")
     stored_connected = id_array(value["connectedLaunchIDs"], f"attempt {attempt} connectedLaunchIDs")

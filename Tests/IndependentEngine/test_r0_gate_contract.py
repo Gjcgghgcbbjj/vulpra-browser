@@ -54,6 +54,10 @@ def valid_attempt(identifier: int, duration: int = 12000) -> dict[str, object]:
         "connectedLaunchIDs": [1],
         "failedLaunchIDs": [],
         "openLaunchIDs": [],
+        "deliveryMethod": "gate-http-dispatch",
+        "warmSettleSeconds": 0,
+        "gateDispatchStatus": 0,
+        "openurlStatus": "skipped",
     }
 
 
@@ -75,8 +79,10 @@ def test_harness(base: Path) -> None:
     fake_bin = base / "fake-bin"
     operations = base / "simctl-operations.log"
     app_pid = base / "app.pid"
+    curl_log = base / "curl-operations.log"
     write_executable(fake_bin / "sleep", "#!/bin/sh\n/bin/sleep 0.05\n")
     write_executable(fake_bin / "swift", "#!/bin/sh\necho rendered_dark_pixels=12266\n")
+    write_executable(fake_bin / "curl", '#!/bin/sh\nprintf "%s\\n" "$*" >> "$VULPRA_FAKE_CURL_LOG"\nexit 0\n')
     write_executable(fake_bin / "xcrun", r'''#!/bin/sh
 set -eu
 printf '%s\n' "$*" >> "$VULPRA_FAKE_SIMCTL_LOG"
@@ -135,6 +141,8 @@ fi
         "HOME": str(base / "home"),
         "VULPRA_FAKE_SIMCTL_LOG": str(operations),
         "VULPRA_FAKE_APP_PID": str(app_pid),
+        "VULPRA_FAKE_CURL_LOG": str(curl_log),
+        "SIMCTL_OPENURL_FIRST": "0",
     })
     result = subprocess.run([
         str(HARNESS), "--app", str(app),
@@ -148,13 +156,22 @@ fi
             evidence["appSurvived"] and evidence["connectedLaunchIDs"] == [1] and
             evidence["loadToCompleteMs"] == 1500,
             "Simulator harness lost functional, lifecycle, or timing evidence")
+    require(evidence["deliveryMethod"] == "gate-http-dispatch",
+            "Simulator harness evidence did not route through loopback gate dispatch")
+    require(evidence["gateDispatchStatus"] == 0 and evidence["warmSettleSeconds"] >= 0 and
+            evidence["openurlStatus"] == "skipped",
+            "Simulator harness evidence lost settle/delivery audit fields")
+    curl_log_text = curl_log.read_text(encoding="utf-8")
+    require("vulpra://open?url=http%3A%2F%2F127.0.0.1%3A8765%2F" in curl_log_text,
+            "Simulator harness did not send the measured deep link through the loopback gate dispatch")
     log = operations.read_text(encoding="utf-8")
     for command in (
-        "simctl create", "simctl openurl", "simctl spawn fixture-udid log show",
+        "simctl create", "simctl spawn fixture-udid log show",
         "simctl terminate", "simctl shutdown", "simctl delete",
-        "vulpra://open?url=http%3A%2F%2F127.0.0.1%3A8765%2F",
     ):
-        require(command in log, f"Simulator harness did not execute/route {command}")
+        require(command in log, f"Simulator harness did not execute {command}")
+    require("simctl openurl" not in log,
+            "Simulator harness should skip the blocked openurl path in CI mode")
     result = run(output, count=1)
     require(result.returncode == 0, result.stderr or result.stdout)
 
@@ -219,6 +236,8 @@ def main() -> None:
             ("stored-mismatch", lambda value: value.update(connectedLaunchIDs=[]), "stored/derived"),
             ("open-launch", lambda value: (value.update(lifecycleEvents=value["lifecycleEvents"][:2], connectedLaunchIDs=[], openLaunchIDs=[1])), "open child launches"),
             ("both-outcomes", lambda value: value.update(failedLaunchIDs=[1]), "both outcome sets"),
+            ("wrong-delivery", lambda value: value.update(deliveryMethod="simctl-openurl"), "deliveryMethod"),
+            ("gate-failed", lambda value: value.update(gateDispatchStatus=7), "gate dispatch did not succeed"),
         )
         for name, mutate, token in mutations:
             values = copy.deepcopy(valid)

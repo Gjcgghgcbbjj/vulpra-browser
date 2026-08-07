@@ -322,15 +322,29 @@ if [[ "$SWIFT_STATUS" -ne 0 ]]; then
 fi
 
 python3 - "$ATTEMPT" "$URL" "$LOG_EVIDENCE" "$PREFIX-rendering.log" \
-  "$APP_SURVIVED" "$CRASH_COUNT" "$PREFIX.json" <<'PY'
+  "$APP_SURVIVED" "$CRASH_COUNT" "$PREFIX.json" "$PREFIX-device.log" <<'PY'
 from datetime import datetime
 import json
 from pathlib import Path
 import re
 import sys
 
-attempt, smoke_url, log_path, rendering_path, survived, crash_count, output = sys.argv[1:]
+attempt, smoke_url, log_path, rendering_path, survived, crash_count, output, device_log_path = sys.argv[1:]
 lines = Path(log_path).read_text(encoding="utf-8", errors="replace").splitlines()
+
+def int_metric(raw):
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return -1
+
+
+def metric(name):
+    for line in Path(device_log_path).read_text(encoding="utf-8", errors="replace").splitlines():
+        if line.startswith(name + "="):
+            return line[len(name) + 1:].strip()
+    return None
+
 timestamp = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})")
 
 def find_event(marker, start=0):
@@ -428,6 +442,10 @@ value = {
     "connectedLaunchIDs": connected,
     "failedLaunchIDs": failed,
     "openLaunchIDs": open_ids,
+    "deliveryMethod": metric("DELIVERY_METHOD"),
+    "warmSettleSeconds": int_metric(metric("warm_settle_waited_seconds")),
+    "gateDispatchStatus": int_metric(metric("gate_dispatch_status_final")),
+    "openurlStatus": metric("openurl_status") or "unavailable",
 }
 Path(output).write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
 PY
