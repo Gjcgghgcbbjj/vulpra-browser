@@ -356,6 +356,8 @@ jobs:
           rm -rf "$evidence"
           mkdir -p "$evidence/attempts"
           for attempt in $(seq 1 "$attempts"); do
+            printf 'gate attempt %s/%s starting at %s\n' \
+              "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
             Tools/CI/run-simulator-navigation.sh \
               --app "$app" \
               --runtime "$runtime" \
@@ -364,6 +366,8 @@ jobs:
               --output "$evidence/attempts" \
               --url "$smoke_url" \
               --navigation-seconds 300
+            printf 'gate attempt %s/%s finished at %s\n' \
+              "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
           done
           python3 Tools/CI/summarize-r0-engine-gate.py \
             --attempts "$attempts" \

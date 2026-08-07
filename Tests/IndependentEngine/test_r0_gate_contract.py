@@ -58,6 +58,10 @@ def valid_attempt(identifier: int, duration: int = 12000) -> dict[str, object]:
         "warmSettleSeconds": 0,
         "gateDispatchStatus": 0,
         "openurlStatus": "skipped",
+        "launchStatus": 0,
+        "launchAttempts": 1,
+        "logShowStatus": 0,
+        "logEvidenceSource": "merged-system+stream",
     }
 
 
@@ -120,6 +124,8 @@ elif [ "$1" = simctl ] && [ "$2" = launch ]; then
   pid=$!
   printf '%s\n' "$pid" > "$VULPRA_FAKE_APP_PID"
   echo "com.vulpra.browser: $pid"
+elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = launchctl ]; then
+  printf '%s\t0\t%s\n' "$(cat "$VULPRA_FAKE_APP_PID")" "com.vulpra.browser"
 elif [ "$1" = simctl ] && [ "$2" = openurl ]; then
   printf 'openurl:%s\n' "$5" >> "$VULPRA_FAKE_SIMCTL_LOG"
   :
@@ -200,6 +206,9 @@ def main() -> None:
         "gate-http-dispatch",
         "VULPRA_GATE_DISPATCH_PORT",
         'openurl "$UDID" "$DEEP_LINK"',
+        "launch_status=",
+        "log_evidence_source=merged-system+stream",
+        "monotonic_ns",
     ):
         require(token in harness_text, f"R0 harness is missing {token}")
     with tempfile.TemporaryDirectory(prefix="vulpra-r0-gate-") as temporary:

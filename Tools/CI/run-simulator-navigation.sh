@@ -51,6 +51,7 @@ deep_link() {
 DEEP_LINK=$(deep_link "$URL")
 mkdir -p "$OUTPUT"
 OUTPUT=$(CDPATH='' cd -- "$OUTPUT" && pwd)
+ATTEMPT_START_ISO=$(date '+%Y-%m-%d %H:%M:%S')
 
 UDID=
 SYSTEM_LOG_PID=
@@ -68,6 +69,7 @@ cleanup() {
 trap cleanup EXIT
 
 PREFIX="$OUTPUT/attempt-$(printf '%02d' "$ATTEMPT")"
+printf 'attempt_start=%s\n' "$ATTEMPT_START_ISO" >> "$PREFIX-device.log"
 UDID=$(xcrun simctl create "Vulpra-R0-${GITHUB_RUN_ID:-local}-$ATTEMPT" "$DEVICE_TYPE" "$RUNTIME")
 printf 'attempt=%s\nruntime=%s\ndevice_type=%s\nudid=%s\n' \
   "$ATTEMPT" "$RUNTIME" "$DEVICE_TYPE" "$UDID" > "$PREFIX-device.log"
@@ -86,7 +88,10 @@ run_with_timeout 300 xcrun simctl install "$UDID" "$APP"
 xcrun simctl spawn "$UDID" log stream --style compact --info --debug \
   --predicate "$LOG_PREDICATE" > "$PREFIX-stream.log" 2>&1 &
 SYSTEM_LOG_PID=$!
-sleep 2
+# Give the simulator log stream time to attach to logd before the first
+# engine launch; a too-early launch can race the stream attach and drop the
+# initial "requested" lifecycle event (unified log still retains it).
+sleep 5
 
 navigation_completed() {
   python3 - "$PREFIX-stream.log" "${1:-$URL}" <<'PY'
@@ -168,14 +173,44 @@ wait_for_engine_settle() {
 }
 
 
+resolve_app_pid() {
+  local candidate
+  candidate=$(run_with_timeout 30 xcrun simctl spawn "$UDID" launchctl list 2>/dev/null \
+    | awk -v bundle="$BUNDLE_ID" '$3 == bundle { print $1; exit }')
+  if [[ "$candidate" =~ ^[1-9][0-9]*$ ]]; then
+    APP_PID=$candidate
+    return 0
+  fi
+  return 1
+}
+
+LAUNCH_STATUS=1
+LAUNCH_ATTEMPTS=0
+APP_PID=
 set +e
-LAUNCH_OUTPUT=$(SIMCTL_CHILD_VULPRA_SMOKE_URL="$WARM_URL" \
-  SIMCTL_CHILD_VULPRA_GATE_DISPATCH_PORT="$GATE_DISPATCH_PORT" \
-  run_with_timeout 180 xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1)
-LAUNCH_STATUS=$?
+for _launch_attempt in 1 2; do
+  LAUNCH_ATTEMPTS=$_launch_attempt
+  LAUNCH_OUTPUT=$(SIMCTL_CHILD_VULPRA_SMOKE_URL="$WARM_URL" \
+    SIMCTL_CHILD_VULPRA_GATE_DISPATCH_PORT="$GATE_DISPATCH_PORT" \
+    run_with_timeout 180 xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1)
+  LAUNCH_STATUS=$?
+  printf '%s\n' "$LAUNCH_OUTPUT" > "$PREFIX-launch.log"
+  APP_PID=${LAUNCH_OUTPUT##*: }
+  if [[ "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
+    break
+  fi
+  if resolve_app_pid; then
+    printf 'launch_pid_resolved_via_launchctl=true\n' >> "$PREFIX-device.log"
+    break
+  fi
+  if [[ "$_launch_attempt" -eq 1 ]]; then
+    printf 'launch_attempt=%s launch_status=%s; retrying after settle\n' \
+      "$_launch_attempt" "$LAUNCH_STATUS" >> "$PREFIX-device.log"
+    sleep 15
+  fi
+done
 set -e
-printf '%s\n' "$LAUNCH_OUTPUT" > "$PREFIX-launch.log"
-APP_PID=${LAUNCH_OUTPUT##*: }
+printf 'launch_status=%s\nlaunch_attempts=%s\n' "$LAUNCH_STATUS" "$LAUNCH_ATTEMPTS" >> "$PREFIX-device.log"
 
 if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
   for ((_attempt = 1; _attempt <= NAVIGATION_SECONDS; _attempt++)); do
@@ -237,28 +272,69 @@ APP_SURVIVED=false
 if app_is_running; then
   APP_SURVIVED=true
 fi
-set +e
-run_with_timeout 60 xcrun simctl io "$UDID" screenshot "$PREFIX-navigation.png"
-SCREENSHOT_STATUS=$?
-set -e
-printf 'screenshot_status=%s\n' "$SCREENSHOT_STATUS" >> "$PREFIX-device.log"
+SCREENSHOT_STATUS=1
+SCREENSHOT_ATTEMPTS=0
+for _screenshot_attempt in 1 2 3; do
+  SCREENSHOT_ATTEMPTS=$_screenshot_attempt
+  set +e
+  run_with_timeout 60 xcrun simctl io "$UDID" screenshot "$PREFIX-navigation.png"
+  SCREENSHOT_STATUS=$?
+  set -e
+  if [[ "$SCREENSHOT_STATUS" -eq 0 && -s "$PREFIX-navigation.png" ]]; then
+    break
+  fi
+  if [[ "$_screenshot_attempt" -lt 3 ]]; then
+    printf 'screenshot_attempt=%s screenshot_status=%s; retrying after settle\n' \
+      "$_screenshot_attempt" "$SCREENSHOT_STATUS" >> "$PREFIX-device.log"
+    sleep 10
+  fi
+done
+printf 'screenshot_status=%s\nscreenshot_attempts=%s\n' "$SCREENSHOT_STATUS" "$SCREENSHOT_ATTEMPTS" >> "$PREFIX-device.log"
 kill "$SYSTEM_LOG_PID" >/dev/null 2>&1 || true
 wait "$SYSTEM_LOG_PID" >/dev/null 2>&1 || true
 SYSTEM_LOG_PID=
 sleep 2
-LOG_EVIDENCE="$PREFIX-system.log"
 set +e
-run_with_timeout 30 xcrun simctl spawn "$UDID" log show --style compact --info --debug \
-  --last 10m --predicate "$LOG_PREDICATE" > "$PREFIX-system.log" 2>&1
+run_with_timeout 180 xcrun simctl spawn "$UDID" log show --style compact --info --debug \
+  --start "$ATTEMPT_START_ISO" --predicate "$LOG_PREDICATE" > "$PREFIX-system.log" 2>&1
 LOG_SHOW_STATUS=$?
 set -e
 printf 'log_show_status=%s\n' "$LOG_SHOW_STATUS" >> "$PREFIX-device.log"
-if [[ "$LOG_SHOW_STATUS" -ne 0 ]]; then
-  printf 'log_show_status=%s; stream_log_fallback=true\n' "$LOG_SHOW_STATUS" >> "$PREFIX-system.log"
-  if grep -q "Engine load requested" "$PREFIX-stream.log"; then
-    LOG_EVIDENCE="$PREFIX-stream.log"
-  fi
+if [[ "$LOG_SHOW_STATUS" -eq 142 ]]; then
+  printf 'log_show_timed_out=true\n' >> "$PREFIX-device.log"
 fi
+# Build one timestamp-ordered evidence log from both the live stream and the
+# unified log query. Either source alone can be partial (stream attach race,
+# log-show scan timeout under load); merging by monotonic event key removes
+# duplicates while keeping the union of every captured lifecycle/navigation
+# event. Keep the raw sources as diagnostics.
+LOG_EVIDENCE="$PREFIX-evidence.log"
+python3 - "$PREFIX-evidence.log" "$PREFIX-system.log" "$PREFIX-stream.log" <<'PYE'
+import sys
+from pathlib import Path
+
+out_path, *sources = sys.argv[1:]
+keyed = {}
+for source in sources:
+    path = Path(source)
+    if not path.exists():
+        continue
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line:
+            continue
+        match = __import__("re").search(
+            r"launch=(\d+) .*stage=(\d+) .*monotonic_ns=(\d+)", line)
+        if match:
+            key = "lifecycle:{}:{}:{}".format(*match.groups())
+        else:
+            key = "line:" + line
+        if key not in keyed:
+            keyed[key] = line
+Path(out_path).write_text(
+    "\n".join(sorted(keyed.values())) + "\n", encoding="utf-8")
+PYE
+printf 'log_evidence_source=merged-system+stream\nlog_evidence_lines=%s\n' \
+  "$(wc -l < "$LOG_EVIDENCE" | tr -d ' ')" >> "$PREFIX-device.log"
 
 mkdir -p "$PREFIX-crashes"
 : > "$PREFIX-crash-paths.log"
@@ -446,6 +522,10 @@ value = {
     "warmSettleSeconds": int_metric(metric("warm_settle_waited_seconds")),
     "gateDispatchStatus": int_metric(metric("gate_dispatch_status_final")),
     "openurlStatus": metric("openurl_status") or "unavailable",
+    "launchStatus": int_metric(metric("launch_status")),
+    "launchAttempts": int_metric(metric("launch_attempts")),
+    "logShowStatus": int_metric(metric("log_show_status")),
+    "logEvidenceSource": metric("log_evidence_source") or "unknown",
 }
 Path(output).write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
 PY

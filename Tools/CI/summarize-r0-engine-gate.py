@@ -15,6 +15,7 @@ ATTEMPT_KEYS = {
     "loadToCompleteMs", "appSurvived", "crashCount", "lifecycleEvents",
     "requestedLaunchIDs", "connectedLaunchIDs", "failedLaunchIDs", "openLaunchIDs",
     "deliveryMethod", "warmSettleSeconds", "gateDispatchStatus", "openurlStatus",
+    "launchStatus", "launchAttempts", "logShowStatus", "logEvidenceSource",
 }
 EVENT_KEYS = {
     "launchID", "childID", "processType", "pid", "stage",
@@ -185,6 +186,12 @@ def validate_attempt(value: object) -> dict[str, object]:
     gate_status = integer(value["gateDispatchStatus"], f"attempt {attempt} gateDispatchStatus", -1)
     if gate_status != 0:
         fail(f"attempt {attempt} gate dispatch did not succeed: status {gate_status}")
+    integer(value["launchStatus"], f"attempt {attempt} launchStatus")
+    integer(value["launchAttempts"], f"attempt {attempt} launchAttempts", 1)
+    integer(value["logShowStatus"], f"attempt {attempt} logShowStatus")
+    evidence_source = value["logEvidenceSource"]
+    if not isinstance(evidence_source, str) or not evidence_source:
+        fail(f"attempt {attempt} logEvidenceSource is invalid")
     derived = validate_lifecycle(value["lifecycleEvents"])
     labels = ("requestedLaunchIDs", "connectedLaunchIDs", "failedLaunchIDs", "openLaunchIDs")
     stored_connected = id_array(value["connectedLaunchIDs"], f"attempt {attempt} connectedLaunchIDs")
