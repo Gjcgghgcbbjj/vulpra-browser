@@ -152,8 +152,9 @@ fi
     for command in (
         "simctl create", "simctl openurl", "simctl spawn fixture-udid log show",
         "simctl terminate", "simctl shutdown", "simctl delete",
+        "vulpra://open?url=http%3A%2F%2F127.0.0.1%3A8765%2F",
     ):
-        require(command in log, f"Simulator harness did not execute {command}")
+        require(command in log, f"Simulator harness did not execute/route {command}")
     result = run(output, count=1)
     require(result.returncode == 0, result.stderr or result.stdout)
 

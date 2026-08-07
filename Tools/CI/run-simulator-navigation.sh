@@ -31,14 +31,20 @@ done
 [[ -d "$APP" && -n "$RUNTIME" && -n "$DEVICE_TYPE" && "$ATTEMPT" =~ ^[1-9][0-9]*$ \
   && -n "$OUTPUT" && "$URL" == http://* && "$NAVIGATION_SECONDS" =~ ^[1-9][0-9]*$ ]] || usage
 WARM_URL="${URL}?vulpra-warm=1"
-mkdir -p "$OUTPUT"
-OUTPUT=$(CDPATH='' cd -- "$OUTPUT" && pwd)
 
 run_with_timeout() {
   local seconds=$1
   shift
   perl -e 'alarm shift; exec @ARGV or die "exec failed: $!\n"' "$seconds" "$@"
 }
+
+deep_link() {
+  python3 -c 'import sys, urllib.parse; print("vulpra://open?url=" + urllib.parse.quote(sys.argv[1], safe=""))' "$1"
+}
+
+DEEP_LINK=$(deep_link "$URL")
+mkdir -p "$OUTPUT"
+OUTPUT=$(CDPATH='' cd -- "$OUTPUT" && pwd)
 
 UDID=
 SYSTEM_LOG_PID=
@@ -86,27 +92,13 @@ raise SystemExit(0 if complete else 1)
 PY
 }
 
-engine_ready() {
-  python3 - "$PREFIX-stream.log" <<'PY'
-from pathlib import Path
-import sys
-
-lines = Path(sys.argv[1]).read_text(encoding="utf-8", errors="replace").splitlines()
-location = next((index for index, line in enumerate(lines)
-                 if "Engine location: about:blank" in line), None)
-complete = location is not None and any(
-    "Engine page completed: true" in line for line in lines[location + 1:]
-)
-raise SystemExit(0 if complete else 1)
-PY
-}
-
 app_is_running() {
   [[ "$APP_PID" =~ ^[1-9][0-9]*$ ]] && /bin/kill -0 "$APP_PID" >/dev/null 2>&1
 }
 
 set +e
-LAUNCH_OUTPUT=$(run_with_timeout 180 xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1)
+LAUNCH_OUTPUT=$(SIMCTL_CHILD_VULPRA_SMOKE_URL="$WARM_URL" \
+  run_with_timeout 180 xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1)
 LAUNCH_STATUS=$?
 set -e
 printf '%s\n' "$LAUNCH_OUTPUT" > "$PREFIX-launch.log"
@@ -114,7 +106,7 @@ APP_PID=${LAUNCH_OUTPUT##*: }
 
 if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
   for ((_attempt = 1; _attempt <= NAVIGATION_SECONDS; _attempt++)); do
-    if engine_ready; then
+    if navigation_completed "$WARM_URL"; then
       break
     fi
     if ! app_is_running; then
@@ -125,24 +117,7 @@ if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
 
   if app_is_running; then
     set +e
-    run_with_timeout 60 xcrun simctl openurl "$UDID" "$WARM_URL" >> "$PREFIX-device.log" 2>&1
-    OPENURL_STATUS=$?
-    set -e
-    printf 'openurl_status=%s\n' "$OPENURL_STATUS" >> "$PREFIX-device.log"
-    for ((_attempt = 1; _attempt <= NAVIGATION_SECONDS; _attempt++)); do
-      if navigation_completed "$WARM_URL"; then
-        break
-      fi
-      if ! app_is_running; then
-        break
-      fi
-      sleep 1
-    done
-  fi
-
-  if app_is_running; then
-    set +e
-    run_with_timeout 60 xcrun simctl openurl "$UDID" "$URL" >> "$PREFIX-device.log" 2>&1
+    run_with_timeout 60 xcrun simctl openurl "$UDID" "$DEEP_LINK" >> "$PREFIX-device.log" 2>&1
     OPENURL_STATUS=$?
     set -e
     printf 'openurl_status=%s\n' "$OPENURL_STATUS" >> "$PREFIX-device.log"
