@@ -79,6 +79,8 @@ def main() -> None:
     gate = (ROOT / "App/GateDispatchServer.swift").read_text(encoding="utf-8")
     require(gate.lstrip().startswith("#if DEBUG") and "#endif" in gate,
             "gate dispatch server must remain Debug-only")
+    require("DispatchQueue.main.async" in gate,
+            "gate dispatch must open URLs on the main thread for EngineKit/Gecko")
     print("PASS: preserved Vulpra product contracts")
 
 

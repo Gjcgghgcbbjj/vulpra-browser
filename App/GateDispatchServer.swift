@@ -137,7 +137,13 @@ final class GateDispatchServer {
             return
         }
         self.logger.notice("Vulpra gate dispatch opened: \(value, privacy: .public)")
-        self.onOpen(url)
+        // EngineKit / Gecko dispatch (AutoJSAPI) is main-thread bound; hop off the
+        // loopback accept queue before opening so navigation uses the same thread
+        // as scene URL contexts.
+        let deepLink = url
+        DispatchQueue.main.async { [weak self] in
+            self?.onOpen(deepLink)
+        }
         self.respond("ok", code: 200, on: connection)
     }
 
