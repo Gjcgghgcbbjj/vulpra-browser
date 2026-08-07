@@ -26,9 +26,15 @@ struct EngineRuntimeLifecycle {
     }
 
     mutating func fail(_ failure: EngineFailure) {
-        guard case .ready = state else {
+        switch state {
+        case .ready:
+            // Recoverable failures after ready are handled by sessions; only
+            // non-recoverable runtime-main exits should poison the whole runtime.
+            if !failure.isRecoverable {
+                state = .failed(failure)
+            }
+        case .stopped, .starting, .failed:
             state = .failed(failure)
-            return
         }
     }
 }

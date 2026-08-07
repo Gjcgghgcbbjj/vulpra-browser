@@ -65,6 +65,25 @@ final class VulpraEngineKitTests: XCTestCase {
         XCTAssertEqual(lifecycle.state, .ready(Self.capabilities))
     }
 
+    func testRuntimeLifecycleReadyOnlyFailsOnNonRecoverableExit() {
+        var lifecycle = EngineRuntimeLifecycle()
+        let fatal = EngineFailure(
+            code: "runtime-main-exit", message: "Engine main exited", isRecoverable: false
+        )
+        let transient = EngineFailure(code: "busy", message: "transient", isRecoverable: true)
+
+        _ = lifecycle.begin()
+        lifecycle.becomeReady(Self.capabilities)
+        XCTAssertEqual(lifecycle.state, .ready(Self.capabilities))
+
+        lifecycle.fail(transient)
+        XCTAssertEqual(lifecycle.state, .ready(Self.capabilities))
+
+        lifecycle.fail(fatal)
+        XCTAssertEqual(lifecycle.state, .failed(fatal))
+        XCTAssertFalse(lifecycle.begin())
+    }
+
     func testSessionLifecycleClosesAfterFailedOpenAndRetry() {
         var lifecycle = EngineSessionLifecycle()
         let failure = EngineFailure(code: "open", message: "open", isRecoverable: true)
