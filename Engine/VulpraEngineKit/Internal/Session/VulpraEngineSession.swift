@@ -142,6 +142,10 @@ public final class VulpraEngineSession: EngineSession {
 
     private func send(_ type: String, _ message: [String: Any] = [:]) {
         if window != nil {
+            // A2: immediate dispatch path (window open before LoadUri).
+            if type == "GeckoView:LoadUri" {
+                Self.logger.notice("initial_load_deferred=false")
+            }
             dispatch(type, message)
             return
         }
@@ -151,6 +155,9 @@ public final class VulpraEngineSession: EngineSession {
             return
         }
         if type == "GeckoView:LoadUri" {
+            // A2: deferred path — LoadUri waits for the first PageStop of the
+            // initial (about:blank) window before dispatch.
+            Self.logger.notice("initial_load_deferred=true")
             pendingInitialLoadCommands.append((type, message))
             return
         }

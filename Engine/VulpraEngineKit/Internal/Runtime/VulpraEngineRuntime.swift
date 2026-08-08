@@ -14,6 +14,9 @@ public final class VulpraEngineRuntime: EngineRuntime {
     private static let childLogger = Logger(
         subsystem: "com.vulpra.browser.engine-kit", category: "child-lifecycle"
     )
+    private static let logger = Logger(
+        subsystem: "com.vulpra.browser.engine-kit", category: "runtime"
+    )
 
     public convenience init() {
         self.init(startupTimeoutNanoseconds: 20_000_000_000)
@@ -195,6 +198,9 @@ public final class VulpraEngineRuntime: EngineRuntime {
         // No-op when the runtime already reached a terminal state: observers
         // must not be completed as success after a non-recoverable failure.
         guard lifecycle.becomeReady(Self.capabilities) else { return }
+        // A2 cold-start anchor: single public-privacy line consumed by
+        // run-simulator-cold-start.sh to measure launch -> engine ready.
+        Self.logger.notice("Engine runtime ready")
         startupTimeoutTask?.cancel()
         startupTimeoutTask = nil
         completeObservers(.success(Self.capabilities))
