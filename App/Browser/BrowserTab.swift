@@ -116,6 +116,10 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         }
     }
 
+    var hasLiveSession: Bool { session != nil && engineSurface != nil }
+
+    func releaseThumbnail() { thumbnail = nil }
+
     func suspend() {
         session?.close(); session = nil; engineSurface = nil; progress = 0; isLoading = false
     }

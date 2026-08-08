@@ -40,8 +40,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         configureOwners()
         configureLayout()
         showSelectedTab()
-        NotificationCenter.default.addObserver(self, selector: #selector(settingsChanged),
-                                               name: .browserSettingsDidChange, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(settingsChanged), name: .browserSettingsDidChange, object: nil)
         scheduleInitialEnginePresentation()
     }
 
@@ -62,7 +61,12 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        tabManager.suspendBackgroundTabs()
+        applyMemoryPressure(.heavy)
+    }
+
+    func applyMemoryPressure(_ level: TabManager.MemoryPressureLevel) {
+        if level == .light { suggestionWorkItem?.cancel(); suggestionWorkItem = nil; suggestionsView.update([]) }
+        tabManager.applyMemoryPressure(level)
     }
 
     func open(_ url: URL) {
@@ -135,10 +139,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         guard tab.url != nil else { showStartPage(); return }
         _ = tab.activate(settings: BrowserSettingsStore.shared.value)
         if tab.lastFailure != nil { showFailure(for: tab); return }
-        guard let engineView = tab.engineView else {
-            showStartPage()
-            return
-        }
+        guard let engineView = tab.engineView else { showStartPage(); return }
         guard attachedEngineView !== engineView else { return }
         attachedEngineView?.removeFromSuperview()
         attachedEngineView = nil
@@ -160,8 +161,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         attachedEngineView = engineView
         logger.notice("Engine view attached")
         DispatchQueue.main.async { [weak self, weak tab] in
-            guard let self, self.attachedEngineView === engineView else { return }
-            tab?.setActive(self.isSceneActive)
+            guard let self, self.attachedEngineView === engineView else { return }; tab?.setActive(self.isSceneActive)
         }
     }
     private func showStartPage() {

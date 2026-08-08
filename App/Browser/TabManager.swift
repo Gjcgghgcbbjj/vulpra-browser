@@ -99,7 +99,29 @@ final class TabManager: BrowserTabObserver {
         configure(tab); tabs.append(tab); selectedID = tab.id; changed()
     }
 
-    func suspendBackgroundTabs() { tabs.filter { $0.id != selectedID }.sorted { $0.lastAccess < $1.lastAccess }.forEach { $0.suspend() } }
+    enum MemoryPressureLevel { case light, heavy }
+
+    /// Bounded live-session cap: selected tab + this many most-recent
+    /// non-selected tabs keep live sessions under heavy memory pressure.
+    static let keepActiveSessionCount = 3
+
+    func applyMemoryPressure(_ level: MemoryPressureLevel) {
+        let background = tabs.filter { $0.id != selectedID }.sorted { $0.lastAccess < $1.lastAccess }
+        switch level {
+        case .light:
+            // Release decoded thumbnails and idle sessions; keep page state
+            // fully alive (no session.close, no teardown).
+            background.forEach { $0.releaseThumbnail(); $0.setActive(false) }
+        case .heavy:
+            // Full LRU teardown beyond the bounded cap. The selected tab is
+            // never touched; the most-recent (cap-1) background tabs keep
+            // their live sessions so tab switching stays fast.
+            let keep = max(Self.keepActiveSessionCount - 1, 0)
+            background.prefix(max(background.count - keep, 0)).forEach { $0.suspend() }
+        }
+    }
+
+    private func suspendBackgroundTabs() { tabs.filter { $0.id != selectedID }.sorted { $0.lastAccess < $1.lastAccess }.forEach { $0.suspend() } }
 
     func shutdown() {
         tabs.forEach { $0.suspend() }
