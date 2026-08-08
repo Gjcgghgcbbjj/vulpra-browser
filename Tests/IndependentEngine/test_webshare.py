@@ -16,6 +16,8 @@ import re
 import sys
 from pathlib import Path
 
+from engine_sources import ROOT, read_packaged
+
 
 def find_root() -> Path:
     p = Path(__file__).resolve().parent
@@ -32,7 +34,7 @@ ROOT = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else find_root()
 FEATURES = ROOT / "Engine/VulpraEngineKit/Public/EngineFeatures.swift"
 SESSION = ROOT / "Engine/VulpraEngineKit/Internal/Session/VulpraEngineSession.swift"
 PROMPT_CTRL = ROOT / "App/Browser/BrowserPromptController.swift"
-OMNIJAR = ROOT / ".build/omnijar-verify-root/runtime/resources/omni.ja"
+
 
 
 def require(cond: bool, msg: str) -> None:
@@ -50,9 +52,9 @@ def main() -> int:
     features = read(FEATURES)
     session = read(SESSION)
     prompt = read(PROMPT_CTRL)
-    import zipfile
-    with zipfile.ZipFile(OMNIJAR) as z:
-        share = z.read("modules/ShareDelegate.sys.mjs").decode("utf-8", errors="ignore")
+    share = read_packaged("modules/ShareDelegate.sys.mjs")
+    require(share is not None,
+            "ShareDelegate.sys.mjs not found in packaged runtime resources")
 
     # 1. Gecko side: navigator.share -> ShareDelegate -> GeckoViewPrompter with
     #    type "share"; resolves via result.response with 0=success/1=failure/2=abort.

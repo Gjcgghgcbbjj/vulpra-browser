@@ -9,8 +9,9 @@ EngineEvents.swift + EngineSession.swift + VulpraEngineSession.swift fix
 """
 import pathlib
 import sys
-import zipfile
 from pathlib import Path
+
+from engine_sources import ROOT, read_packaged
 
 
 def find_root() -> Path:
@@ -28,7 +29,7 @@ ROOT = find_root()
 EVENTS = ROOT / "Engine/VulpraEngineKit/Public/EngineEvents.swift"
 PROTOCOL = ROOT / "Engine/VulpraEngineKit/Public/EngineSession.swift"
 SESSION = ROOT / "Engine/VulpraEngineKit/Internal/Session/VulpraEngineSession.swift"
-OMNIJAR = ROOT / ".build/omnijar-verify-root/runtime/resources/omni.ja"
+
 
 
 def require(cond: bool, msg: str) -> None:
@@ -46,8 +47,9 @@ def main() -> int:
     events = read(EVENTS)
     protocol = read(PROTOCOL)
     session = read(SESSION)
-    with zipfile.ZipFile(OMNIJAR) as z:
-        content = z.read("modules/GeckoViewContent.sys.mjs").decode("utf-8", errors="ignore")
+    content = read_packaged("modules/GeckoViewContent.sys.mjs")
+    require(content is not None,
+            "GeckoViewContent.sys.mjs not found in packaged runtime resources")
 
     # 1. Gecko side: emits fullscreen events and listens for the app exit command.
     require('"GeckoView:DOMFullscreenEntered"' in content,
