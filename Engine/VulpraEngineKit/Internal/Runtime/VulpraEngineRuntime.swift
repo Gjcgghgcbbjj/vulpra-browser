@@ -192,9 +192,38 @@ public final class VulpraEngineRuntime: EngineRuntime {
         dispatch(runtime: handle, type: "GeckoView:Preferences:SetPref", message: ["prefs": prefs])
     }
 
+    /// Process-pool policy: bound the prelaunch Fission pool to 2 and the
+    /// transient web-process cap to 4. Evidence: annex 63 (162-launch
+    /// attribution) + annex 66 (GetMaxWebProcessCount at
+    /// toolkit/xre/nsAppRunner.cpp:6491; the prelaunch pool bypasses the web
+    /// cap while Fission autostarts, so fission.number is the real knob).
+    /// PreallocatedProcessManager registers a Preferences observer
+    /// (dom/ipc/PreallocatedProcessManager.cpp:127-128), so a runtime SetPref
+    /// before the first navigation shrinks the pool immediately.
+    private func applyProcessPoolPolicy() {
+        guard let handle = ensureHandle() else { return }
+        dispatch(runtime: handle, type: "GeckoView:Preferences:SetPref", message: [
+            "prefs": [
+                [
+                    "pref": "dom.ipc.processPrelaunch.fission.number",
+                    "type": 64, // nsIPrefBranch.PREF_INT (v5 PreferenceType cenum)
+                    "value": 2,
+                    "branch": "user",
+                ],
+                [
+                    "pref": "dom.ipc.processCount",
+                    "type": 64, // nsIPrefBranch.PREF_INT (v5 PreferenceType cenum)
+                    "value": 4,
+                    "branch": "user",
+                ],
+            ],
+        ])
+    }
+
     private func markReady() {
         applyRDDProcessStartupTimeout()
         applyHTTPSOnlyMode()
+        applyProcessPoolPolicy()
         // No-op when the runtime already reached a terminal state: observers
         // must not be completed as success after a non-recoverable failure.
         guard lifecycle.becomeReady(Self.capabilities) else { return }
