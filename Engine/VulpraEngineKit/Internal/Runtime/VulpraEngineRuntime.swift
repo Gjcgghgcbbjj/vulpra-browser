@@ -11,6 +11,7 @@ public final class VulpraEngineRuntime: EngineRuntime {
     private var startupTimeoutTask: Task<Void, Never>?
     private let startupTimeoutNanoseconds: UInt64
     private var childProcesses = EngineChildProcessLifecycle()
+    private var pendingPrefVerification: PrefVerificationState?
     private static let childLogger = Logger(
         subsystem: "com.vulpra.browser.engine-kit", category: "child-lifecycle"
     )
@@ -146,16 +147,13 @@ public final class VulpraEngineRuntime: EngineRuntime {
 
     private func applyRDDProcessStartupTimeout() {
         guard let handle = ensureHandle() else { return }
-        dispatch(runtime: handle, type: "GeckoView:Preferences:SetPref", message: [
-            "prefs": [
-                [
-                    "pref": "media.rdd-process.startup_timeout_ms",
-                    "type": 64, // nsIPrefBranch.PREF_INT (v5 PreferenceType cenum)
-                    "value": Self.rddProcessStartupTimeoutMilliseconds,
-                    "branch": "user",
-                ],
-            ],
-        ])
+        let prefs: [[String: Any]] = [[
+            "pref": "media.rdd-process.startup_timeout_ms",
+            "type": 64, // nsIPrefBranch.PREF_INT (v5 PreferenceType cenum)
+            "value": Self.rddProcessStartupTimeoutMilliseconds,
+            "branch": "user",
+        ]]
+        dispatchPrefsWithVerification(handle: handle, prefs: prefs)
     }
 
     private func applyHTTPSOnlyMode() {
@@ -277,6 +275,75 @@ public final class VulpraEngineRuntime: EngineRuntime {
         }
     }
 
+    /// Dispatches a GeckoView:Preferences:SetPref request with a callback that
+    /// verifies the Gecko side actually handled it (GeckoViewPreferences.sys.mjs
+    /// replies `{prefs: [{pref, isSet}]}`). The response is recorded as
+    /// rdd-timeout-pref-set evidence; a 10 s watchdog covers the not-delivered
+    /// case. The SetPref itself is fire-and-forget for readiness ordering.
+    private func dispatchPrefsWithVerification(handle: UnsafeMutableRawPointer, prefs: [[String: Any]]) {
+        let state = PrefVerificationState(
+            runtime: self,
+            pref: "media.rdd-process.startup_timeout_ms",
+            expectedValue: Self.rddProcessStartupTimeoutMilliseconds
+        )
+        pendingPrefVerification = state
+        let context = Unmanaged.passUnretained(state).toOpaque()
+        dispatchWithCallback(
+            runtime: handle, type: "GeckoView:Preferences:SetPref",
+            message: ["prefs": prefs], context: context,
+            callback: vulpraPrefSetCallbackHandler
+        )
+        schedulePrefVerificationWatchdog(state)
+    }
+
+    private func dispatchWithCallback(
+        runtime: UnsafeMutableRawPointer, type: String, message: [String: Any],
+        context: UnsafeMutableRawPointer?, callback: EngineABICallbackHandler?
+    ) {
+        let name = type as NSString
+        let payload = message as NSDictionary
+        withExtendedLifetime(name) {
+            withExtendedLifetime(payload) {
+                engineABIRuntimeDispatchWithCallback(
+                    runtime, engineABIPointer(name), engineABIPointer(payload),
+                    context, callback
+                )
+            }
+        }
+    }
+
+    private func schedulePrefVerificationWatchdog(_ state: PrefVerificationState) {
+        Task { @MainActor [weak state] in
+            try? await Task.sleep(nanoseconds: 10_000_000_000)
+            guard let state else { return }
+            if state.consume() {
+                Self.logger.error(
+                    "rdd-timeout-pref-set verification timed out pref=\(state.pref, privacy: .public) expected=\(state.expectedValue)"
+                )
+            }
+        }
+    }
+
+    private func handlePrefSetVerification(_ state: PrefVerificationState, response: Any?, error: String?) {
+        guard state.consume() else { return }
+        if let error {
+            Self.logger.error("rdd-timeout-pref-set error=\(error, privacy: .public)")
+            return
+        }
+        guard let prefs = (response as? [String: Any])?["prefs"] as? [[String: Any]],
+              let first = prefs.first, let isSet = first["isSet"] as? Bool else {
+            Self.logger.error("rdd-timeout-pref-set unexpected response=\(String(describing: response))")
+            return
+        }
+        if isSet {
+            Self.logger.notice(
+                "rdd-timeout-pref-set verified pref=\(state.pref, privacy: .public) expected=\(state.expectedValue) isSet=true"
+            )
+        } else {
+            Self.logger.error("rdd-timeout-pref-set isSet=false pref=\(state.pref, privacy: .public)")
+        }
+    }
+
     fileprivate func handle(type: String, message: Any?, callback: EngineABICallbackLease?) {
         switch type {
         case "Vulpra:RuntimeReady": markReady()
@@ -334,6 +401,16 @@ private let vulpraRuntimeEventHandler: EngineABIEventHandler = { context, type, 
     }
 }
 
+private let vulpraPrefSetCallbackHandler: EngineABICallbackHandler = { context, response, error in
+    guard let context else { return }
+    let state = Unmanaged<PrefVerificationState>.fromOpaque(context).takeUnretainedValue()
+    let responseObject = response.map(bridgeObject)
+    let errorString = error.map(bridgeString)
+    DispatchQueue.main.async {
+        state.runtime?.handlePrefSetVerification(state, response: responseObject, error: errorString)
+    }
+}
+
 private let vulpraRuntimeChildProcessHandler: EngineABIChildProcessHandler = {
     context, launchID, childID, pid, processType, rawStage, timestamp, rawFailure, reason in
     guard let context else { return }
@@ -361,6 +438,29 @@ private let vulpraRuntimeChildProcessHandler: EngineABIChildProcessHandler = {
     )
     DispatchQueue.main.async {
         runtime.handleChildProcess(event)
+    }
+}
+
+/// Tracks a single GeckoView:Preferences:SetPref verification. The runtime
+/// keeps the last pending state alive; consume() is idempotent and only runs
+/// on the main actor (callback handler + watchdog), so no locking is needed.
+private final class PrefVerificationState {
+    weak var runtime: VulpraEngineRuntime?
+    let pref: String
+    let expectedValue: Int
+    private var consumed = false
+
+    init(runtime: VulpraEngineRuntime, pref: String, expectedValue: Int) {
+        self.runtime = runtime
+        self.pref = pref
+        self.expectedValue = expectedValue
+    }
+
+    /// Returns true only for the first consumer.
+    func consume() -> Bool {
+        if consumed { return false }
+        consumed = true
+        return true
     }
 }
 

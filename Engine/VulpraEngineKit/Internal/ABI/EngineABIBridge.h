@@ -27,8 +27,17 @@ void *_Nullable VEKRuntimeCreate(void *_Nullable context,
                                      childProcessHandler);
 int32_t VEKRuntimeMain(void *runtime, int32_t argc,
                        char *_Nullable *_Nonnull argv);
+typedef void (*VulpraEngineCallbackHandler)(
+    void *_Nullable context, const void *_Nullable response,
+    const void *_Nullable error);
+
 void VEKRuntimeDispatch(void *runtime, const void *type,
                         const void *_Nullable message);
+void VEKRuntimeDispatchWithCallback(void *runtime, const void *type,
+                                    const void *_Nullable message,
+                                    void *_Nullable context,
+                                    VulpraEngineCallbackHandler _Nullable
+                                        callback);
 
 void *_Nullable VEKWindowOpen(void *runtime, const void *identifier,
                               const void *initialData, bool privateMode,

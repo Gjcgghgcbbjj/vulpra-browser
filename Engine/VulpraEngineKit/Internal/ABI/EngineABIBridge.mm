@@ -27,6 +27,9 @@ extern "C" {
 - (instancetype)initWithContext:(id _Nullable)context
                          handler:(VulpraEngineEventHandler)handler;
 - (void)send:(NSString *)type message:(id _Nullable)message;
+- (void)send:(NSString *)type
+      message:(id _Nullable)message
+     callback:(id<EventCallback> _Nullable)callback;
 - (void)removeCallback:(VEKCallback *)callback;
 - (void)invalidate;
 @end
@@ -44,6 +47,49 @@ extern "C" {
   }
   [_owner removeCallback:self];
   _callback = nil;
+}
+@end
+
+// Bridges a C callback supplied through the ABI into the Gecko
+// EventCallback protocol for Swift->Gecko request/response messaging.
+// The response/error values are borrowed for the duration of the call; the
+// callback fires at most once (first response wins).
+@interface VEKGeckoCallback : NSObject <EventCallback>
+@property(nonatomic) VulpraEngineCallbackHandler handler;
+@property(nonatomic) void *context;
+- (instancetype)initWithHandler:(VulpraEngineCallbackHandler)handler
+                        context:(void *)context;
+@end
+
+@implementation VEKGeckoCallback
+- (instancetype)initWithHandler:(VulpraEngineCallbackHandler)handler
+                        context:(void *)context {
+  self = [super init];
+  if (self) {
+    _handler = handler;
+    _context = context;
+  }
+  return self;
+}
+
+- (void)sendSuccess:(id)response {
+  VulpraEngineCallbackHandler handler = _handler;
+  void *context = _context;
+  _handler = nil;
+  if (handler) {
+    handler(context, response ? (__bridge const void *)response : nullptr,
+            nullptr);
+  }
+}
+
+- (void)sendError:(id)error {
+  VulpraEngineCallbackHandler handler = _handler;
+  void *context = _context;
+  _handler = nil;
+  if (handler) {
+    handler(context, nullptr,
+            error ? (__bridge const void *)error : nullptr);
+  }
 }
 @end
 
@@ -112,9 +158,11 @@ extern "C" {
     context = _context;
   }
   for (NSArray *item in pending) {
+    id queuedCallback = item.count > 2 ? item[2] : nil;
+    if (queuedCallback == NSNull.null) queuedCallback = nil;
     [engine dispatchToGecko:item[0]
                     message:item[1] == NSNull.null ? nil : item[1]
-                   callback:nil];
+                   callback:queuedCallback];
   }
   if (handler && context) {
     NSString *ready = @"Vulpra:RuntimeReady";
@@ -124,15 +172,22 @@ extern "C" {
 }
 
 - (void)send:(NSString *)type message:(id)message {
+  [self send:type message:message callback:nil];
+}
+
+- (void)send:(NSString *)type
+      message:(id)message
+     callback:(id<EventCallback>)callback {
   id<GeckoEventDispatcher> engine;
   @synchronized(self) {
     if (_queue) {
-      [_queue addObject:@[ type, message ?: NSNull.null ]];
+      [_queue addObject:@[ type, message ?: NSNull.null,
+                           callback ?: NSNull.null ]];
       return;
     }
     engine = _engine;
   }
-  [engine dispatchToGecko:type message:message callback:nil];
+  [engine dispatchToGecko:type message:message callback:callback];
 }
 
 - (void)removeCallback:(VEKCallback *)callback {
@@ -261,6 +316,20 @@ void VEKRuntimeDispatch(void *runtime, const void *type, const void *message) {
   VEKRuntime *owner = (__bridge VEKRuntime *)runtime;
   [owner.runtimeDispatcherOwner send:(__bridge NSString *)type
                              message:(__bridge id)message];
+}
+
+void VEKRuntimeDispatchWithCallback(void *runtime, const void *type,
+                                    const void *message, void *context,
+                                    VulpraEngineCallbackHandler callback) {
+  VEKRuntime *owner = (__bridge VEKRuntime *)runtime;
+  id<EventCallback> geckoCallback = nil;
+  if (callback) {
+    geckoCallback = [[VEKGeckoCallback alloc] initWithHandler:callback
+                                                      context:context];
+  }
+  [owner.runtimeDispatcherOwner send:(__bridge NSString *)type
+                             message:(__bridge id)message
+                            callback:geckoCallback];
 }
 
 void *VEKWindowOpen(void *runtime, const void *identifier,
