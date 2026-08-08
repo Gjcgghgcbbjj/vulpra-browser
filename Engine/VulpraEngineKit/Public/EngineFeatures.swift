@@ -140,4 +140,5 @@ public protocol EngineDownloadHandler: AnyObject {
 @MainActor
 public protocol EngineContentObserver: AnyObject {
     func engineSession(_ id: EngineSessionID, requestedContextMenu element: EngineContextMenuElement)
+    func engineSessionDidRequestFocus(_ id: EngineSessionID)
 }

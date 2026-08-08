@@ -239,6 +239,7 @@ public final class VulpraEngineSession: EngineSession {
             let value = (payload["progress"] as? NSNumber)?.doubleValue ?? 0
             progressObserver?.engineSession(id, didUpdate: .changed(sessionID: id, fraction: max(0, min(1, value / 100))))
         case "GeckoView:DOMWindowClose": navigationObserver?.engineSessionDidRequestClose(id)
+        case "GeckoView:FocusRequest": contentObserver?.engineSessionDidRequestFocus(id)
         case "GeckoView:ContentCrash": progressObserver?.engineSession(id, didTerminate: .processExited)
         case "GeckoView:ContentKill": progressObserver?.engineSession(id, didTerminate: .killed)
         case "GeckoView:OnLoadError":

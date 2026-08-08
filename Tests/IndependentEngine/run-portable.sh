@@ -30,4 +30,5 @@ python3 "$ROOT/Tests/IndependentEngine/test_xcode_staging.py"
 python3 "$ROOT/Tests/IndependentEngine/test_pref_channel_contract.py"
 python3 "$ROOT/Tests/IndependentEngine/test_cutover_readiness.py"
 
+python3 "$ROOT/Tests/IndependentEngine/test_focus_autofill_contract.py"
 echo "PASS: portable independent-engine gate"

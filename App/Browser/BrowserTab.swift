@@ -16,6 +16,7 @@ protocol BrowserTabObserver: AnyObject {
     func browserTabPersistableStateDidChange(_ tab: BrowserTab)
     func browserTabContentDidChange(_ tab: BrowserTab)
     func browserTabDidRequestClose(_ tab: BrowserTab)
+    func browserTabDidRequestFocus(_ tab: BrowserTab)
     func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> Bool
     func browserTab(_ tab: BrowserTab, requestedDownload response: EngineDownloadResponse,
                     completion: @escaping (Bool) -> Void)
@@ -173,6 +174,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     }
 
     func engineSessionDidRequestClose(_ id: EngineSessionID) { observer?.browserTabDidRequestClose(self) }
+    func engineSessionDidRequestFocus(_ id: EngineSessionID) { observer?.browserTabDidRequestFocus(self) }
 
     func engineSession(_ id: EngineSessionID, requestedNewSessionFor url: URL, windowID: String) -> Bool {
         observer?.browserTab(self, requestedNewTab: url, windowID: windowID) ?? false

@@ -159,6 +159,7 @@ final class TabManager: BrowserTabObserver {
         delegate?.tabManager(self, didUpdateContentFor: tab)
     }
     func browserTabDidRequestClose(_ tab: BrowserTab) { close(tab) }
+    func browserTabDidRequestFocus(_ tab: BrowserTab) { select(tab) }
     func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> Bool {
         newTab(url: url, privateMode: tab.isPrivate, windowID: windowID).session != nil
     }

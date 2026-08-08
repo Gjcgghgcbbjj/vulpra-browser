@@ -314,7 +314,8 @@ public final class VulpraEngineRuntime: EngineRuntime {
         return EngineCapabilities(
             executionMode: .interpreter, supportsPrompts: true, supportsPermissions: true,
             supportsDownloads: true, supportsStorage: true, supportsExtensions: false,
-            supportsPictureInPicture: false, supportsBackgroundMedia: true,
+            supportsPictureInPicture: false, supportsAutofill: false,
+            supportsBackgroundMedia: true,
             distributionProfile: profile, sandboxAuthority: .extensionKit,
             usesPrivateProcessTransport: true
         )

@@ -248,6 +248,7 @@ final class VulpraEngineKitTests: XCTestCase {
         supportsStorage: true,
         supportsExtensions: false,
         supportsPictureInPicture: false,
+        supportsAutofill: false,
         supportsBackgroundMedia: true,
         distributionProfile: .externalSigning,
         sandboxAuthority: .extensionKit,
