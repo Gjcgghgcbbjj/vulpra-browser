@@ -10,6 +10,7 @@ public final class VulpraEngineSession: EngineSession {
     public weak var navigationObserver: (any EngineNavigationObserver)?
     public weak var progressObserver: (any EngineProgressObserver)?
     public weak var contentObserver: (any EngineContentObserver)?
+    public weak var securityObserver: (any EngineSecurityObserver)?
     public weak var promptHandler: (any EnginePromptHandler)?
     public weak var permissionHandler: (any EnginePermissionHandler)?
     public weak var downloadHandler: (any EngineDownloadHandler)?
@@ -259,6 +260,10 @@ public final class VulpraEngineSession: EngineSession {
                 id, completedDownloadAt: payload["localFilePath"] as? String ?? "",
                 succeeded: payload["succeeded"] as? Bool ?? false
             )
+        case "GeckoView:SecurityChanged":
+            if let security = Self.securityEvent(id, payload) {
+                securityObserver?.engineSession(id, didUpdate: security)
+            }
         default: break
         }
         resolve(callback, value: NSNull())
@@ -279,6 +284,22 @@ public final class VulpraEngineSession: EngineSession {
             sessionID: id, failure: EngineFailure(code: "navigation-failed", message: message, isRecoverable: true)
         ))
     }
+    private static func securityEvent(_ sessionID: EngineSessionID, _ payload: [String: Any]) -> EngineSecurityEvent? {
+        guard let identity = payload["identity"] as? [String: Any] else { return nil }
+        let mode = identity["mode"] as? [String: Any] ?? [:]
+        return EngineSecurityEvent(
+            sessionID: sessionID,
+            origin: identity["origin"] as? String,
+            isSecure: identity["secure"] as? Bool ?? false,
+            host: identity["host"] as? String,
+            identityMode: mode["identity"] as? String ?? "unknown",
+            hasMixedDisplayContent: (mode["mixed_display"] as? NSNumber)?.boolValue ?? false,
+            hasMixedActiveContent: (mode["mixed_active"] as? NSNumber)?.boolValue ?? false,
+            certificate: identity["certificate"] as? String,
+            hasSecurityException: identity["securityException"] as? Bool ?? false
+        )
+    }
+
     private func handlePrompt(_ payload: [String: Any], callback: EngineABICallbackLease?) {
         let value = payload["prompt"] as? [String: Any] ?? payload
         let type = (value["type"] as? String ?? value["promptType"] as? String ?? "").lowercased()
