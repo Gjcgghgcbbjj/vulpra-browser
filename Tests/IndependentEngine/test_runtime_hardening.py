@@ -59,7 +59,8 @@ def main() -> None:
     require("applyRDDProcessStartupTimeout()" in runtime and
             runtime.count("applyRDDProcessStartupTimeout()") == 2 and
             '"GeckoView:Preferences:SetPref"' in runtime and
-            '"media.rdd-process.startup-timeout-ms"' in runtime and
+            '"media.rdd-process.startup_timeout_ms"' in runtime and
+            '"type": 64' in runtime and
             "rddProcessStartupTimeoutMilliseconds" in runtime,
             "runtime must raise the RDD process startup timeout before ready")
 
