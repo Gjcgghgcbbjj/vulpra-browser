@@ -64,6 +64,24 @@ def main() -> None:
     private = load("App/Entitlements/Vulpra.private.entitlements")
     require(private.get("application-identifier") == "com.vulpra.browser", "private identity changed")
     require(private.get("platform-application") is True, "private package entitlement is missing")
+    # Engine Process appex hosts the Gecko engine incl. the GPU process.
+    # Real-device Metal needs IOKit user clients + no-sandbox in the TIPA
+    # (4b2dc58 device feedback: in-page lag, scroll half-beat, overheating).
+    process_private = load("Engine/VulpraEngineProcess/EngineProcess.private.entitlements")
+    require(process_private.get("application-identifier") == "com.vulpra.browser.engine-process",
+            "engine process private identity changed")
+    require(process_private.get("platform-application") is True,
+            "engine process private package entitlement is missing")
+    require(process_private.get("com.apple.private.security.no-sandbox") is True,
+            "engine process TIPA must be no-sandbox (GPU/Metal on device)")
+    iokit = process_private.get("com.apple.security.iokit-user-client-class")
+    require(iokit == ["IOSurfaceRootUserClient", "AGXDeviceUserClient",
+                      "AGXSharedUserClient", "AGXCommandQueue", "AGXDevice"],
+            f"engine process TIPA iokit-user-client-class mismatch: {iokit}")
+    process_standard = load("Engine/VulpraEngineProcess/EngineProcess.entitlements")
+    require(process_standard == {},
+            "App Store engine process entitlements must stay empty (Apple re-signs; "
+            "Metal needs no private entitlements there)")
 
     router = (ROOT / "App/RuntimeURLRouter.swift").read_text(encoding="utf-8")
     for token in ('"http"', '"https"', '"vulpra"', '"open"', 'item.name == "url"'):

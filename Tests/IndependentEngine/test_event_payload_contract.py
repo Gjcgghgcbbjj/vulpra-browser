@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Draft (NOT committed): engine->App event payload key contract (annex 73/74).
+"""engine->App event payload key contract (annex 73/74).
 
 Cross-checks the keys the v5 engine sends for user-visible events against the
 keys the App reads in VulpraEngineSession.swift. Catches C2-class key name
@@ -7,31 +7,26 @@ mismatches (contentType/mimeType C3, uri/elementSrc vs linkUri/srcUri C4).
 
 Engine senders:
 - GeckoView:ExternalResponse*  -> C++ widget/uikit/ExternalResponseService.mm
-- GeckoView:ContextMenu        -> omni.ja actors/ContentDelegateChild.sys.mjs
-- GeckoView:OnNewSession       -> omni.ja modules/GeckoViewNavigation.sys.mjs
-- GeckoView:OnLoadError        -> omni.ja actors/LoadURIDelegateChild.sys.mjs
+                                  (compiled only; contract snapshot in CI)
+- GeckoView:ContextMenu        -> packaged actors/ContentDelegateChild.sys.mjs
+- GeckoView:OnNewSession       -> packaged modules/GeckoViewNavigation.sys.mjs
+- GeckoView:OnLoadError        -> packaged actors/LoadURIDelegateChild.sys.mjs
 
-HEAD FAILs (mimeType + uri/elementSrc not read); C3+C4 patched PASSes.
+The actors are verified against the packaged runtime (exploded resources dir
+or omni.ja); the compiled-only C++ payload keys are verified against the local
+source tree when present, otherwise against the checked-in contract snapshot
+(accepted only when its provenance matches engine-artifact-lock.json).
 """
 import pathlib
 import re
 from pathlib import Path
 
-def find_root() -> Path:
-    p = Path(__file__).resolve().parent
-    for _ in range(6):
-        if (p / "Engine" / "VulpraEngineKit").is_dir():
-            return p
-        if p.parent == p:
-            break
-        p = p.parent
-    raise SystemExit("FAIL: cannot locate worktree root from " + str(Path(__file__).resolve().parent))
+from engine_sources import (ROOT, read_packaged, read_source,
+                            require_snapshot_matches_lock, snapshot,
+                            snapshot_matches_lock)
 
-ROOT = find_root()
 SESSION = ROOT / "Engine/VulpraEngineKit/Internal/Session/VulpraEngineSession.swift"
-GECKO = ROOT / ".build/gecko-source-full-patched-20260730"
-SERVICE = GECKO / "widget/uikit/ExternalResponseService.mm"
-OMNI = ROOT / ".build/r0.3-device-full/runtime/resources/omni.ja"
+SERVICE = read_source("widget/uikit/ExternalResponseService.mm")
 
 # Engine-sent keys that MUST be covered by an App reader (per event).
 REQUIRED = {
@@ -43,37 +38,60 @@ REQUIRED = {
     "GeckoView:ExternalResponseComplete": {"localFilePath", "succeeded"},
 }
 
-def verify_engine_sources() -> list:
-    """Sanity-check that the engine really sends these keys (source-verified)."""
-    problems = []
-    if not SERVICE.is_file():
-        problems.append(f"missing engine source {SERVICE}")
-        return problems
-    src = SERVICE.read_text(encoding="utf-8")
-    for key in ("url", "mimeType", "localFilePath", "bytesReceived", "succeeded", "filename", "contentLength"):
-        if f'"{key}"' not in src:
-            problems.append(f"ExternalResponseService.mm missing payload key {key}")
-    import zipfile
-    if not OMNI.is_file():
-        problems.append(f"missing omni.ja {OMNI}")
-        return problems
-    with zipfile.ZipFile(OMNI) as z:
-        child = z.read("actors/ContentDelegateChild.sys.mjs").decode("utf-8", "replace")
+
+def verify_external_response_source(problems: list) -> None:
+    """Payload keys from ExternalResponseService.mm: live source when present,
+    otherwise the checked-in contract snapshot (compiled-only evidence)."""
+    keys = ("url", "mimeType", "localFilePath", "bytesReceived", "succeeded",
+            "filename", "contentLength")
+    if SERVICE is not None:
+        for key in keys:
+            if f'"{key}"' not in SERVICE:
+                problems.append(f"ExternalResponseService.mm missing payload key {key}")
+        return
+    snap_keys = (snapshot().get("externalResponsePayloadKeys") or [])
+    if not snap_keys:
+        problems.append("ExternalResponseService.mm unavailable and no "
+                        "externalResponsePayloadKeys snapshot present")
+        return
+    require_snapshot_matches_lock(problems, "event payload")
+    if not snapshot_matches_lock():
+        return
+    missing = [k for k in keys if k not in snap_keys]
+    if missing:
+        problems.append(f"externalResponsePayloadKeys snapshot missing {missing}")
+
+
+def verify_packaged_actors(problems: list) -> None:
+    """The GeckoView actors ship inside omni.ja, so they must be verified from
+    the packaged runtime (exploded resources dir or omni.ja archive)."""
+    child = read_packaged("actors/ContentDelegateChild.sys.mjs")
+    if child is None:
+        problems.append("packaged actors/ContentDelegateChild.sys.mjs not found")
+    else:
         for pat in (r"\n            uri,", r"\n            elementSrc:", r"\n            title:"):
             if not re.search(pat, child):
                 problems.append(f"ContentDelegateChild.sys.mjs missing msg key {pat}")
-        nav = z.read("modules/GeckoViewNavigation.sys.mjs").decode("utf-8", "replace")
+    nav = read_packaged("modules/GeckoViewNavigation.sys.mjs")
+    if nav is None:
+        problems.append("packaged modules/GeckoViewNavigation.sys.mjs not found")
+    else:
         for key in ("uri:", "newSessionId,"):
             if key not in nav:
                 problems.append(f"GeckoViewNavigation.sys.mjs missing message key {key}")
-        load = z.read("actors/LoadURIDelegateChild.sys.mjs").decode("utf-8", "replace")
+    load = read_packaged("actors/LoadURIDelegateChild.sys.mjs")
+    if load is None:
+        problems.append("packaged actors/LoadURIDelegateChild.sys.mjs not found")
+    else:
         for key in ("uri:", "error:", "errorModule:", "errorClass,"):
             if key not in load:
                 problems.append(f"LoadURIDelegateChild.sys.mjs missing msg key {key}")
-    return problems
+
 
 def main() -> int:
-    problems = verify_engine_sources()
+    problems = []
+    verify_external_response_source(problems)
+    verify_packaged_actors(problems)
     if problems:
         for p in problems:
             print("FAIL(engine source):", p)
@@ -97,6 +115,7 @@ def main() -> int:
     total = sum(len(v) for v in REQUIRED.values())
     print(f"PASS: {total} required engine->App payload keys are covered by App readers")
     return 0
+
 
 if __name__ == "__main__":
     if len(__import__("sys").argv) > 1:

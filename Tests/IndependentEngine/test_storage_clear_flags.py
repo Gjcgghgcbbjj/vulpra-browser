@@ -1,33 +1,20 @@
 #!/usr/bin/env python3
-"""Draft: EngineStorageClearOptions bit layout vs GeckoView ClearFlags contract.
+"""EngineStorageClearOptions bit layout vs GeckoView ClearFlags contract.
 
-Prepared during gate 31244916221 wait (read-only; NOT yet committed).
-When the lifecycle gate goes green, this becomes
-Tests/IndependentEngine/test_storage_clear_flags.py together with the
-EngineFeatures.swift bit-value fix (see .build/storage-clear-flags-fix.patch).
+Cross-checks EngineFeatures.swift option bits against the ClearFlags table of
+the actual v5 engine runtime. Evidence is resolved strongest-first: the
+packaged GeckoViewStorageController.sys.mjs from the pinned engine artifact
+(CI layout .build/engine/runtime/resources, or a local omni.ja), then the
+local full source tree. When both are present they must agree, so a packaged
+module that drifted from the pinned source is caught.
 """
-import pathlib
 import re
 import sys
 from pathlib import Path
 
+from engine_sources import ROOT, read_packaged, read_source, require_snapshot_matches_lock
 
-def find_root() -> Path:
-    """Locate the worktree root regardless of where this file lives
-    (draft sits in .build/, committed copy will sit in Tests/IndependentEngine/)."""
-    p = Path(__file__).resolve().parent
-    for _ in range(6):
-        if (p / "Engine" / "VulpraEngineKit" / "Public" / "EngineFeatures.swift").is_file():
-            return p
-        if p.parent == p:
-            break
-        p = p.parent
-    raise SystemExit("FAIL: cannot locate worktree root from " + str(Path(__file__).resolve().parent))
-
-
-ROOT = find_root()
 FEATURES = ROOT / "Engine/VulpraEngineKit/Public/EngineFeatures.swift"
-STORAGE = ROOT / ".build/gecko-source-full-patched-20260730/mobile/shared/modules/geckoview/GeckoViewStorageController.sys.mjs"
 
 # Gecko ClearFlags -> nsIClearDataService flags.
 CLEAR_FLAGS_EXPECT = {
@@ -89,9 +76,28 @@ def parse_gecko_flags(gecko: str) -> dict:
     return bits
 
 
+def resolve_storage_module() -> str:
+    """Packaged runtime module first (actual artifact), local source second."""
+    problems = []
+    packaged = read_packaged("modules/GeckoViewStorageController.sys.mjs")
+    source = read_source("mobile/shared/modules/geckoview/GeckoViewStorageController.sys.mjs")
+    if packaged is None and source is None:
+        raise SystemExit(
+            "FAIL: GeckoViewStorageController.sys.mjs not found in packaged "
+            "runtime resources or local source tree")
+    if packaged is not None and source is not None:
+        require(parse_gecko_flags(packaged) == parse_gecko_flags(source),
+                "packaged GeckoViewStorageController.sys.mjs ClearFlags table "
+                "differs from the pinned source tree copy")
+        require_snapshot_matches_lock(problems, "storage clear flags")
+        if problems:
+            raise SystemExit("FAIL: " + "; ".join(problems))
+    return packaged or source
+
+
 def main() -> int:
     swift = read(FEATURES)
-    gecko = read(STORAGE)
+    gecko = resolve_storage_module()
 
     gecko_bits = parse_gecko_flags(gecko)
     for name, expected in CLEAR_FLAGS_EXPECT.items():
@@ -121,5 +127,5 @@ def main() -> int:
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
-        FEATURES = pathlib.Path(sys.argv[1])
+        FEATURES = Path(sys.argv[1])
     raise SystemExit(main())
