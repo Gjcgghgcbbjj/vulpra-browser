@@ -209,6 +209,10 @@ def main() -> None:
         "launch_status=",
         "log_evidence_source=merged-system+stream",
         "monotonic_ns",
+        "run-with-timeout.py",
+        "monotonic_ms",
+        "app_running_at_audit=false",
+        "launch_ready=false",
     ):
         require(token in harness_text, f"R0 harness is missing {token}")
     with tempfile.TemporaryDirectory(prefix="vulpra-r0-gate-") as temporary:

@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+SCRIPT_DIR=$(CDPATH='' cd -- "$(dirname -- "$0")" && pwd)
 
 usage() {
   echo "usage: $0 --app PATH --runtime ID --device-type ID --attempt N --output DIR --url URL [--navigation-seconds SECONDS]" >&2
@@ -42,7 +43,10 @@ WARM_URL="${URL}?vulpra-warm=1"
 run_with_timeout() {
   local seconds=$1
   shift
-  perl -e 'alarm shift; exec @ARGV or die "exec failed: $!\n"' "$seconds" "$@"
+  # perl alarm() counts down on CLOCK_REALTIME: a wall-clock step (NTP
+  # discipline, VM suspend/resume catch-up) can fire it spuriously and kill a
+  # command that is nowhere near its deadline. Use a monotonic-clock timeout.
+  python3 "$SCRIPT_DIR/run-with-timeout.py" "$seconds" "$@"
 }
 
 deep_link() {
@@ -184,26 +188,35 @@ gate_http_dispatch() {
   printf 'gate_dispatch_status_final=%s\n' "$DISPATCH_STATUS" >> "$PREFIX-device.log"
 }
 
+monotonic_ms() {
+  python3 -c 'import time; print(int(time.monotonic() * 1000))'
+}
+
 wait_for_engine_settle() {
   printf 'warm_settle_start=true\n' >> "$PREFIX-device.log"
-  local started quiet baseline count
-  started=$(date +%s)
+  local started quiet baseline count now_ms
+  # The settle window must be measured on a monotonic clock: this VM/CI host
+  # steps CLOCK_REALTIME by minutes (see run-with-timeout.py rationale), and a
+  # wall-clock jump inside the window made warm_settle_waited_seconds negative
+  # (evidence audit failure) or inflated (182/184s) on healthy attempts.
+  started=$(monotonic_ms)
   baseline=$(grep -c '\[com.vulpra.browser.engine-kit:child-lifecycle\]' "$PREFIX-stream.log" 2>/dev/null || true)
   quiet=$started
   for ((_attempt = 1; _attempt <= WARM_SETTLE_SECONDS; _attempt++)); do
     count=$(grep -c '\[com.vulpra.browser.engine-kit:child-lifecycle\]' "$PREFIX-stream.log" 2>/dev/null || true)
+    now_ms=$(monotonic_ms)
     if [[ "$count" -eq "$baseline" ]]; then
-      if (( $(date +%s) - quiet >= QUIESCE_IDLE_SECONDS )); then
+      if (( now_ms - quiet >= QUIESCE_IDLE_SECONDS * 1000 )); then
         break
       fi
     else
       baseline=$count
-      quiet=$(date +%s)
+      quiet=$now_ms
     fi
     sleep 1
   done
   printf 'warm_settle_waited_seconds=%s\nquiesce_idle_seconds=%s\n' \
-    "$(( $(date +%s) - started ))" "$QUIESCE_IDLE_SECONDS" >> "$PREFIX-device.log"
+    "$(( (now_ms - started) / 1000 ))" "$QUIESCE_IDLE_SECONDS" >> "$PREFIX-device.log"
 }
 
 
@@ -297,10 +310,29 @@ if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
       fi
       sleep 1
     done
+  else
+    # The app died before the settle/audit step. Keep the evidence record
+    # complete and self-describing: the gate still rejects the attempt via
+    # gateDispatchStatus=-1, but the failure is diagnosable instead of
+    # surfacing as silently-missing audit fields.
+    printf 'app_running_at_audit=false\n' >> "$PREFIX-device.log"
+    printf 'warm_settle_start=skipped-app-dead\nwarm_settle_waited_seconds=-1\n' >> "$PREFIX-device.log"
+    printf 'openurl_status=skipped\nopenurl_blocked_by_system_prompt=skipped-app-dead\n' >> "$PREFIX-device.log"
+    printf 'gate_dispatch_status=skipped-app-dead\ngate_dispatch_status_final=-1\n' >> "$PREFIX-device.log"
   fi
   printf 'DELIVERY_METHOD=%s\n' "$DELIVERY_METHOD" >> "$PREFIX-device.log"
 
   sleep 5
+else
+  # Launch did not produce a live app pid (e.g. a spurious timeout or a
+  # simulator boot failure). Record explicit audit sentinels so the attempt
+  # evidence always carries the settle/delivery audit fields; the gate
+  # judgement is unchanged (gateDispatchStatus=-1 fails the attempt).
+  printf 'launch_ready=false\n' >> "$PREFIX-device.log"
+  printf 'warm_settle_start=skipped-launch-failed\nwarm_settle_waited_seconds=-1\n' >> "$PREFIX-device.log"
+  printf 'openurl_status=skipped\nopenurl_blocked_by_system_prompt=skipped-launch-failed\n' >> "$PREFIX-device.log"
+  printf 'gate_dispatch_status=skipped-launch-failed\ngate_dispatch_status_final=-1\n' >> "$PREFIX-device.log"
+  printf 'DELIVERY_METHOD=unavailable\n' >> "$PREFIX-device.log"
 fi
 
 APP_SURVIVED=false
