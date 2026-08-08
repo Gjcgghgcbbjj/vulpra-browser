@@ -13,6 +13,7 @@ public final class VulpraEngineSession: EngineSession {
     public weak var securityObserver: (any EngineSecurityObserver)?
     public weak var promptHandler: (any EnginePromptHandler)?
     public weak var permissionHandler: (any EnginePermissionHandler)?
+    public weak var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)?
     public weak var downloadHandler: (any EngineDownloadHandler)?
 
     private let runtime: VulpraEngineRuntime
@@ -261,6 +262,8 @@ public final class VulpraEngineSession: EngineSession {
                 id, completedDownloadAt: payload["localFilePath"] as? String ?? "",
                 succeeded: payload["succeeded"] as? Bool ?? false
             )
+        case "GeckoView:ClipboardPermissionRequest":
+            handleClipboardPermission(payload, callback: callback); return
         case "GeckoView:SecurityChanged":
             if let security = Self.securityEvent(id, payload) {
                 securityObserver?.engineSession(id, didUpdate: security)
@@ -335,6 +338,19 @@ public final class VulpraEngineSession: EngineSession {
         guard let permissionHandler else { resolve(callback, value: NSNumber(value: 0)); return }
         permissionHandler.engineSession(id, decide: request) { decision in
             resolve(callback, value: NSNumber(value: decision.rawValue))
+        }
+    }
+
+    private func handleClipboardPermission(_ payload: [String: Any], callback: EngineABICallbackLease?) {
+        let rawPoint = payload["screenPoint"] as? [String: Any] ?? [:]
+        let point = EngineScreenPoint(
+            x: (rawPoint["x"] as? NSNumber)?.doubleValue ?? 0,
+            y: (rawPoint["y"] as? NSNumber)?.doubleValue ?? 0
+        )
+        // No handler: default to deny (resolves, never hangs) — A51 amendment.
+        guard let clipboardPermissionHandler else { resolve(callback, value: NSNumber(value: false)); return }
+        clipboardPermissionHandler.engineSession(id, requestedClipboardAccessAt: point) { allow in
+            resolve(callback, value: NSNumber(value: allow))
         }
     }
 

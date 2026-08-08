@@ -44,6 +44,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     private(set) var lastAccess: Date
     private(set) var thumbnail: UIImage?
     weak var permissionHandler: (any EnginePermissionHandler)?
+    weak var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)?
     weak var promptHandler: (any EnginePromptHandler)?
 
     init(record: BrowserTabRecord, runtime: any EngineRuntime) {
@@ -91,6 +92,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         created.progressObserver = self
         created.contentObserver = self
         created.permissionHandler = permissionHandler
+        created.clipboardPermissionHandler = clipboardPermissionHandler
         created.promptHandler = promptHandler
         created.downloadHandler = self
         session = created

@@ -54,6 +54,7 @@ public protocol EngineSession: AnyObject, Sendable {
     var contentObserver: (any EngineContentObserver)? { get set }
     var promptHandler: (any EnginePromptHandler)? { get set }
     var permissionHandler: (any EnginePermissionHandler)? { get set }
+    var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)? { get set }
     var downloadHandler: (any EngineDownloadHandler)? { get set }
 
     @MainActor

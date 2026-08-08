@@ -88,6 +88,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private func configureOwners() {
         tabManager.delegate = self
         tabManager.permissionHandler = permissionController
+        tabManager.clipboardPermissionHandler = permissionController
         tabManager.promptHandler = promptController
         permissionController.presenter = self
         promptController.presenter = self

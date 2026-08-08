@@ -28,6 +28,10 @@ final class TabManager: BrowserTabObserver {
     weak var promptHandler: (any EnginePromptHandler)? {
         didSet { tabs.forEach { $0.promptHandler = promptHandler; $0.session?.promptHandler = promptHandler } }
     }
+    weak var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)? {
+        didSet { tabs.forEach { $0.clipboardPermissionHandler = clipboardPermissionHandler; $0.session?.clipboardPermissionHandler = clipboardPermissionHandler } }
+    }
+
     weak var permissionHandler: (any EnginePermissionHandler)? {
         didSet { tabs.forEach { $0.permissionHandler = permissionHandler; $0.session?.permissionHandler = permissionHandler } }
     }

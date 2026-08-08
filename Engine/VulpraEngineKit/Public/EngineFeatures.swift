@@ -102,6 +102,22 @@ public protocol EnginePromptHandler: AnyObject {
                        completion: @escaping (EnginePromptResponse?) -> Void)
 }
 
+public struct EngineScreenPoint: Equatable, Sendable {
+    public let x: Double
+    public let y: Double
+
+    public init(x: Double, y: Double) {
+        self.x = x
+        self.y = y
+    }
+}
+
+@MainActor
+public protocol EngineClipboardPermissionHandler: AnyObject {
+    func engineSession(_ id: EngineSessionID, requestedClipboardAccessAt point: EngineScreenPoint,
+                       completion: @escaping (Bool) -> Void)
+}
+
 @MainActor
 public protocol EnginePermissionHandler: AnyObject {
     func engineSession(_ id: EngineSessionID, decide request: EnginePermissionRequest,
