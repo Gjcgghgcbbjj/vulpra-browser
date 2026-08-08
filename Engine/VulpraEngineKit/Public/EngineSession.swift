@@ -52,6 +52,7 @@ public protocol EngineSession: AnyObject, Sendable {
     var navigationObserver: (any EngineNavigationObserver)? { get set }
     var progressObserver: (any EngineProgressObserver)? { get set }
     var contentObserver: (any EngineContentObserver)? { get set }
+    var fullscreenObserver: (any EngineFullscreenObserver)? { get set }
     var promptHandler: (any EnginePromptHandler)? { get set }
     var permissionHandler: (any EnginePermissionHandler)? { get set }
     var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)? { get set }
@@ -69,5 +70,6 @@ public protocol EngineSession: AnyObject, Sendable {
     func stop()
     func setActive(_ active: Bool)
     func setFocused(_ focused: Bool)
+    func exitFullscreen()
     func update(configuration: EngineSessionConfiguration)
 }

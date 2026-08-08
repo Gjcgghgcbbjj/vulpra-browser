@@ -96,6 +96,12 @@ public protocol EngineSecurityObserver: AnyObject {
 }
 
 @MainActor
+public protocol EngineFullscreenObserver: AnyObject {
+    func engineSessionDidEnterFullscreen(_ id: EngineSessionID)
+    func engineSessionDidExitFullscreen(_ id: EngineSessionID)
+}
+
+@MainActor
 public protocol EngineNavigationObserver: AnyObject {
     func engineSessionDidOpen(_ id: EngineSessionID)
     func engineSession(_ id: EngineSessionID, didUpdate event: EngineNavigationEvent)

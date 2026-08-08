@@ -10,6 +10,7 @@ public final class VulpraEngineSession: EngineSession {
     public weak var navigationObserver: (any EngineNavigationObserver)?
     public weak var progressObserver: (any EngineProgressObserver)?
     public weak var contentObserver: (any EngineContentObserver)?
+    public weak var fullscreenObserver: (any EngineFullscreenObserver)?
     public weak var securityObserver: (any EngineSecurityObserver)?
     public weak var promptHandler: (any EnginePromptHandler)?
     public weak var permissionHandler: (any EnginePermissionHandler)?
@@ -132,6 +133,7 @@ public final class VulpraEngineSession: EngineSession {
     public func stop() { stoppedByUser = true; send("GeckoView:Stop") }
     public func setActive(_ active: Bool) { send("GeckoView:SetActive", ["active": active]) }
     public func setFocused(_ focused: Bool) { send("GeckoView:SetFocused", ["focused": focused]) }
+    public func exitFullscreen() { send("GeckoViewContent:ExitFullScreen") }
 
     public func update(configuration: EngineSessionConfiguration) {
         self.configuration = configuration
@@ -264,6 +266,8 @@ public final class VulpraEngineSession: EngineSession {
             )
         case "GeckoView:ClipboardPermissionRequest":
             handleClipboardPermission(payload, callback: callback); return
+        case "GeckoView:DOMFullscreenEntered": fullscreenObserver?.engineSessionDidEnterFullscreen(id)
+        case "GeckoView:DOMFullscreenExited": fullscreenObserver?.engineSessionDidExitFullscreen(id)
         case "GeckoView:SecurityChanged":
             if let security = Self.securityEvent(id, payload) {
                 securityObserver?.engineSession(id, didUpdate: security)
