@@ -372,20 +372,26 @@ jobs:
             --input "$evidence/attempts/attempt-01.json"
           printf 'single-attempt navigation gate passed at %s\n' \
             "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          for attempt in $(seq 2 "$attempts"); do
-            printf 'gate attempt %s/%s starting at %s\n' \
-              "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-            Tools/CI/run-simulator-navigation.sh \
-              --app "$app" \
-              --runtime "$runtime" \
-              --device-type "$device_type" \
-              --attempt "$attempt" \
-              --output "$evidence/attempts" \
-              --url "$smoke_url" \
-              --navigation-seconds 300
-            printf 'gate attempt %s/%s finished at %s\n' \
-              "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-          done
+          # GNU seq counts down when the start exceeds the end (seq 2 1 ->
+          # "2 1"), which would run an extra attempt for single-attempt gates
+          # and break the summarizer contract (attempts must be exactly 1..N).
+          # Guard the loop so a single-attempt gate runs exactly one attempt.
+          if (( attempts > 1 )); then
+            for attempt in $(seq 2 "$attempts"); do
+              printf 'gate attempt %s/%s starting at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+              Tools/CI/run-simulator-navigation.sh \
+                --app "$app" \
+                --runtime "$runtime" \
+                --device-type "$device_type" \
+                --attempt "$attempt" \
+                --output "$evidence/attempts" \
+                --url "$smoke_url" \
+                --navigation-seconds 300
+              printf 'gate attempt %s/%s finished at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            done
+          fi
           python3 Tools/CI/summarize-r0-engine-gate.py \
             --attempts "$attempts" \
             --input "$evidence/attempts" \
