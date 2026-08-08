@@ -96,3 +96,6 @@
 "tracking.custom" = "Custom";
 "common.retry" = "Retry";
 "engine.failure" = "The browser engine is unavailable";
+"keyboard.focus_address" = "Focus Address Bar";
+"keyboard.close_tab" = "Close Tab";
+"keyboard.tab_number" = "Tab %d";
