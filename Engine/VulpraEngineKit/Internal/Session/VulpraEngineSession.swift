@@ -253,8 +253,8 @@ public final class VulpraEngineSession: EngineSession {
         case "GeckoView:ContextMenu":
             contentObserver?.engineSession(id, requestedContextMenu: EngineContextMenuElement(
                 title: payload["title"] as? String,
-                linkURL: Self.url(payload["linkUri"] ?? payload["linkURL"]),
-                imageURL: Self.url(payload["srcUri"] ?? payload["imageURL"])
+                linkURL: Self.url(payload["linkUri"] ?? payload["linkURL"] ?? payload["uri"]),
+                imageURL: Self.url(payload["srcUri"] ?? payload["imageURL"] ?? payload["elementSrc"])
             ))
         case "GeckoView:Prompt": handlePrompt(payload, callback: callback); return
         case "GeckoView:ContentPermission", "GeckoView:MediaPermission":
@@ -380,7 +380,7 @@ public final class VulpraEngineSession: EngineSession {
         let response = EngineDownloadResponse(
             sourceURL: Self.url(payload["uri"] ?? payload["url"]),
             suggestedFilename: payload["suggestedFilename"] as? String ?? payload["filename"] as? String,
-            contentType: payload["contentType"] as? String,
+            contentType: payload["contentType"] as? String ?? payload["mimeType"] as? String,
             contentLength: (payload["contentLength"] as? NSNumber)?.int64Value ?? -1,
             localFilePath: payload["localFilePath"] as? String ?? ""
         )
