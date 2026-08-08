@@ -17,6 +17,7 @@ NAVIGATION_SECONDS=180
 GATE_DISPATCH_PORT="${VULPRA_GATE_DISPATCH_PORT:-8766}"
 GATE_DISPATCH_URL="${VULPRA_GATE_DISPATCH_URL:-http://127.0.0.1:8766/open}"
 OPENURL_GRACE_SECONDS="${OPENURL_GRACE_SECONDS:-6}"
+NAV_SNAPSHOT_REFRESH_SECONDS="${NAV_SNAPSHOT_REFRESH_SECONDS:-10}"
 SIMCTL_OPENURL_FIRST="${SIMCTL_OPENURL_FIRST:-1}"
 WARM_SETTLE_SECONDS="${WARM_SETTLE_SECONDS:-30}"
 QUIESCE_IDLE_SECONDS="${QUIESCE_IDLE_SECONDS:-8}"
@@ -93,8 +94,9 @@ SYSTEM_LOG_PID=$!
 # initial "requested" lifecycle event (unified log still retains it).
 sleep 5
 
-navigation_completed() {
-  python3 - "$PREFIX-stream.log" "${1:-$URL}" <<'PY'
+navigation_completed_in_file() {
+  local file=$1 url=$2
+  python3 - "$file" "$url" <<'PY'
 from pathlib import Path
 import sys
 
@@ -115,6 +117,38 @@ complete = location is not None and any(
 )
 raise SystemExit(0 if complete else 1)
 PY
+}
+
+# The live `log stream` can drop engine-kit events under simulator load (seen
+# in run 31220738161 attempt-01, where the warm navigation completed but never
+# reached the stream). navigation_completed therefore falls back to a throttled
+# snapshot of the persisted unified log, which carries the full event set.
+refresh_navigation_snapshot() {
+  local snapshot="$PREFIX-persisted-nav.log" age=999
+  if [[ -f "$snapshot" ]]; then
+    age=$(python3 -c 'import os,sys; print(int(os.stat(sys.argv[1]).st_mtime))' "$snapshot" 2>/dev/null || echo 0)
+    age=$(( $(date +%s) - age ))
+  fi
+  if (( age >= NAV_SNAPSHOT_REFRESH_SECONDS )); then
+    printf 'navigation_snapshot_refresh=true\n' >> "$PREFIX-device.log" || true
+    run_with_timeout 90 xcrun simctl spawn "$UDID" log show --style compact --info --debug \
+      --start "$ATTEMPT_START_ISO" --predicate "$LOG_PREDICATE" \
+      > "$PREFIX-persisted-nav.log.tmp" 2>&1 || true
+    mv "$PREFIX-persisted-nav.log.tmp" "$PREFIX-persisted-nav.log" 2>/dev/null || true
+  fi
+}
+
+navigation_completed() {
+  local url="${1:-$URL}"
+  if [[ -f "$PREFIX-stream.log" ]] && navigation_completed_in_file "$PREFIX-stream.log" "$url"; then
+    return 0
+  fi
+  refresh_navigation_snapshot
+  if [[ -f "$PREFIX-persisted-nav.log" ]] && navigation_completed_in_file "$PREFIX-persisted-nav.log" "$url"; then
+    printf 'navigation_completed_via=persisted-store url=%s\n' "$url" >> "$PREFIX-device.log" || true
+    return 0
+  fi
+  return 1
 }
 
 app_is_running() {
@@ -225,9 +259,10 @@ if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
 
   DELIVERY_METHOD=simctl-openurl
   if app_is_running; then
-    if navigation_completed "$WARM_URL"; then
-      wait_for_engine_settle
-    fi
+    # Record warm-settle evidence unconditionally: the quiesce wait does not
+    # depend on navigation completion, and a live stream gap must not erase
+    # the evidence (attempt-01 of run 31220738161).
+    wait_for_engine_settle
     if [[ "$SIMCTL_OPENURL_FIRST" != "1" ]]; then
       printf 'openurl_status=skipped\nopenurl_blocked_by_system_prompt=skipped-ios26\n' >> "$PREFIX-device.log"
       gate_http_dispatch
