@@ -51,6 +51,12 @@ def main() -> None:
             "native RuntimeReady must be the sole runtime callback ready transition")
     require('case "Vulpra:RuntimeReady"' in runtime,
             "runtime does not consume the native ready event")
+    require("applyRDDProcessStartupTimeout()" in runtime and
+            runtime.count("applyRDDProcessStartupTimeout()") == 2 and
+            '"GeckoView:Preferences:SetPref"' in runtime and
+            '"media.rdd-process.startup-timeout-ms"' in runtime and
+            "rddProcessStartupTimeoutMilliseconds" in runtime,
+            "runtime must raise the RDD process startup timeout before ready")
 
     require("private let runtime: any EngineRuntime" in tab,
             "BrowserTab must depend on EngineRuntime protocol")

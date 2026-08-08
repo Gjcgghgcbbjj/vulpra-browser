@@ -130,7 +130,33 @@ public final class VulpraEngineRuntime: EngineRuntime {
         return handle
     }
 
+    /// RDD (Remote Data Decoder) child processes launch through the
+    /// ExtensionKit path on iOS and can take several seconds to bootstrap under
+    /// load (observed 5.8-7.6s on CI simulators). Upstream's 5s default
+    /// startup timeout (`media.rdd-process.startup-timeout-ms`) races that
+    /// bootstrap and kills the process before its IPC channel connects, which
+    /// the child-lifecycle evidence correctly flags as terminated-before-
+    /// outcome. Raise the timeout at runtime, before the first RDD launch,
+    /// while keeping a fail-fast safety net. Evidence chain:
+    /// docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/30-rdd-startup-timeout-root-cause.md
+    private static let rddProcessStartupTimeoutMilliseconds = 30_000
+
+    private func applyRDDProcessStartupTimeout() {
+        guard let handle = ensureHandle() else { return }
+        dispatch(runtime: handle, type: "GeckoView:Preferences:SetPref", message: [
+            "prefs": [
+                [
+                    "pref": "media.rdd-process.startup-timeout-ms",
+                    "type": 1, // nsIPrefBranch.PREF_INT
+                    "value": Self.rddProcessStartupTimeoutMilliseconds,
+                    "branch": "user",
+                ],
+            ],
+        ])
+    }
+
     private func markReady() {
+        applyRDDProcessStartupTimeout()
         lifecycle.becomeReady(Self.capabilities)
         startupTimeoutTask?.cancel()
         startupTimeoutTask = nil
