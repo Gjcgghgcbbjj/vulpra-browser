@@ -355,7 +355,24 @@ jobs:
           evidence='.build/r0-engine-gate'
           rm -rf "$evidence"
           mkdir -p "$evidence/attempts"
-          for attempt in $(seq 1 "$attempts"); do
+          # A fresh single navigation attempt must pass before the repeated
+          # stability loop: systemic harness or lifecycle failures fail in
+          # minutes instead of after all attempts have run.
+          printf 'single-attempt gate attempt 1 starting at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          Tools/CI/run-simulator-navigation.sh \
+            --app "$app" \
+            --runtime "$runtime" \
+            --device-type "$device_type" \
+            --attempt 1 \
+            --output "$evidence/attempts" \
+            --url "$smoke_url" \
+            --navigation-seconds 300
+          python3 Tools/CI/check-single-attempt-gate.py \
+            --input "$evidence/attempts/attempt-01.json"
+          printf 'single-attempt navigation gate passed at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          for attempt in $(seq 2 "$attempts"); do
             printf 'gate attempt %s/%s starting at %s\n' \
               "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
             Tools/CI/run-simulator-navigation.sh \

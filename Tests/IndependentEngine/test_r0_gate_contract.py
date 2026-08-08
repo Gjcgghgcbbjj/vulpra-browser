@@ -15,6 +15,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[2]
 SUMMARIZER = ROOT / "Tools/CI/summarize-r0-engine-gate.py"
 HARNESS = ROOT / "Tools/CI/run-simulator-navigation.sh"
+CHECKER = ROOT / "Tools/CI/check-single-attempt-gate.py"
 
 
 def require(condition: bool, message: str) -> None:
@@ -182,6 +183,50 @@ fi
     require(result.returncode == 0, result.stderr or result.stdout)
 
 
+def run_checker(directory: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([
+        "python3", str(CHECKER), "--input", str(directory / "attempt-01.json"),
+    ], text=True, capture_output=True, check=False)
+
+
+def test_single_attempt_gate(base: Path) -> None:
+    good = base / "single-good"
+    write_attempts(good, [valid_attempt(1)])
+    result = run_checker(good)
+    require(result.returncode == 0, result.stderr or result.stdout)
+    require("single-attempt navigation gate" in result.stdout,
+            "single-attempt gate did not print its pass marker")
+    single_mutations = (
+        ("gate-failed", lambda value: value.update(gateDispatchStatus=7),
+         "gate dispatch did not succeed"),
+        ("app-died", lambda value: value.update(appSurvived=False),
+         "appSurvived is false"),
+        ("crash", lambda value: value.update(crashCount=1),
+         "contains a crash"),
+        ("location-miss", lambda value: value.update(locationMatched=False),
+         "locationMatched is false"),
+        ("page-incomplete", lambda value: value.update(pageCompleted=False),
+         "pageCompleted is false"),
+        ("blank", lambda value: value.update(renderedDarkPixels=999),
+         "visually blank"),
+        ("slow", lambda value: value.update(loadToCompleteMs=60000),
+         "exceeds 30000 ms"),
+        ("open-launch", lambda value: value.update(openLaunchIDs=[1]),
+         "unresolved launches"),
+        ("wrong-attempt", lambda value: value.update(attempt=2),
+         "must be attempt 1"),
+    )
+    for name, mutate, token in single_mutations:
+        directory = base / f"single-{name}"
+        value = valid_attempt(1)
+        mutate(value)
+        write_attempts(directory, [value])
+        result = run_checker(directory)
+        require(result.returncode != 0, f"invalid single-attempt fixture passed: {name}")
+        require(token in result.stderr,
+                f"single-attempt {name} did not report {token!r}: {result.stderr}")
+
+
 def run(directory: Path, count: int = 20) -> subprocess.CompletedProcess[str]:
     return subprocess.run([
         "python3", str(SUMMARIZER), "--attempts", str(count),
@@ -200,6 +245,7 @@ def expect_failure(base: Path, name: str, values: list[dict[str, object]], token
 def main() -> None:
     require(SUMMARIZER.is_file(), "missing Tools/CI/summarize-r0-engine-gate.py")
     require(HARNESS.is_file(), "missing Tools/CI/run-simulator-navigation.sh")
+    require(CHECKER.is_file(), "missing Tools/CI/check-single-attempt-gate.py")
     harness_text = HARNESS.read_text(encoding="utf-8")
     for token in (
         "defaults write com.apple.iphonesimulator ConfirmOpenURLInSimulator",
@@ -218,6 +264,7 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="vulpra-r0-gate-") as temporary:
         base = Path(temporary)
         test_harness(base)
+        test_single_attempt_gate(base)
         valid = [valid_attempt(index) for index in range(1, 21)]
         valid_directory = base / "valid"
         write_attempts(valid_directory, valid)

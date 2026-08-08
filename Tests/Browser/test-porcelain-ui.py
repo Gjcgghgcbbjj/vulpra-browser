@@ -119,6 +119,7 @@ def main() -> None:
         "smoke_url='http://127.0.0.1:8765/'",
         "Tools/CI/run-simulator-navigation.sh",
         "Tools/CI/summarize-r0-engine-gate.py",
+        "Tools/CI/check-single-attempt-gate.py",
         "name: r0-engine-gate",
     ):
         require(token in workflow, f"simulator workflow is missing {token}")
@@ -138,8 +139,8 @@ def main() -> None:
             "simulator workflow still depends on mutable external networking")
     require("32vh" not in workflow,
             "simulator fixture still changes proven page layout for pixel detection")
-    require(workflow.count("Tools/CI/run-simulator-navigation.sh") == 1,
-            "Simulator navigation must have one reusable harness owner")
+    require(workflow.count("Tools/CI/run-simulator-navigation.sh") == 2,
+            "Simulator navigation must invoke the one reusable harness for the single-attempt fast gate and the repeated loop")
     require(navigation_harness.count("AppleLanguages -array zh-Hans") == 1,
             "the reusable Simulator harness must apply the Chinese language preference")
 

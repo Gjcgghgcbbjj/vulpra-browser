@@ -109,9 +109,14 @@ def main() -> None:
     summarizer = (ROOT / "Tools/CI/summarize-r0-engine-gate.py").read_text(encoding="utf-8")
     for token in (
         "Tools/CI/run-simulator-navigation.sh", "Tools/CI/summarize-r0-engine-gate.py",
+        "Tools/CI/check-single-attempt-gate.py",
         "r0_attempts:", "name: r0-engine-gate",
     ):
         require(token in simulator, f"simulator evidence does not verify visible content: {token}")
+    require('for attempt in $(seq 2 "$attempts")' in simulator,
+            "Simulator gate no longer runs a single-attempt fast gate before the repeated loop")
+    require("single-attempt navigation gate" in simulator,
+            "Simulator gate lacks the single-attempt pass marker")
     for token in (
         "rendered_dark_pixels=", "lifecycleEvents", "requestedLaunchIDs",
         "connectedLaunchIDs", "openLaunchIDs", "trap cleanup EXIT",
