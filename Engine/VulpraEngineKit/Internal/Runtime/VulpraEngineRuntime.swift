@@ -324,7 +324,7 @@ public final class VulpraEngineRuntime: EngineRuntime {
         }
     }
 
-    private func handlePrefSetVerification(_ state: PrefVerificationState, response: Any?, error: String?) {
+    fileprivate func handlePrefSetVerification(_ state: PrefVerificationState, response: Any?, error: String?) {
         guard state.consume() else { return }
         if let error {
             Self.logger.error("rdd-timeout-pref-set error=\(error, privacy: .public)")
