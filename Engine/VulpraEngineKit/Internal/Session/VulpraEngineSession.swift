@@ -311,15 +311,26 @@ public final class VulpraEngineSession: EngineSession {
     private func handlePrompt(_ payload: [String: Any], callback: EngineABICallbackLease?) {
         let value = payload["prompt"] as? [String: Any] ?? payload
         let type = (value["type"] as? String ?? value["promptType"] as? String ?? "").lowercased()
-        let kind: EnginePromptKind = type.contains("auth") ? .authentication :
+        let kind: EnginePromptKind = type == "share" ? .share :
+            type.contains("auth") ? .authentication :
             type.contains("text") ? .text : type.contains("confirm") ? .confirm :
             type.contains("file") ? .file : type.contains("alert") ? .alert : .unknown
         let request = EnginePromptRequest(
             id: value["id"] as? String ?? UUID().uuidString, kind: kind,
             title: value["title"] as? String ?? "", message: value["message"] as? String ?? "",
-            defaultValue: value["defaultValue"] as? String
+            defaultValue: value["defaultValue"] as? String,
+            text: value["text"] as? String, uri: Self.url(value["uri"])
         )
         guard let promptHandler else { resolve(callback, value: NSNull()); return }
+        if kind == .share {
+            // Gecko ShareDelegate.sys.mjs expects {response: 0|1|2}
+            // (0 = success, 1 = failure, 2 = abort/dismiss).
+            promptHandler.engineSession(id, handle: request) { response in
+                let dictionary: NSDictionary = ["response": NSNumber(value: response?.accepted ?? false ? 0 : 2)]
+                resolve(callback, value: dictionary)
+            }
+            return
+        }
         promptHandler.engineSession(id, handle: request) { response in
             let dictionary: NSDictionary = [
                 "allow": response?.accepted ?? false,

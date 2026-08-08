@@ -51,7 +51,7 @@ public enum EnginePermissionDecision: Int, Codable, Sendable {
 }
 
 public enum EnginePromptKind: String, Codable, Sendable {
-    case alert, confirm, text, authentication, file, unknown
+    case alert, confirm, text, authentication, file, share, unknown
 }
 
 public struct EnginePromptRequest: Equatable, Sendable {
@@ -60,13 +60,18 @@ public struct EnginePromptRequest: Equatable, Sendable {
     public let title: String
     public let message: String
     public let defaultValue: String?
+    public let text: String?
+    public let uri: URL?
 
-    public init(id: String, kind: EnginePromptKind, title: String, message: String, defaultValue: String?) {
+    public init(id: String, kind: EnginePromptKind, title: String, message: String, defaultValue: String?,
+                text: String? = nil, uri: URL? = nil) {
         self.id = id
         self.kind = kind
         self.title = title
         self.message = message
         self.defaultValue = defaultValue
+        self.text = text
+        self.uri = uri
     }
 }
 
