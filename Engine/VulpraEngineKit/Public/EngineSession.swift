@@ -5,14 +5,20 @@ public enum EngineUserAgentMode: String, Codable, Sendable {
     case desktop
 }
 
+public enum EngineTrackingProtectionLevel: String, Codable, Sendable {
+    case off
+    case standard
+    case strict
+}
+
 public struct EngineSessionConfiguration: Equatable, Sendable {
     public let isPrivate: Bool
     public let userAgentMode: EngineUserAgentMode
     public let pageZoom: Double
-    public let trackingProtection: Bool
+    public let trackingProtection: EngineTrackingProtectionLevel
 
     public init(isPrivate: Bool, userAgentMode: EngineUserAgentMode, pageZoom: Double,
-                trackingProtection: Bool = true) {
+                trackingProtection: EngineTrackingProtectionLevel = .standard) {
         self.isPrivate = isPrivate
         self.userAgentMode = userAgentMode
         self.pageZoom = pageZoom

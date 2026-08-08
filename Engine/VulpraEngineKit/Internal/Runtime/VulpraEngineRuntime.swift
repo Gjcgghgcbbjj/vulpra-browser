@@ -169,6 +169,26 @@ public final class VulpraEngineRuntime: EngineRuntime {
         ])
     }
 
+    /// Tracking protection is configured globally by the App (all sessions share
+    /// BrowserSettings), so per-session configuration can safely drive these
+    /// global prefs: every open session sets the same effective value. If a
+    /// future App introduces per-tab overrides, migrate to a runtime-level
+    /// configuration instead of per-session SetPref.
+    func applyTrackingProtectionPrefs(_ level: EngineTrackingProtectionLevel) {
+        guard let handle = ensureHandle() else { return }
+        let prefs: [[String: Any]] = [
+            ["pref": "privacy.trackingprotection.enabled", "type": 128,
+             "value": level != .off, "branch": "user"],
+            ["pref": "privacy.trackingprotection.socialtracking.enabled", "type": 128,
+             "value": level != .off, "branch": "user"],
+            ["pref": "privacy.trackingprotection.fingerprinting.enabled", "type": 128,
+             "value": level == .strict, "branch": "user"],
+            ["pref": "privacy.trackingprotection.cryptomining.enabled", "type": 128,
+             "value": level == .strict, "branch": "user"],
+        ]
+        dispatch(runtime: handle, type: "GeckoView:Preferences:SetPref", message: ["prefs": prefs])
+    }
+
     private func markReady() {
         applyRDDProcessStartupTimeout()
         applyHTTPSOnlyMode()

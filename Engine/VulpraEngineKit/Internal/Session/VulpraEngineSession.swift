@@ -69,6 +69,7 @@ public final class VulpraEngineSession: EngineSession {
             ))
             return
         }
+        runtime.applyTrackingProtectionPrefs(configuration.trackingProtection)
         let identifier = (requestedWindowID ?? id.rawValue.uuidString.replacingOccurrences(of: "-", with: "")) as NSString
         let initialData = Self.initialData(configuration) as NSDictionary
         let owner = EngineABIContext(self)
@@ -358,12 +359,13 @@ public final class VulpraEngineSession: EngineSession {
     private static func initialData(_ value: EngineSessionConfiguration) -> [String: Any] {
         ["settings": settings(value), "modules": [
             "GeckoViewContent": true, "GeckoViewNavigation": true,
-            "GeckoViewPermission": true, "GeckoViewProgress": true
+            "GeckoViewPermission": true, "GeckoViewProgress": true,
+            "GeckoViewContentBlocking": true
         ]]
     }
 
     private static func settings(_ value: EngineSessionConfiguration) -> [String: Any] {
-        ["chromeUri": NSNull(), "screenId": 0, "useTrackingProtection": value.trackingProtection,
+        ["chromeUri": NSNull(), "screenId": 0, "useTrackingProtection": value.trackingProtection != .off,
          "userAgentMode": value.userAgentMode == .desktop ? 1 : 0, "userAgentOverride": NSNull(),
          "viewportMode": value.userAgentMode == .desktop ? 1 : 0, "pageZoom": value.pageZoom,
          "displayMode": 0, "suspendMediaWhenInactive": false, "allowJavascript": true,

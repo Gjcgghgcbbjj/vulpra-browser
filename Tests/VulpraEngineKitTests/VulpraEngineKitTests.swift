@@ -16,7 +16,7 @@ final class VulpraEngineKitTests: XCTestCase {
             isPrivate: true,
             userAgentMode: .desktop,
             pageZoom: 1.25,
-            trackingProtection: true
+            trackingProtection: .standard
         )
 
         let session = runtime.makeSession(configuration: configuration)

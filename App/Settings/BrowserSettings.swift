@@ -49,7 +49,8 @@ struct BrowserSettings: Codable, Equatable {
             isPrivate: isPrivate,
             userAgentMode: defaultDesktopMode ? .desktop : .mobile,
             pageZoom: Double(min(200, max(50, pageZoom))) / 100,
-            trackingProtection: trackingProtection != .standard
+            trackingProtection: EngineTrackingProtectionLevel(
+                level: trackingProtection)
         )
     }
 }
@@ -70,4 +71,16 @@ final class BrowserSettingsStore {
 
 extension Notification.Name {
     static let browserSettingsDidChange = Notification.Name("VulpraBrowserSettingsDidChange")
+}
+
+extension EngineTrackingProtectionLevel {
+    /// Maps the App's three-choice setting to the engine level. `.custom` has
+    /// no custom-rule UI yet, so it currently behaves like `.standard`.
+    init(level: TrackingProtectionLevel) {
+        switch level {
+        case .standard: self = .standard
+        case .strict: self = .strict
+        case .custom: self = .standard
+        }
+    }
 }
