@@ -84,6 +84,38 @@ final class VulpraEngineKitTests: XCTestCase {
         XCTAssertFalse(lifecycle.begin())
     }
 
+    func testRuntimeLifecycleTerminalFailureIsNotResurrectedByLateReady() {
+        var lifecycle = EngineRuntimeLifecycle()
+        let fatal = EngineFailure(
+            code: "runtime-main-exit", message: "Engine main exited", isRecoverable: false
+        )
+
+        XCTAssertTrue(lifecycle.begin())
+        lifecycle.fail(fatal)
+        XCTAssertEqual(lifecycle.state, .failed(fatal))
+
+        // Late Vulpra:RuntimeReady must NOT resurrect the terminal failure.
+        XCTAssertFalse(lifecycle.becomeReady(Self.capabilities))
+        XCTAssertEqual(lifecycle.state, .failed(fatal))
+        XCTAssertFalse(lifecycle.begin())
+    }
+
+    func testRuntimeLifecycleSecondFailureDoesNotReplaceTerminalFailure() {
+        var lifecycle = EngineRuntimeLifecycle()
+        let fatal = EngineFailure(
+            code: "runtime-main-exit", message: "Engine main exited", isRecoverable: false
+        )
+        let transient = EngineFailure(code: "busy", message: "busy", isRecoverable: true)
+
+        XCTAssertTrue(lifecycle.begin())
+        lifecycle.fail(fatal)
+        XCTAssertEqual(lifecycle.state, .failed(fatal))
+
+        // A later recoverable failure must not mask the terminal reason.
+        lifecycle.fail(transient)
+        XCTAssertEqual(lifecycle.state, .failed(fatal))
+    }
+
     func testSessionLifecycleClosesAfterFailedOpenAndRetry() {
         var lifecycle = EngineSessionLifecycle()
         let failure = EngineFailure(code: "open", message: "open", isRecoverable: true)

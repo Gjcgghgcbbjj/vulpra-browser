@@ -51,6 +51,11 @@ def main() -> None:
             "native RuntimeReady must be the sole runtime callback ready transition")
     require('case "Vulpra:RuntimeReady"' in runtime,
             "runtime does not consume the native ready event")
+    require("guard lifecycle.becomeReady(Self.capabilities) else { return }" in runtime,
+            "runtime must not complete ready observers after a terminal failure")
+    require("case .failed:\n            // Terminal failure already recorded" in read("Engine/VulpraEngineKit/Internal/Lifecycle/EngineLifecycles.swift"),
+            "lifecycle must not mask an existing terminal failure")
+
     require("applyRDDProcessStartupTimeout()" in runtime and
             runtime.count("applyRDDProcessStartupTimeout()") == 2 and
             '"GeckoView:Preferences:SetPref"' in runtime and

@@ -157,7 +157,9 @@ public final class VulpraEngineRuntime: EngineRuntime {
 
     private func markReady() {
         applyRDDProcessStartupTimeout()
-        lifecycle.becomeReady(Self.capabilities)
+        // No-op when the runtime already reached a terminal state: observers
+        // must not be completed as success after a non-recoverable failure.
+        guard lifecycle.becomeReady(Self.capabilities) else { return }
         startupTimeoutTask?.cancel()
         startupTimeoutTask = nil
         completeObservers(.success(Self.capabilities))
