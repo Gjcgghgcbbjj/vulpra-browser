@@ -1,12 +1,12 @@
 # Vulpra Independent Engine Package Baseline
 
 Date: `2026-07-27`
-Last amended: `2026-07-29`
-Status: `package-verified-simulator-needs-verification`
+Last amended: `2026-08-08`
+Status: `package-verified-simulator-20-20`
 ArchitectureReviewRequired: `yes`
-Independent engine cutover: `complete`
+Independent engine cutover: `complete-v5-r0.3`
 Historical loopback executable evidence: `available`
-Current hosted Simulator gate: `needs-verification`
+Current hosted Simulator gate: `verified-20-20`
 Physical-device validation: `needs-verification`
 
 ## Evidence Boundary
@@ -49,6 +49,30 @@ App stayed alive, and no crash was produced. After the bounded three workflow
 adjustments, the current GitHub-hosted Simulator result is therefore
 `needs-verification`, not passed.
 
+## Gecko v5 R0 Cutover (2026-08-08)
+
+The v4/vtool simulator derivation is retired. Device and Simulator kernels are
+independent native builds of Gecko v5 (`vulpra-engine-v5-r0.3-candidate`,
+Firefox source `27b462b22705a8860f7ab0d33aa5b4b658ae5932`, patch set SHA-256
+`5515f9eae2973b6c545243ae8c11bb22179660ebd97419fb56211f7c6ac5a1e1`).
+
+- Repeat-verified producer pair: runs `30598301958` (selected) and
+  `30598347174` (repeat), both compiling native device + Simulator kernels
+  with byte-identical repeat-build Mach-O identity.
+- Immutable promotion: run `30613021710` (`vulpra-engine-v5-r0.3-candidate`).
+- Hosted Simulator R0 gate: run `31237088851` at HEAD `4b2dc58`,
+  **20/20 attempts passed**: location matched 20/20, page completed 20/20,
+  rendered dark pixels 845360, app alive 20/20, crash count 0/20,
+  child launches 162 requested / 162 connected / 0 failed / 0 open,
+  p95 load-to-complete `1810ms`, max `1961ms`
+  (bounds: p95<=15000ms, max<=30000ms), deliveryMethod
+  `gate-http-dispatch` with `gateDispatchStatus=0` on all attempts.
+- Final package: run `31244000908` at HEAD `4b2dc58`, IPA/TIPA validated
+  with SHA-256 below.
+- The Simulator R0 gate measures warm-engine navigation lifecycle stability
+  on software WebRender; physical-device Metal/WebRender, JIT, OpenIn,
+  and App Store distribution eligibility remain external gates.
+
 ## Compatibility And Products
 
 - Bundle identity: `com.vulpra.browser`
@@ -63,10 +87,10 @@ adjustments, the current GitHub-hosted Simulator result is therefore
 - Installed package identity: `0.2.0 (4)`, Chinese development region
   `zh-Hans`, and UI fingerprint `porcelain-zh-v4-20260728` in both
   `Info.plist` and the App executable
-- `Vulpra.ipa` SHA-256:
-  `c61435d2bd196cc49ec9cf054b318191a12d7fa7944c8b02e2bba7f0a53f553b`
-- `Vulpra-TrollStore.tipa` SHA-256:
-  `2228d83ba84feee717fccf5704110b9b4030b5a1cb0edd1458952b8aa1de5484`
+- `Vulpra.ipa` SHA-256 (run `31244000908`):
+  `0971a3ad2744ebfb8881021ceb08f7d62dd8a762997ba245fa3c115bbaf039fc`
+- `Vulpra-TrollStore.tipa` SHA-256 (run `31244000908`):
+  `5adc09ba48cb757a9814c13250d21c935fdac213c033cb8e0834d32f6f351802`
 
 No user-data deletion or migration was introduced.
 
@@ -84,13 +108,18 @@ No user-data deletion or migration was introduced.
 - `TabManager` remains the sole tab collection/selection owner.
 - `BrowserTab` remains the sole per-tab model/session owner.
 - GitHub Actions is the macOS build, simulator evidence, and package producer.
-- The precompiled v4 artifact is the only compatibility carrier.
+- The precompiled v5 artifact pair is the only compatibility carrier; v4/vtool paths are retired.
 
 ## Artifact And Signing Boundary
 
-- Artifact ID:
-  `vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9`
-- Artifact build: Xcode build `17E202`, SDK build `23E252`, `iphoneos`, `arm64`
+- Device artifact ID (lock `engine-artifact-lock.json`):
+  `vulpra-gecko-ios-arm64-v5-5fe3932ab145e6ce1239c33d056583ac6ee9882165a387d8ea1d97cc8964d0f1`
+  (archive SHA-256 `93c40859e5f12ef62ab58871abdb8b6ce480321879417a8364b87811dc4f4140`)
+- Simulator artifact ID:
+  `vulpra-gecko-ios-simulator-native-arm64-v5-839950aff3edeb2d97223fe4590315757bf3818eba875dbf07502c789031999c`
+  (archive SHA-256 `c544df105bc8971481948e9e9dba8d4bf86c61900d9d3006bc65df578aaa9e0d`)
+- Artifact build: Xcode build `17E202`, SDK build `23E252`, deployment target
+  `15.0`, built-in reproducible time `20260713164006` (not CI wall time)
 - Normal builds restore and verify this artifact; they do not fetch Gecko
   source or rebuild it.
 - `Configuration/engine-artifact-lock.json` pins the release tag, archive
@@ -118,10 +147,14 @@ exception and no persistent-state deletion.
 ./Tests/IndependentEngine/run-portable.sh
 ./Tests/RuntimeShell/run-portable.sh
 ./Tests/Browser/run-portable.sh
-python3 Tests/IndependentEngine/test_cutover_readiness.py --require-cutover
-GitHub package run 30398876901
-GitHub historical loopback executable run 30389904599
-GitHub hosted Simulator reruns 30393594180, 30395172252, 30397230869
+python3 Tests/IndependentEngine/test_cutover_readiness.py --require-r0-complete  (cutover-ready)
+./Tests/IndependentEngine/run-portable.sh  (14/14)
+./Tests/RuntimeShell/run-portable.sh
+./Tests/Browser/run-portable.sh
+GitHub engine producer pair 30598301958 + 30598347174 (repeat compile verified)
+GitHub promotion run 30613021710
+GitHub hosted Simulator R0 gate 31237088851 (20/20)
+GitHub final package run 31244000908 (IPA/TIPA + SHA-256)
 sha256sum -c dist/SHA256SUMS
 unzip -t Vulpra.ipa and Vulpra-TrollStore.tipa
 git diff --check
@@ -130,8 +163,6 @@ git diff --check
 ## Remaining External Validation
 
 - Installation and launch on physical iOS 15.8 and iOS 16.7 devices
-- A fresh green GitHub-hosted Simulator navigation run from the final source
-  and workflow snapshot
 - Physical-device OpenIn, permission, download, background-media, memory, and
   60/120 Hz performance evidence
 - Public distribution and third-party notice review

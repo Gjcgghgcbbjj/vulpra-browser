@@ -2,12 +2,18 @@
   "schemaVersion": 1,
   "targetState": "independent",
   "r0Evidence": {
-    "repeatProducerRunIds": [30547145772, 30547176227],
-    "repeatCompileRunIds": [30547145772, 30547176227],
-    "selectedProducerRunId": 30547176227,
-    "promotionRunId": 30575980634,
-    "simulatorGateRunId": null,
-    "packageRunId": null
+    "repeatProducerRunIds": [
+      30598301958,
+      30598347174
+    ],
+    "repeatCompileRunIds": [
+      30598301958,
+      30598347174
+    ],
+    "selectedProducerRunId": 30598301958,
+    "promotionRunId": 30613021710,
+    "simulatorGateRunId": 31237088851,
+    "packageRunId": 31244000908
   },
   "gates": [
     {
@@ -15,65 +21,97 @@
       "status": "verified",
       "evidence": [
         "Configuration/engine-artifact-lock.json",
-        "run:30547145772:repeat-native-gecko-v5-pair",
-        "run:30547176227:selected-native-gecko-v5-pair",
-        "run:30575980634:repeat-verified-immutable-promotion"
+        "run:30598301958:repeat-native-gecko-v5-pair",
+        "run:30598347174:repeat-native-gecko-v5-pair",
+        "run:30613021710:repeat-verified-immutable-promotion"
       ]
     },
     {
       "id": "verified-abi-inventory",
       "status": "verified",
-      "evidence": ["Configuration/engine-abi-inventory.json", "Tests/IndependentEngine/test_abi_inventory.py"]
+      "evidence": [
+        "Configuration/engine-abi-inventory.json",
+        "Tests/IndependentEngine/test_abi_inventory.py"
+      ]
     },
     {
       "id": "independent-runtime-startup",
       "status": "verified",
-      "evidence": ["run:30213751790:window-open-load-location-page-complete"]
+      "evidence": [
+        "run:30213751790:window-open-load-location-page-complete"
+      ]
     },
     {
       "id": "independent-process-host",
       "status": "verified",
-      "evidence": ["run:30213751790:engine-process-request-connected"]
+      "evidence": [
+        "run:30213751790:engine-process-request-connected"
+      ]
     },
     {
       "id": "app-contract-migration",
       "status": "verified",
-      "evidence": ["Tests/Browser/test-browser-client.py", "run:30214371123:portable-browser-pass"]
+      "evidence": [
+        "Tests/Browser/test-browser-client.py",
+        "run:30214371123:portable-browser-pass"
+      ]
     },
     {
       "id": "old-target-removal-ready",
       "status": "verified",
-      "evidence": ["Tests/IndependentEngine/test_xcode_staging.py", "Vulpra.xcodeproj/project.pbxproj"]
+      "evidence": [
+        "Tests/IndependentEngine/test_xcode_staging.py",
+        "Vulpra.xcodeproj/project.pbxproj"
+      ]
     },
     {
       "id": "package-cutover-ready",
       "status": "verified",
-      "evidence": ["Tests/Browser/test-package-workflow.py", ".github/workflows/build-ios-packages.yml"]
+      "evidence": [
+        "Tests/Browser/test-package-workflow.py",
+        ".github/workflows/build-ios-packages.yml"
+      ]
     },
     {
       "id": "old-source-unreferenced",
       "status": "verified",
-      "evidence": ["Tests/IndependentEngine/test_internal_boundaries.py", "Tests/IndependentEngine/test_ownership.py"]
+      "evidence": [
+        "Tests/IndependentEngine/test_internal_boundaries.py",
+        "Tests/IndependentEngine/test_ownership.py"
+      ]
     },
     {
       "id": "old-targets-removed",
       "status": "verified",
-      "evidence": ["Tests/RuntimeShell/test-xcode-graph.py", "run:30214371123:xcode-graph-pass"]
+      "evidence": [
+        "Tests/RuntimeShell/test-xcode-graph.py",
+        "run:30214371123:xcode-graph-pass"
+      ]
     },
     {
       "id": "old-workflows-retired",
       "status": "verified",
-      "evidence": ["Tests/IndependentEngine/test_ownership.py", "Tests/Browser/test-package-workflow.py"]
+      "evidence": [
+        "Tests/IndependentEngine/test_ownership.py",
+        "Tests/Browser/test-package-workflow.py"
+      ]
     },
     {
       "id": "simulator-navigation-verified",
       "status": "verified",
-      "evidence": ["run:30213751790:https-navigation-visible", "run:30213751790:rendered-dark-pixels-40077"]
+      "evidence": [
+        "run:31237088851:r0-engine-gate-20-20",
+        "run:31237088851:deliveryMethod-gate-http-dispatch",
+        "run:31237088851:p95-and-max-load-to-complete-bounds"
+      ]
     },
     {
       "id": "package-verified",
       "status": "verified",
-      "evidence": ["run:30215026323:ipa-tipa-validation-sha256-pass", "dist/SHA256SUMS"]
+      "evidence": [
+        "run:31244000908:ipa-tipa-validation-sha256-pass",
+        "dist/SHA256SUMS"
+      ]
     }
   ]
 }

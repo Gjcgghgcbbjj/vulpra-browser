@@ -157,3 +157,59 @@
 - Physical-device runtime and JIT evidence remain external and unverified.
 - Simulator gate must execute from pushed 8fa770c lock/workflow state.
 - Advisory decision: needs-verification
+
+## Checkpoint Update - 2026-08-08: R0 gate 20/20 green + final package bound
+
+- Current todo: Task 10/11 completed for the final snapshot; remaining todos are
+  final-review / external physical-device gates.
+- Active slice: none (gate closed on the promoted v5 r0.3 lock).
+- Completed todos:
+  - Task 10: 20-attempt R0 Simulator gate passed on HEAD `4b2dc58`
+    (run `31237088851`): location 20/20, page completed 20/20,
+    rendered dark pixels 845360, app alive 20/20, crash 0/20,
+    162 requested / 162 connected / 0 failed / 0 open child launches,
+    p95 load-to-complete `1810ms`, max `1961ms`,
+    deliveryMethod `gate-http-dispatch`, gateDispatchStatus=0 on all attempts.
+  - Root cause + fix for prior attempt-07/10 failures: RDD process 5s startup
+    timeout killed the rdd child before IPC connect; EngineKit-only fix
+    `4b2dc58` raises `media.rdd-process.startup-timeout-ms` to 30000 via
+    `GeckoView:Preferences:SetPref` before ready. Evidence:
+    docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/
+    30-rdd-startup-timeout-root-cause.md
+  - Task 11: final package run `31244000908` @ `4b2dc58`:
+    Vulpra.ipa SHA-256 `0971a3ad2744ebfb8881021ceb08f7d62dd8a762997ba245fa3c115bbaf039fc`,
+    Vulpra-TrollStore.tipa SHA-256
+    `5adc09ba48cb757a9814c13250d21c935fdac213c033cb8e0834d32f6f351802`.
+  - `python3 Tests/IndependentEngine/test_cutover_readiness.py --require-r0-complete`
+    → `cutover-ready`; v4/vtool retired-path scan passes.
+  - `Configuration/engine-cutover-gates.json` updated:
+    repeatProducerRunIds/repeatCompileRunIds `[30598301958, 30598347174]`,
+    selectedProducerRunId `30598301958`, promotionRunId `30613021710`,
+    simulatorGateRunId `31237088851`, packageRunId `31244000908`.
+  - ADR-0004 amended and baseline
+    `docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md`
+    synced to v5 r0.3 with 20/20 gate + final package hashes.
+- Evidence refs:
+  - run:30598301958:device-and-simulator-builds-green
+  - run:30598347174:device-and-simulator-builds-green
+  - run:30613021710:repeat-compare-promotion-release-lock
+  - run:31237088851:r0-engine-gate-20-20
+  - run:31244000908:ipa-tipa-validation-sha256-pass
+  - commit:4b2dc58:rdd-startup-timeout-enginekit-fix
+- Blocked on: none.
+- Next step: final verification commands (portable suites, `--require-r0-complete`,
+  Aegis workspace check, retirement scan) then push the evidence set; physical
+  device/JIT/OpenIn/App Store distribution remain external validation gates.
+
+## DriftCheckDraft - R0 closed
+
+- Scope status: Tasks 1-11 complete on the final snapshot; the v5 r0.3 lock,
+  20/20 hosted Simulator gate, and final package are bound to HEAD `4b2dc58`.
+- Compatibility status: App identity, persistence, package shape, and user
+  retry are unchanged; engine remains the promoted v5 r0.3 artifact.
+- Retirement status: v4/vtool paths are retired and asserted by
+  `--require-r0-complete` (retired paths + active-root token scan).
+- New risk signals: none from the closed R0 gate; physical-device runtime and
+  JIT evidence remain external and unverified.
+- Advisory decision: needs-verification for physical-device/JIT/OpenIn/App
+  Store; hosted Simulator R0 is verified.
