@@ -6,13 +6,13 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     StartPageViewControllerDelegate, PageToolsControllerDelegate {
     private let logger = Logger(subsystem: "com.vulpra.browser", category: "browser")
     private let runtime: any EngineRuntime
-    private let tabManager: TabManager
+    let tabManager: TabManager
     private let permissionController = BrowserPermissionController()
     private let promptController = BrowserPromptController()
     private let pageTools = PageToolsController()
     private let contextMenu = BrowserContextMenuController()
     private let contentContainer = UIView()
-    private let chrome = BrowserChromeView()
+    let chrome = BrowserChromeView()
     private let startPage = StartPageViewController()
     private let suggestionsView = OmniboxSuggestionsView()
     private var attachedEngineView: UIView?
@@ -132,7 +132,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         forwardEdge.edges = .right
         contentContainer.addGestureRecognizer(forwardEdge)
     }
-    private func showSelectedTab() {
+    func showSelectedTab() {
         guard isViewLoaded, let tab = tabManager.selectedTab else { return }
         chrome.update(tab: tab, tabCount: tabManager.tabs.count)
         if tab.lastFailure != nil { showFailure(for: tab); return }
