@@ -155,8 +155,23 @@ public final class VulpraEngineRuntime: EngineRuntime {
         ])
     }
 
+    private func applyHTTPSOnlyMode() {
+        guard let handle = ensureHandle() else { return }
+        dispatch(runtime: handle, type: "GeckoView:Preferences:SetPref", message: [
+            "prefs": [
+                [
+                    "pref": "dom.security.https_only_mode",
+                    "type": 128, // nsIPrefBranch.PREF_BOOL (v5 PreferenceType cenum)
+                    "value": true,
+                    "branch": "user",
+                ],
+            ],
+        ])
+    }
+
     private func markReady() {
         applyRDDProcessStartupTimeout()
+        applyHTTPSOnlyMode()
         // No-op when the runtime already reached a terminal state: observers
         // must not be completed as success after a non-recoverable failure.
         guard lifecycle.becomeReady(Self.capabilities) else { return }

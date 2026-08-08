@@ -85,11 +85,15 @@ public struct EnginePromptResponse: Equatable, Sendable {
 public struct EngineStorageClearOptions: OptionSet, Sendable {
     public let rawValue: Int64
     public init(rawValue: Int64) { self.rawValue = rawValue }
-    public static let cookies = Self(rawValue: 1 << 1)
-    public static let webStorage = Self(rawValue: 1 << 2)
-    public static let cache = Self(rawValue: 1 << 8)
-    public static let authentication = Self(rawValue: 1 << 10)
-    public static let all: Self = [.cookies, .webStorage, .cache, .authentication]
+    // Engine-side storage controller ClearFlags bit layout:
+    // COOKIES=1<<0, NETWORK_CACHE=1<<1, IMAGE_CACHE=1<<2, HISTORY=1<<3,
+    // DOM_STORAGES=1<<4, AUTH_SESSIONS=1<<5, PERMISSIONS=1<<6,
+    // SITE_SETTINGS=1<<7, SITE_DATA=1<<8, ALL=1<<9.
+    public static let cookies = Self(rawValue: 1 << 0)                 // COOKIES
+    public static let webStorage = Self(rawValue: 1 << 4)              // DOM_STORAGES
+    public static let cache = Self(rawValue: (1 << 1) | (1 << 2))      // NETWORK_CACHE | IMAGE_CACHE
+    public static let authentication = Self(rawValue: 1 << 5)          // AUTH_SESSIONS
+    public static let all: Self = Self(rawValue: 1 << 9)               // ALL -> CLEAR_ALL
 }
 
 @MainActor
