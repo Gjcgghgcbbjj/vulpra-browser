@@ -1,33 +1,20 @@
 #!/usr/bin/env python3
-"""Draft: GeckoView:SecurityChanged -> EngineSecurityEvent contract.
+"""GeckoView:SecurityChanged -> EngineSecurityEvent contract.
 
-Prepared during gate 31244916221 wait (read-only; NOT yet committed).
-When the lifecycle gate goes green, this becomes
-Tests/IndependentEngine/test_security_state_event.py together with the
-EngineEvents.swift + VulpraEngineSession.swift security-state fix
-(see .build/security-state-event-fix.patch).
+Cross-checks the packaged GeckoViewProgress.sys.mjs (actual v5 runtime:
+exploded resources dir or omni.ja, resolved by engine_sources.py) against
+EngineEvents.swift + VulpraEngineSession.swift. The omni.ja path must not be
+hardcoded to a local-only directory (CI has only .build/engine/runtime/resources).
 """
 import pathlib
 import re
 import sys
 from pathlib import Path
 
+from engine_sources import ROOT, read_packaged
 
-def find_root() -> Path:
-    p = Path(__file__).resolve().parent
-    for _ in range(6):
-        if (p / "Engine" / "VulpraEngineKit" / "Public" / "EngineEvents.swift").is_file():
-            return p
-        if p.parent == p:
-            break
-        p = p.parent
-    raise SystemExit("FAIL: cannot locate worktree root from " + str(Path(__file__).resolve().parent))
-
-
-ROOT = find_root()
 EVENTS = ROOT / "Engine/VulpraEngineKit/Public/EngineEvents.swift"
 SESSION = ROOT / "Engine/VulpraEngineKit/Internal/Session/VulpraEngineSession.swift"
-OMNIJAR = ROOT / ".build/omnijar-verify-root/runtime/resources/omni.ja"
 
 
 def require(cond: bool, msg: str) -> None:
@@ -45,10 +32,11 @@ def main() -> int:
     events = read(EVENTS)
     session = read(SESSION)
     # GeckoViewProgress is not in the sparse patched source tree; verify the
-    # shipped omni.ja (locked v5 artifact), same as the annex evidence chain.
-    import zipfile
-    with zipfile.ZipFile(OMNIJAR) as z:
-        progress = z.read("modules/GeckoViewProgress.sys.mjs").decode("utf-8", errors="ignore")
+    # packaged module from the locked v5 artifact (exploded resources dir in
+    # CI, omni.ja archive locally), same as the annex evidence chain.
+    progress = read_packaged("modules/GeckoViewProgress.sys.mjs")
+    require(progress is not None,
+            "GeckoViewProgress.sys.mjs not found in packaged runtime resources")
 
     # 1. Gecko side emits GeckoView:SecurityChanged with identity payload.
     require('"GeckoView:SecurityChanged"' in progress,
