@@ -41,6 +41,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                self?.browser?.open(resolved)
            }, onTabSwitchDuringLoad: { [weak self] url in
                self?.browser?.runTabSwitchDuringLoadScenario(url: url)
+           }, onScrollPerformance: { [weak self] url, seconds in
+               self?.browser?.runScrollPerformanceScenario(url: url, seconds: seconds)
            }) {
             gateDispatchServer = server
             server.start()

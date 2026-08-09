@@ -25,6 +25,11 @@ on:
         required: false
         default: 0
         type: number
+      scroll_attempts:
+        description: Scroll-performance attempts (1 = single-attempt scroll gate; 10+ = repeated gate)
+        required: false
+        default: 1
+        type: number
       app_bundle_run_id:
         description: Reuse Vulpra.app built by a prior green simulator run at the same commit instead of rebuilding
         required: false
@@ -484,6 +489,99 @@ jobs:
             --output "$evidence/summary.json" \
             | tee a2-cold-start-summary.log
 
+      - name: Run Simulator scroll gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          attempts='${{ inputs.scroll_attempts }}'
+          [[ "$attempts" =~ ^[1-9][0-9]*$ ]] && (( attempts <= 20 ))
+          fixture_dir="$(mktemp -d)"
+          printf '%s\n' \
+            '<!doctype html><html><head><meta charset="utf-8"><title>Vulpra Scroll Fixture</title>' \
+            '<style>html,body{margin:0;background:#fff}body{min-height:15000px}' \
+            'main{position:fixed;top:8px;left:8px;background:#102a24;color:#fff;font:700 16px system-ui;padding:4px 8px}</style></head>' \
+            '<body><main data-vulpra-scroll-fixture>Vulpra Scroll Fixture</main>' \
+            '<script>let y=0;function step(){y+=40;if(y>12000)y=0;window.scrollTo(0,y);requestAnimationFrame(step)}requestAnimationFrame(step)</script>' \
+            '</body></html>' \
+            > "$fixture_dir/index.html"
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory "$fixture_dir" \
+            > simulator-scroll-fixture.log 2>&1 &
+          fixture_pid=$!
+          cleanup_fixture() {
+            kill "$fixture_pid" >/dev/null 2>&1 || true
+            wait "$fixture_pid" >/dev/null 2>&1 || true
+            rm -rf "$fixture_dir"
+          }
+          trap cleanup_fixture EXIT
+          smoke_url='http://127.0.0.1:8765/'
+          for _ in {1..25}; do
+            curl --max-time 2 --fail --silent "$smoke_url" >/dev/null 2>&1 && break
+            sleep 0.2
+          done
+          curl --max-time 2 --fail --silent "$smoke_url" >/dev/null
+          app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          if [[ '${{ inputs.isolate_engine_process }}' == 'true' ]]; then
+            rm -rf "$app/PlugIns/OpenIn.appex"
+          fi
+          runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'
+          xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          requested = sys.argv[1]
+          values = [item for item in json.load(sys.stdin)["runtimes"]
+                    if item.get("isAvailable") and item.get("identifier") == requested]
+          if not values: raise SystemExit(f"requested Simulator runtime is unavailable: {requested}")
+          ' "$runtime"
+          device_type="$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["devicetypes"]
+                    if item.get("name", "").startswith("iPhone")]
+          if not values: raise SystemExit("no iPhone Simulator type")
+          preferred = [item for item in values if "Pro" in item["name"]]
+          print((preferred or values)[-1]["identifier"])
+          ')"
+          evidence='.build/scroll-gate'
+          rm -rf "$evidence"
+          mkdir -p "$evidence/attempts"
+          # A fresh single scroll attempt must pass before the repeated loop
+          # (same user rule as the R0 navigation and A2 cold-start gates).
+          printf 'scroll single-attempt gate attempt 1 starting at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          Tools/CI/run-simulator-scroll.sh \
+            --app "$app" \
+            --runtime "$runtime" \
+            --device-type "$device_type" \
+            --attempt 1 \
+            --output "$evidence/attempts" \
+            --url "$smoke_url" \
+            --scroll-seconds 12
+          python3 Tools/CI/summarize-scroll-gate.py \
+            --attempts 1 \
+            --input "$evidence/attempts" \
+            --output "$evidence/summary.json"
+          printf 'scroll single-attempt gate passed at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          if (( attempts > 1 )); then
+            for attempt in $(seq 2 "$attempts"); do
+              printf 'scroll gate attempt %s/%s starting at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+              Tools/CI/run-simulator-scroll.sh \
+                --app "$app" \
+                --runtime "$runtime" \
+                --device-type "$device_type" \
+                --attempt "$attempt" \
+                --output "$evidence/attempts" \
+                --url "$smoke_url" \
+                --scroll-seconds 12
+              printf 'scroll gate attempt %s/%s finished at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            done
+          fi
+          python3 Tools/CI/summarize-scroll-gate.py \
+            --attempts "$attempts" \
+            --input "$evidence/attempts" \
+            --output "$evidence/summary.json" \
+            | tee scroll-gate-summary.log
+
       - name: Upload reusable Simulator App bundle
         if: ${{ inputs.app_bundle_run_id == '' }}
         uses: actions/upload-artifact@v4
@@ -507,6 +605,15 @@ jobs:
         with:
           name: a2-cold-start-gate
           path: .build/a2-cold-start-gate/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload scroll gate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scroll-gate
+          path: .build/scroll-gate/
           if-no-files-found: warn
           retention-days: 30
 

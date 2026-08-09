@@ -15,11 +15,13 @@ final class GateDispatchServer {
     private let listener: NWListener
     private let onOpen: (URL) -> Void
     private let onTabSwitchDuringLoad: ((URL) -> Void)?
+    private let onScrollPerformance: ((URL, Int) -> Void)?
     private var connections: [ObjectIdentifier: NWConnection] = [:]
     private let queue = DispatchQueue(label: "com.vulpra.browser.gate.dispatch")
 
     init?(portText: String, onOpen: @escaping (URL) -> Void,
-          onTabSwitchDuringLoad: ((URL) -> Void)? = nil) {
+          onTabSwitchDuringLoad: ((URL) -> Void)? = nil,
+          onScrollPerformance: ((URL, Int) -> Void)? = nil) {
         guard let value = UInt16(portText), let port = NWEndpoint.Port(rawValue: value) else {
             return nil
         }
@@ -32,6 +34,7 @@ final class GateDispatchServer {
         self.listener = listener
         self.onOpen = onOpen
         self.onTabSwitchDuringLoad = onTabSwitchDuringLoad
+        self.onScrollPerformance = onScrollPerformance
     }
 
     func start() {
@@ -135,6 +138,24 @@ final class GateDispatchServer {
               let dictionary = object as? [String: Any]
         else {
             self.respond("bad request", code: 400, on: connection)
+            return
+        }
+        if dictionary["scenario"] as? String == "scroll-performance" {
+            guard let onScrollPerformance,
+                  let value = dictionary["url"] as? String,
+                  let target = URL(string: value),
+                  let scheme = target.scheme?.lowercased(),
+                  scheme == "http" || scheme == "https",
+                  let seconds = (dictionary["seconds"] as? NSNumber)?.intValue ?? (dictionary["seconds"] as? Int)
+            else {
+                self.respond("bad request", code: 400, on: connection)
+                return
+            }
+            self.logger.notice("Vulpra gate dispatch scenario=scroll-performance url=\(value, privacy: .public) seconds=\(seconds)")
+            DispatchQueue.main.async {
+                onScrollPerformance(target, seconds)
+            }
+            self.respond("ok", code: 200, on: connection)
             return
         }
         if dictionary["scenario"] as? String == "tab-switch-during-load" {
