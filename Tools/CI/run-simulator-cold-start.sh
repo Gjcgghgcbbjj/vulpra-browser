@@ -5,6 +5,11 @@
 # page complete WITHOUT a warm URL / openurl / gate dispatch. The real URL is
 # delivered at launch via SIMCTL_CHILD_VULPRA_SMOKE_URL.
 #
+# Waits for LaunchServices registration after install (simctl
+# get_app_container probe) so the cold-start anchor starts after install-time
+# registration, which can otherwise queue the launch for tens of seconds on a
+# fresh simulator (run 31313081276 A2 attempt-01: 68.4s appLaunchToEngineReady).
+#
 # Requires the A2 markers already in the v5 snapshot:
 #   VulpraEngineRuntime.markReady()  -> "Engine runtime ready"
 #   VulpraEngineSession load         -> "Engine load requested: <url>, open:"
@@ -88,6 +93,36 @@ run_with_timeout 180 xcrun simctl bootstatus "$UDID" -b >> "$PREFIX-device.log" 
 xcrun simctl spawn "$UDID" defaults write NSGlobalDomain AppleLanguages -array zh-Hans
 xcrun simctl spawn "$UDID" defaults write NSGlobalDomain AppleLocale -string zh_CN
 run_with_timeout 300 xcrun simctl install "$UDID" "$APP"
+
+# LaunchServices registration can lag behind `simctl install` on a fresh
+# simulator. Run 31313081276 A2 attempt-01: SpringBoard logged "Found no
+# viable bundles for bundle ID com.vulpra.browser" +15s after install and the
+# launch stayed queued until +66.5s, inflating appLaunchToEngineReadyMs to
+# 68.4s purely from install-time registration. The cold-start anchor
+# (LAUNCH_T0_*) is the moment the app process is *requested*, so it must be
+# anchored after registration finishes; otherwise install/registration latency
+# is measured as app-launch latency. Probe the same bundle lookup the launch
+# path uses: `simctl get_app_container` fails until LaunchServices resolves
+# the bundle, then returns the container path.
+wait_for_launch_services() {
+  local deadline=$(( $(date +%s) + 300 )) elapsed=0
+  while (( $(date +%s) < deadline )); do
+    local container rc
+    set +e
+    container=$(run_with_timeout 30 xcrun simctl get_app_container "$UDID" "$BUNDLE_ID" 2>&1)
+    rc=$?
+    set -e
+    if [[ $rc -eq 0 && -n "$container" && "$container" != *"No such"* && "$container" != *"Unable to find"* ]]; then
+      printf 'launch_services_ready_after_seconds=%s\n' "$elapsed" >> "$PREFIX-device.log"
+      return 0
+    fi
+    sleep 2
+    elapsed=$((elapsed + 2))
+  done
+  printf 'launch_services_ready=false\n' >> "$PREFIX-device.log"
+  return 1
+}
+wait_for_launch_services || true
 
 xcrun simctl spawn "$UDID" log stream --style compact --info --debug \
   --predicate "$LOG_PREDICATE" > "$PREFIX-stream.log" 2>&1 &

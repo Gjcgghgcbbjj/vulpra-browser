@@ -118,6 +118,18 @@ def check_source_wiring() -> None:
                 f"{harness_name} does not retry blank screenshots")
         require("screenshot_audit=rendered" in harness,
                 f"{harness_name} does not record accepted render evidence")
+    cold_start = (ROOT / "Tools/CI" / "run-simulator-cold-start.sh").read_text(encoding="utf-8")
+    # A2 anchors its cold-start t0 at the launch request, so install-time
+    # LaunchServices registration must finish first: on a fresh simulator the
+    # registration can lag `simctl install` by tens of seconds and inflate
+    # appLaunchToEngineReadyMs purely from install latency (run 31313081276
+    # A2 attempt-01: 68.4s). `simctl get_app_container` fails until the bundle
+    # resolves, so the harness must wait on it before anchoring LAUNCH_T0.
+    require("wait_for_launch_services" in cold_start and "get_app_container" in cold_start,
+            "A2 harness does not wait for LaunchServices registration")
+    require(cold_start.index("wait_for_launch_services") < cold_start.index("LAUNCH_T0_ISO="),
+            "A2 cold-start t0 is anchored before LaunchServices registration")
+
     scroll = (ROOT / "Tools/CI" / "run-simulator-scroll.sh").read_text(encoding="utf-8")
     # The loopback dispatch response body ("ok") is appended to device.log
     # without a trailing newline; the harness must terminate the line and the
