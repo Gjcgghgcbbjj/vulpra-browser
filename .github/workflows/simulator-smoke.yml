@@ -260,53 +260,78 @@ jobs:
             xcrun simctl delete "$test_udid" >/dev/null 2>&1 || true
           }
           trap cleanup_test_device EXIT
-          xcrun simctl boot "$test_udid"
-          xcrun simctl bootstatus "$test_udid" -b
-          test_deadline=$((SECONDS + 600))
-          rm -rf simulator-native-tests.xcresult
-          xcodebuild \
-            -project Vulpra.xcodeproj \
-            -scheme Vulpra \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=$test_udid" \
-            -derivedDataPath "$DERIVED_DATA" \
-            -resultBundlePath "$PWD/simulator-native-tests.xcresult" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test-without-building > simulator-native-tests.log 2>&1 &
-          test_pid=$!
-          while kill -0 "$test_pid" >/dev/null 2>&1; do
-            if (( SECONDS >= test_deadline )); then
-              kill "$test_pid" >/dev/null 2>&1 || true
-              sleep 2
-              kill -9 "$test_pid" >/dev/null 2>&1 || true
-              wait "$test_pid" >/dev/null 2>&1 || true
-              collect_test_diagnostics
-              cat simulator-native-tests.log
-              echo "native EngineKit tests exceeded 600 seconds" >&2
-              exit 1
+          # Xcode 26 CoreSimulator can crash inside
+          # -installApplicationWithLaunchSession: (DVT assertion in
+          # DVTiPhoneSimulator.m) while installing the unit-test host onto a
+          # freshly created Simulator; every test case in run 31317395727 was
+          # passing when the harness died. Retry once with a recreated
+          # Simulator so an infrastructure flake does not fail the whole gate.
+          run_native_tests() {
+            xcrun simctl boot "$test_udid"
+            xcrun simctl bootstatus "$test_udid" -b
+            test_deadline=$((SECONDS + 600))
+            rm -rf simulator-native-tests.xcresult
+            xcodebuild \
+              -project Vulpra.xcodeproj \
+              -scheme Vulpra \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$test_udid" \
+              -derivedDataPath "$DERIVED_DATA" \
+              -resultBundlePath "$PWD/simulator-native-tests.xcresult" \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              test-without-building > simulator-native-tests.log 2>&1 &
+            test_pid=$!
+            while kill -0 "$test_pid" >/dev/null 2>&1; do
+              if (( SECONDS >= test_deadline )); then
+                kill "$test_pid" >/dev/null 2>&1 || true
+                sleep 2
+                kill -9 "$test_pid" >/dev/null 2>&1 || true
+                wait "$test_pid" >/dev/null 2>&1 || true
+                collect_test_diagnostics
+                cat simulator-native-tests.log
+                echo "native EngineKit tests exceeded 600 seconds" >&2
+                return 1
+              fi
+              sleep 5
+            done
+            set +e
+            wait "$test_pid"
+            test_exit=$?
+            set -e
+            collect_test_diagnostics
+            cat simulator-native-tests.log
+            if [[ "$test_exit" -ne 0 ]]; then
+              echo "native EngineKit test process exited with $test_exit" >&2
+              return "$test_exit"
             fi
-            sleep 5
+            ! grep -Fq "** TEST EXECUTE FAILED **" simulator-native-tests.log
+            grep -Fq "** TEST EXECUTE SUCCEEDED **" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeCreatesProtocolSessionWithRequestedConfiguration()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeStartsStopped()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseResolvesOnlyOnce()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseCancelsWhenAbandoned()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeLifecycleCanRetryRecoverableFailure()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testSessionLifecycleClosesAfterFailedOpenAndRetry()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testNavigationLoadErrorPreservesURLAndCoalescesFailedPageStop()' passed" simulator-native-tests.log
+          }
+          native_tests_ok=false
+          for attempt in 1 2; do
+            if run_native_tests; then
+              native_tests_ok=true
+              break
+            fi
+            if [[ "$attempt" -eq 1 ]]; then
+              echo "native EngineKit tests attempt $attempt failed; recreating Simulator and retrying" >&2
+              xcrun simctl shutdown "$test_udid" >/dev/null 2>&1 || true
+              xcrun simctl delete "$test_udid" >/dev/null 2>&1 || true
+              test_udid="$(xcrun simctl create "Vulpra-Tests-$GITHUB_RUN_ID-retry-2" "$test_device_type" "$test_runtime")"
+            fi
           done
-          set +e
-          wait "$test_pid"
-          test_exit=$?
-          set -e
-          collect_test_diagnostics
-          cat simulator-native-tests.log
-          if [[ "$test_exit" -ne 0 ]]; then
-            echo "native EngineKit test process exited with $test_exit" >&2
-            exit "$test_exit"
+          if [[ "$native_tests_ok" != true ]]; then
+            echo "native EngineKit tests failed on both attempts" >&2
+            exit 1
           fi
-          ! grep -Fq "** TEST EXECUTE FAILED **" simulator-native-tests.log
-          grep -Fq "** TEST EXECUTE SUCCEEDED **" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeCreatesProtocolSessionWithRequestedConfiguration()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeStartsStopped()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseResolvesOnlyOnce()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseCancelsWhenAbandoned()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeLifecycleCanRetryRecoverableFailure()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testSessionLifecycleClosesAfterFailedOpenAndRetry()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testNavigationLoadErrorPreservesURLAndCoalescesFailedPageStop()' passed" simulator-native-tests.log
 
       - name: Run repeated Simulator navigation gate
         shell: bash
