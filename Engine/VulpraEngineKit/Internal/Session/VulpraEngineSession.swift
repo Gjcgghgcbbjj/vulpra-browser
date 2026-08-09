@@ -127,7 +127,7 @@ public final class VulpraEngineSession: EngineSession {
 
     public func load(_ request: EngineNavigationRequest) {
         Self.logger.notice(
-            "Engine load requested: \(request.url.absoluteString, privacy: .public), open: \(self.isOpen, privacy: .public)"
+            "Engine load requested: \(request.url.absoluteString, privacy: .public), open: \(self.isOpen, privacy: .public) monotonic_ns=\(DispatchTime.now().uptimeNanoseconds)"
         )
         send("GeckoView:LoadUri", ["uri": request.url.absoluteString, "flags": 0])
     }
@@ -262,7 +262,7 @@ public final class VulpraEngineSession: EngineSession {
                 canGoForward: payload["canGoForward"] as? Bool ?? false
             )
             if let url = navigation.url {
-                Self.logger.notice("Engine location: \(url.absoluteString, privacy: .public)")
+                Self.logger.notice("Engine location: \(url.absoluteString, privacy: .public) monotonic_ns=\(DispatchTime.now().uptimeNanoseconds)")
             }
             navigationObserver?.engineSession(id, didUpdate: navigation)
         case "GeckoView:PageTitleChanged":
@@ -283,7 +283,7 @@ public final class VulpraEngineSession: EngineSession {
             Self.logger.notice(
                 "engine_event_stats delivered=\(self.navigationDeliveredCount) coalesced=\(coalescedThisNavigation) total=\(self.navigationDeliveredCount + coalescedThisNavigation)"
             )
-            Self.logger.notice("Engine page completed: \(succeeded, privacy: .public)")
+            Self.logger.notice("Engine page completed: \(succeeded, privacy: .public) monotonic_ns=\(DispatchTime.now().uptimeNanoseconds)")
             if succeeded || stoppedByUser {
                 progressObserver?.engineSession(id, didUpdate: .completed(sessionID: id, succeeded: succeeded))
             } else if !navigationFailureReported { reportNavigationFailure(payload) }

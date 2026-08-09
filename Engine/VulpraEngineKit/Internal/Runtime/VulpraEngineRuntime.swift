@@ -239,7 +239,7 @@ public final class VulpraEngineRuntime: EngineRuntime {
         guard lifecycle.becomeReady(Self.capabilities) else { return }
         // A2 cold-start anchor: single public-privacy line consumed by
         // run-simulator-cold-start.sh to measure launch -> engine ready.
-        Self.logger.notice("Engine runtime ready")
+        Self.logger.notice("Engine runtime ready monotonic_ns=\(DispatchTime.now().uptimeNanoseconds)")
         startupTimeoutTask?.cancel()
         startupTimeoutTask = nil
         completeObservers(.success(Self.capabilities))

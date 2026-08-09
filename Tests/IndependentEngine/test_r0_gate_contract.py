@@ -121,6 +121,7 @@ elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" =
 2026-07-30 12:00:06.200 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
 2026-07-30 12:00:06.500 Engine page completed: true
 2026-07-30 12:00:06.600 gate_scenario=tab-switch-during-load completed
+2026-07-30 12:00:06.700 engine_event_stats delivered=2 coalesced=0 total=2
 LOG
 elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" = show ]; then
   cat <<'LOG'
@@ -148,6 +149,7 @@ elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" =
 2026-07-30 12:00:06.200 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
 2026-07-30 12:00:06.500 Engine page completed: true
 2026-07-30 12:00:06.600 gate_scenario=tab-switch-during-load completed
+2026-07-30 12:00:06.700 engine_event_stats delivered=2 coalesced=0 total=2
 LOG
 elif [ "$1" = simctl ] && [ "$2" = launch ]; then
   /bin/sleep 300 >/dev/null 2>&1 &

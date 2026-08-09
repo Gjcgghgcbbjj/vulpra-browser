@@ -42,8 +42,8 @@ def main() -> int:
     session = SESSION.read_text(encoding="utf-8")
 
     # 1. Cold-start anchor: single public os_log line at runtime ready.
-    require('"Engine runtime ready"' in runtime,
-            "VulpraEngineRuntime missing 'Engine runtime ready' marker")
+    require('"Engine runtime ready monotonic_ns=' in runtime,
+            "VulpraEngineRuntime missing 'Engine runtime ready' monotonic anchor")
     require('lifecycle.becomeReady(Self.capabilities) else { return }' in runtime,
             "markReady guard missing")
 

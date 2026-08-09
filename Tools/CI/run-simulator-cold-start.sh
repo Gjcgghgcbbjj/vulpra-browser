@@ -165,7 +165,9 @@ LAUNCH_ATTEMPTS=0
 # simulator). launch_t0_iso is emitted with milliseconds in the same format as
 # the os_log evidence timestamps so delta computation is exact.
 LAUNCH_T0_ISO=$(python3 -c 'from datetime import datetime; print(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])')
-printf 'launch_t0_iso=%s\n' "$LAUNCH_T0_ISO" >> "$PREFIX-device.log"
+LAUNCH_T0_MONO_NS=$(python3 -c 'import time; print(time.monotonic_ns())')
+printf 'launch_t0_iso=%s\nlaunch_t0_monotonic_ns=%s\n' \
+  "$LAUNCH_T0_ISO" "$LAUNCH_T0_MONO_NS" >> "$PREFIX-device.log"
 set +e
 for _launch_attempt in 1 2; do
   LAUNCH_ATTEMPTS=$_launch_attempt
@@ -318,15 +320,15 @@ if [[ "$SWIFT_STATUS" -ne 0 ]]; then
   printf 'rendered_dark_pixels=0\n' > "$PREFIX-rendering.log"
 fi
 
-python3 - "$ATTEMPT" "$URL" "$LAUNCH_T0_ISO" "$LOG_EVIDENCE" "$PREFIX-rendering.log" \
-  "$APP_SURVIVED" "$CRASH_COUNT" "$PREFIX.json" "$PREFIX-device.log" <<'PY'
+python3 - "$ATTEMPT" "$URL" "$LAUNCH_T0_ISO" "$LAUNCH_T0_MONO_NS" "$LOG_EVIDENCE" \
+  "$PREFIX-rendering.log" "$APP_SURVIVED" "$CRASH_COUNT" "$PREFIX.json" "$PREFIX-device.log" <<'PY'
 from datetime import datetime
 import json
 import re
 import sys
 
-attempt, url, t0_wall, evidence_path = sys.argv[1:5]
-rendering_path, app_survived, crash_count, output_path = sys.argv[5:9]
+attempt, url, t0_wall, t0_mono_text, evidence_path = sys.argv[1:6]
+rendering_path, app_survived, crash_count, output_path = sys.argv[6:10]
 
 timestamp = re.compile(r"^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3})")
 
@@ -358,6 +360,20 @@ try:
     t0 = datetime.fromisoformat(t0_wall)
 except ValueError:
     t0 = None
+try:
+    t0_mono = int(t0_mono_text)
+except (TypeError, ValueError):
+    t0_mono = None
+
+# Host CLOCK_REALTIME can step by minutes on CI (see run-simulator-navigation.sh
+# warm-settle rationale), so phase deltas prefer the App's monotonic_ns markers
+# anchored at launch; wall-clock deltas remain the fallback for legacy evidence.
+monotonic = re.compile(r"monotonic_ns=(\d+)")
+
+
+def monotonic_ns(line):
+    match = monotonic.search(line)
+    return int(match.group(1)) if match else None
 
 ready = find_event("Engine runtime ready")
 loads = find_events("Engine load requested: ", url)
@@ -378,20 +394,33 @@ if deferred_line or immediate_line:
     deferred = deferred_line is not None
 
 def delta_ms(later, earlier):
+    # `earlier` is either a marker tuple (index, datetime) or the launch
+    # anchor (None, t0_wall). Index None must not collide with a marker that
+    # happens to sit at evidence line 0.
     if later is None or earlier is None:
         return -1
+    if t0_mono is not None:
+        later_ns = monotonic_ns(lines[later[0]])
+        if earlier[0] is None:
+            earlier_ns = t0_mono
+        else:
+            earlier_ns = monotonic_ns(lines[earlier[0]])
+        if later_ns is not None and earlier_ns is not None:
+            return round((later_ns - earlier_ns) / 1_000_000)
+    if earlier[0] is None:
+        return -1 if earlier[1] is None else round((later[1] - earlier[1]).total_seconds() * 1000)
     return round((later[1] - earlier[1]).total_seconds() * 1000)
 
 render_match = re.search(r"rendered_dark_pixels=(\d+)", open(rendering_path, encoding="utf-8").read())
 value = {
     "attempt": int(attempt),
     "initialLoadDeferred": bool(deferred),
-    "appLaunchToEngineReadyMs": delta_ms(ready, (0, t0)) if t0 else -1,
+    "appLaunchToEngineReadyMs": delta_ms(ready, (None, t0)),
     "engineReadyToLoadRequestedMs": delta_ms(load, ready),
     "loadRequestedToLocationMs": delta_ms(location, load),
     "locationToPageCompleteMs": delta_ms(complete, location),
-    "firstNavigationDelayMs": delta_ms(location, (0, t0)) if t0 else -1,
-    "pageCompleteDelayMs": delta_ms(complete, (0, t0)) if t0 else -1,
+    "firstNavigationDelayMs": delta_ms(location, (None, t0)),
+    "pageCompleteDelayMs": delta_ms(complete, (None, t0)),
     "renderedDarkPixels": int(render_match.group(1)) if render_match else 0,
     "appSurvived": app_survived == "true",
     "crashCount": int(crash_count),

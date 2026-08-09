@@ -651,9 +651,15 @@ open_ids = sorted(set(requested) - set(connected) - set(failed))
 render_match = re.search(
     r"rendered_dark_pixels=(\d+)", Path(rendering_path).read_text(encoding="utf-8")
 )
-stats_line = next(
-    (line for line in reversed(lines) if "engine_event_stats delivered=" in line), None
-)
+# The tab-switch scenario re-opens the measured URL after the warm
+# navigation, so the LAST stats line belongs to the scenario reload. Bind the
+# engineEventStats evidence to the measured load: the first stats line at/after
+# the measured load request is that navigation's PageStop accounting.
+stats_line = None
+if load is not None:
+    stats_line = next(
+        (line for line in lines[load[0]:] if "engine_event_stats delivered=" in line), None
+    )
 stats_match = None
 if stats_line is not None:
     stats_match = re.search(
