@@ -191,6 +191,9 @@ def check_generate(manifest: dict[str, object]) -> None:
         url_result = run_generator(["url", "--ids", "speedometer3"], ROOT)
         require(url_result.returncode == 0 and url_result.stdout.strip() == speedometer_url,
                 f"url subcommand must print the speedometer3 entry path: {url_result.stdout!r}")
+        url_alias = run_generator(["url", "--benchmark", "speedometer3"], ROOT)
+        require(url_alias.returncode == 0 and url_alias.stdout.strip() == speedometer_url,
+                "url subcommand --benchmark alias must print the same entry path")
 
         require((fixture / "index.html").is_file(), "landing index.html missing")
         landing = (fixture / "index.html").read_text(encoding="utf-8")

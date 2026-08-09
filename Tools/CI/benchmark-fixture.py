@@ -556,6 +556,8 @@ def main() -> int:
 
     url_parser = subparsers.add_parser("url", help="print benchmark entry URL paths")
     url_parser.add_argument("--ids", default=None, help="comma-separated benchmark ids")
+    url_parser.add_argument("--benchmark", dest="ids", default=None,
+                            help="single benchmark id (alias for --ids)")
 
     args = parser.parse_args()
     try:
