@@ -77,7 +77,7 @@ PREFIX="$OUTPUT/attempt-$(printf '%02d' "$ATTEMPT")"
 printf 'attempt_start=%s\n' "$ATTEMPT_START_ISO" >> "$PREFIX-device.log"
 UDID=$(xcrun simctl create "Vulpra-R0-${GITHUB_RUN_ID:-local}-$ATTEMPT" "$DEVICE_TYPE" "$RUNTIME")
 printf 'attempt=%s\nruntime=%s\ndevice_type=%s\nudid=%s\n' \
-  "$ATTEMPT" "$RUNTIME" "$DEVICE_TYPE" "$UDID" > "$PREFIX-device.log"
+  "$ATTEMPT" "$RUNTIME" "$DEVICE_TYPE" "$UDID" >> "$PREFIX-device.log"
 set +e
 defaults write com.apple.iphonesimulator ConfirmOpenURLInSimulator -bool NO >> "$PREFIX-device.log" 2>&1
 DEFAULTS_WRITE_STATUS=$?

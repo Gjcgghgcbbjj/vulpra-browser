@@ -57,7 +57,7 @@ run_with_timeout() {
 mkdir -p "$OUTPUT"
 OUTPUT=$(CDPATH='' cd -- "$OUTPUT" && pwd)
 ATTEMPT_START_ISO=$(date '+%Y-%m-%d %H:%M:%S')
-T0_WALL_ISO=$(date '+%Y-%m-%d %H:%M:%S.%3N')
+T0_WALL_ISO=$(python3 -c 'from datetime import datetime; print(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])')
 
 LOG_PREDICATE='process == "Vulpra" OR process CONTAINS[c] "Vulpra Engine" OR senderImagePath CONTAINS[c] "Vulpra" OR eventMessage CONTAINS[c] "Vulpra"'
 UDID=
@@ -79,7 +79,7 @@ printf 'attempt_start=%s\nt0_wall_iso=%s\ncold_start_seconds=%s\n' \
   "$ATTEMPT_START_ISO" "$T0_WALL_ISO" "$COLD_START_SECONDS" >> "$PREFIX-device.log"
 UDID=$(xcrun simctl create "Vulpra-A2-${GITHUB_RUN_ID:-local}-$ATTEMPT" "$DEVICE_TYPE" "$RUNTIME")
 printf 'attempt=%s\nruntime=%s\ndevice_type=%s\nudid=%s\n' \
-  "$ATTEMPT" "$RUNTIME" "$DEVICE_TYPE" "$UDID" > "$PREFIX-device.log"
+  "$ATTEMPT" "$RUNTIME" "$DEVICE_TYPE" "$UDID" >> "$PREFIX-device.log"
 set +e
 defaults write com.apple.iphonesimulator ConfirmOpenURLInSimulator -bool NO >> "$PREFIX-device.log" 2>&1
 set -e
@@ -160,6 +160,12 @@ resolve_app_pid() {
 APP_PID=
 LAUNCH_STATUS=1
 LAUNCH_ATTEMPTS=0
+# The cold-start phase anchor is the moment the app process is requested, not
+# the harness start (device create/boot/install can take minutes on a fresh
+# simulator). launch_t0_iso is emitted with milliseconds in the same format as
+# the os_log evidence timestamps so delta computation is exact.
+LAUNCH_T0_ISO=$(python3 -c 'from datetime import datetime; print(datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])')
+printf 'launch_t0_iso=%s\n' "$LAUNCH_T0_ISO" >> "$PREFIX-device.log"
 set +e
 for _launch_attempt in 1 2; do
   LAUNCH_ATTEMPTS=$_launch_attempt
@@ -312,7 +318,7 @@ if [[ "$SWIFT_STATUS" -ne 0 ]]; then
   printf 'rendered_dark_pixels=0\n' > "$PREFIX-rendering.log"
 fi
 
-python3 - "$ATTEMPT" "$URL" "$T0_WALL_ISO" "$LOG_EVIDENCE" "$PREFIX-rendering.log" \
+python3 - "$ATTEMPT" "$URL" "$LAUNCH_T0_ISO" "$LOG_EVIDENCE" "$PREFIX-rendering.log" \
   "$APP_SURVIVED" "$CRASH_COUNT" "$PREFIX.json" "$PREFIX-device.log" <<'PY'
 from datetime import datetime
 import json

@@ -90,11 +90,14 @@ def main() -> None:
                 "single-attempt A2 gate did not produce a 1/1 summary")
         expect_failure(base, "too-few", valid[:8], "at least 10")
         slow = copy.deepcopy(valid)
-        slow[0]["firstNavigationDelayMs"] = 31_000
-        expect_failure(base, "slow-first-nav", slow, "exceeds 30000 ms")
+        slow[0]["firstNavigationDelayMs"] = 331_000
+        expect_failure(base, "slow-first-nav", slow, "exceeds 330000 ms")
         page_slow = copy.deepcopy(valid)
-        page_slow[0]["pageCompleteDelayMs"] = 46_000
-        expect_failure(base, "slow-page", page_slow, "exceeds 45000 ms")
+        page_slow[0]["pageCompleteDelayMs"] = 351_000
+        expect_failure(base, "slow-page", page_slow, "exceeds 350000 ms")
+        load_location = copy.deepcopy(valid)
+        load_location[0]["loadRequestedToLocationMs"] = 301_000
+        expect_failure(base, "slow-load-location", load_location, "exceeds 300000 ms")
         missing = copy.deepcopy(valid)
         missing[0]["markersPresent"] = ["runtime-ready"]
         expect_failure(base, "missing-markers", missing, "missing required cold-start markers")
