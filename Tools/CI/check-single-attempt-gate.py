@@ -65,6 +65,30 @@ def check(attempt_path: Path) -> None:
             "attempt 1 gate dispatch did not succeed: "
             f"status {attempt.get('gateDispatchStatus')}"
         )
+    if attempt.get("tabSwitchStatus") != "completed":
+        fail(
+            "attempt 1 tab-switch-during-load scenario did not complete: "
+            f"{attempt.get('tabSwitchStatus')}"
+        )
+    stats = attempt.get("engineEventStats")
+    if not isinstance(stats, dict) or set(stats) != {"delivered", "coalesced", "total"}:
+        fail("attempt 1 engineEventStats has invalid keys")
+    delivered = integer(stats.get("delivered"), "attempt engineEventStats.delivered", 1)
+    coalesced = integer(stats.get("coalesced"), "attempt engineEventStats.coalesced")
+    total = integer(stats.get("total"), "attempt engineEventStats.total", 1)
+    if total != delivered + coalesced:
+        fail("attempt 1 engineEventStats total does not equal delivered + coalesced")
+    integer(
+        attempt.get("browserTabDeactivatedCount"),
+        "attempt browserTabDeactivatedCount", 1,
+    )
+    if type(attempt.get("initialLoadPath")) is not bool:
+        fail("attempt 1 initialLoadPath must be a Boolean")
+    deferred_ms = integer(
+        attempt.get("initialLoadDeferredMs"), "attempt initialLoadDeferredMs", -1,
+    )
+    if attempt.get("initialLoadPath") and deferred_ms < 0:
+        fail("attempt 1 deferred load path is missing its deferral measurement")
     for key in ("openLaunchIDs", "failedLaunchIDs"):
         if id_array(attempt.get(key), f"attempt {key}"):
             fail(f"attempt 1 leaves unresolved launches: {key} is non-empty")

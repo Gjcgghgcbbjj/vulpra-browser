@@ -62,7 +62,9 @@ final class TabManager: BrowserTabObserver {
     @MainActor
     func select(_ tab: BrowserTab) {
         guard tabs.contains(where: { $0 === tab }) else { return }
-        selectedTab?.captureThumbnail(); selectedTab?.setActive(false)
+        // Thumbnails refresh on page completion (BrowserTab), never on the
+        // tab-switch path: select() must stay free of main-thread draw work.
+        selectedTab?.setActive(false)
         selectedID = tab.id; tab.setActive(true); changed()
     }
 

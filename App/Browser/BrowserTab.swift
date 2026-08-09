@@ -47,6 +47,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     private(set) var httpFallbackURL: URL?
     private(set) var lastAccess: Date
     private(set) var thumbnail: UIImage?
+    private var thumbnailWorkItem: DispatchWorkItem?
     weak var permissionHandler: (any EnginePermissionHandler)?
     weak var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)?
     weak var promptHandler: (any EnginePromptHandler)?
@@ -122,9 +123,28 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
 
     var hasLiveSession: Bool { session != nil && engineSurface != nil }
 
-    func releaseThumbnail() { thumbnail = nil }
+    func releaseThumbnail() {
+        thumbnailWorkItem?.cancel(); thumbnailWorkItem = nil
+        thumbnail = nil
+    }
+
+    /// Refreshes the tab thumbnail after a completed load, off the PageStop
+    /// observer turn and never on the tab-switch path (TabManager.select no
+    /// longer performs main-thread drawHierarchy work). The capture is
+    /// debounced so burst PageStops produce at most one render pass, and only
+    /// runs while the engine view is still attached (non-zero bounds).
+    private func scheduleThumbnailCapture() {
+        thumbnailWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !self.isLoading else { return }
+            self.captureThumbnail()
+        }
+        thumbnailWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
+    }
 
     func suspend() {
+        thumbnailWorkItem?.cancel(); thumbnailWorkItem = nil
         session?.close(); session = nil; engineSurface = nil; progress = 0; isLoading = false
     }
 
@@ -157,7 +177,13 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         session?.update(configuration: settings.engineConfiguration(isPrivate: isPrivate))
     }
 
-    func setActive(_ active: Bool) { session?.setActive(active); session?.setFocused(active) }
+    func setActive(_ active: Bool) {
+        // Evidence for the hidden-session compositor-suspend contract: every
+        // host-side activation change is recorded so the gate can prove the
+        // App deactivates hidden tabs on switch and on scene background.
+        logger.notice("browser_tab_active=\(active) tab=\(id.uuidString, privacy: .public)")
+        session?.setActive(active); session?.setFocused(active)
+    }
     func goBack() { session?.goBack() }
     func goForward() { session?.goForward() }
     func reload() { session?.reload() }
@@ -193,6 +219,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         case .completed(_, let succeeded):
             isLoading = false
             if succeeded { progress = 100; httpFallbackURL = nil }
+            scheduleThumbnailCapture()
         case .failed(_, let failure):
             isLoading = false; lastFailure = failure
         }

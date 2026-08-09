@@ -14,10 +14,12 @@ final class GateDispatchServer {
     private let logger = Logger(subsystem: "com.vulpra.browser", category: "gate")
     private let listener: NWListener
     private let onOpen: (URL) -> Void
+    private let onTabSwitchDuringLoad: ((URL) -> Void)?
     private var connections: [ObjectIdentifier: NWConnection] = [:]
     private let queue = DispatchQueue(label: "com.vulpra.browser.gate.dispatch")
 
-    init?(portText: String, onOpen: @escaping (URL) -> Void) {
+    init?(portText: String, onOpen: @escaping (URL) -> Void,
+          onTabSwitchDuringLoad: ((URL) -> Void)? = nil) {
         guard let value = UInt16(portText), let port = NWEndpoint.Port(rawValue: value) else {
             return nil
         }
@@ -29,6 +31,7 @@ final class GateDispatchServer {
         }
         self.listener = listener
         self.onOpen = onOpen
+        self.onTabSwitchDuringLoad = onTabSwitchDuringLoad
     }
 
     func start() {
@@ -129,8 +132,29 @@ final class GateDispatchServer {
         guard !body.isEmpty,
               let data = body.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data),
-              let dictionary = object as? [String: Any],
-              let value = (dictionary["deepLink"] as? String) ?? (dictionary["url"] as? String),
+              let dictionary = object as? [String: Any]
+        else {
+            self.respond("bad request", code: 400, on: connection)
+            return
+        }
+        if dictionary["scenario"] as? String == "tab-switch-during-load" {
+            guard let onTabSwitchDuringLoad,
+                  let value = (dictionary["url"] as? String) ?? (dictionary["deepLink"] as? String),
+                  let target = URL(string: value),
+                  let scheme = target.scheme?.lowercased(),
+                  scheme == "http" || scheme == "https"
+            else {
+                self.respond("bad request", code: 400, on: connection)
+                return
+            }
+            self.logger.notice("Vulpra gate dispatch scenario=tab-switch-during-load url=\(value, privacy: .public)")
+            DispatchQueue.main.async {
+                onTabSwitchDuringLoad(target)
+            }
+            self.respond("ok", code: 200, on: connection)
+            return
+        }
+        guard let value = (dictionary["deepLink"] as? String) ?? (dictionary["url"] as? String),
               let url = URL(string: value)
         else {
             self.respond("bad request", code: 400, on: connection)

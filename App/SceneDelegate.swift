@@ -39,6 +39,8 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                // target web URL before handing it to the browser/engine.
                guard let resolved = RuntimeURLRouter.resolve(url) else { return }
                self?.browser?.open(resolved)
+           }, onTabSwitchDuringLoad: { [weak self] url in
+               self?.browser?.runTabSwitchDuringLoadScenario(url: url)
            }) {
             gateDispatchServer = server
             server.start()

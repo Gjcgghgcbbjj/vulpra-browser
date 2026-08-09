@@ -56,7 +56,7 @@ def main() -> int:
     # 1. BrowserTab capabilities
     require("var hasLiveSession: Bool { session != nil && engineSurface != nil }" in tab,
             "BrowserTab missing hasLiveSession")
-    require("func releaseThumbnail() { thumbnail = nil }" in tab,
+    require("func releaseThumbnail()" in tab and "thumbnail = nil" in tab,
             "BrowserTab missing releaseThumbnail")
 
     # 2. TabManager graded API

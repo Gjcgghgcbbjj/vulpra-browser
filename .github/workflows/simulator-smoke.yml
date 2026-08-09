@@ -20,6 +20,11 @@ on:
         required: true
         default: 1
         type: number
+      a2_cold_start_attempts:
+        description: Fresh-launch cold-start attempts (0 skips; 1 = single-attempt A2 gate)
+        required: false
+        default: 0
+        type: number
       app_bundle_run_id:
         description: Reuse Vulpra.app built by a prior green simulator run at the same commit instead of rebuilding
         required: false
@@ -398,6 +403,87 @@ jobs:
             --output "$evidence/summary.json" \
             | tee simulator-r0-summary.log
 
+      - name: Run A2 cold-start single-attempt gate
+        if: ${{ inputs.a2_cold_start_attempts != 0 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          attempts='${{ inputs.a2_cold_start_attempts }}'
+          [[ "$attempts" =~ ^[1-9][0-9]*$ ]] && (( attempts <= 20 ))
+          fixture_dir="$(mktemp -d)"
+          printf '%s\n' \
+            '<!doctype html><html><head><meta charset="utf-8"><title>Vulpra Engine Fixture</title>' \
+            '<style>html,body{margin:0;min-height:100%;background:#fff}body{display:grid;place-items:center;min-height:100vh}' \
+            'main{width:72vw;height:36vh;display:grid;place-items:center;background:#102a24;color:#fff;font:700 28px system-ui}</style></head>' \
+            '<body><main data-vulpra-engine-fixture>Vulpra Engine Ready</main></body></html>' \
+            > "$fixture_dir/index.html"
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory "$fixture_dir" \
+            > simulator-a2-fixture.log 2>&1 &
+          fixture_pid=$!
+          cleanup_fixture() {
+            kill "$fixture_pid" >/dev/null 2>&1 || true
+            wait "$fixture_pid" >/dev/null 2>&1 || true
+            rm -rf "$fixture_dir"
+          }
+          trap cleanup_fixture EXIT
+          smoke_url='http://127.0.0.1:8765/'
+          for _ in {1..25}; do
+            curl --max-time 2 --fail --silent "$smoke_url" >/dev/null 2>&1 && break
+            sleep 0.2
+          done
+          curl --max-time 2 --fail --silent "$smoke_url" >/dev/null
+          app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          if [[ '${{ inputs.isolate_engine_process }}' == 'true' ]]; then
+            rm -rf "$app/PlugIns/OpenIn.appex"
+          fi
+          runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'
+          device_type="$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["devicetypes"]
+                    if item.get("name", "").startswith("iPhone")]
+          if not values: raise SystemExit("no iPhone Simulator type")
+          preferred = [item for item in values if "Pro" in item["name"]]
+          print((preferred or values)[-1]["identifier"])
+          ')"
+          # A fresh single-attempt cold-start pass must come before the
+          # repeated loop (same user rule as the R0 navigation gate).
+          evidence='.build/a2-cold-start-gate'
+          rm -rf "$evidence"
+          mkdir -p "$evidence/attempts"
+          printf 'A2 single-attempt gate attempt 1 starting at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          Tools/CI/run-simulator-cold-start.sh \
+            --app "$app" \
+            --runtime "$runtime" \
+            --device-type "$device_type" \
+            --attempt 1 \
+            --output "$evidence/attempts" \
+            --url "$smoke_url" \
+            --cold-start-seconds 240
+          python3 Tools/CI/check-single-attempt-cold-start-gate.py \
+            --input "$evidence/attempts/attempt-01.json"
+          printf 'A2 single-attempt cold-start gate passed at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          if (( attempts > 1 )); then
+            for attempt in $(seq 2 "$attempts"); do
+              printf 'A2 gate attempt %s/%s starting at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+              Tools/CI/run-simulator-cold-start.sh \
+                --app "$app" \
+                --runtime "$runtime" \
+                --device-type "$device_type" \
+                --attempt "$attempt" \
+                --output "$evidence/attempts" \
+                --url "$smoke_url" \
+                --cold-start-seconds 240
+            done
+          fi
+          python3 Tools/CI/summarize-cold-start-gate.py \
+            --attempts "$attempts" \
+            --input "$evidence/attempts" \
+            --output "$evidence/summary.json" \
+            | tee a2-cold-start-summary.log
+
       - name: Upload reusable Simulator App bundle
         if: ${{ inputs.app_bundle_run_id == '' }}
         uses: actions/upload-artifact@v4
@@ -412,6 +498,15 @@ jobs:
         with:
           name: r0-engine-gate
           path: .build/r0-engine-gate/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload A2 cold-start gate
+        if: ${{ always() && inputs.a2_cold_start_attempts != 0 }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2-cold-start-gate
+          path: .build/a2-cold-start-gate/
           if-no-files-found: warn
           retention-days: 30
 

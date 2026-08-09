@@ -160,9 +160,9 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         ])
         attachedEngineView = engineView
         logger.notice("Engine view attached")
-        DispatchQueue.main.async { [weak self, weak tab] in
-            guard let self, self.attachedEngineView === engineView else { return }; tab?.setActive(self.isSceneActive)
-        }
+        // Activate synchronously so SetActive cannot race the next PageStop.
+        contentContainer.layoutIfNeeded()
+        tab.setActive(isSceneActive)
     }
     private func showStartPage() {
         attachedEngineView?.removeFromSuperview()

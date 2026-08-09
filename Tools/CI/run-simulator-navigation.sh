@@ -155,6 +155,22 @@ navigation_completed() {
   return 1
 }
 
+# v1 negative-path evidence: the tab-switch-during-load scenario completes in
+# the App (BrowserViewController) and is observed the same way as navigation
+# completion (live stream first, persisted unified-log snapshot as fallback).
+tab_switch_scenario_completed() {
+  local marker="gate_scenario=tab-switch-during-load completed"
+  if [[ -f "$PREFIX-stream.log" ]] && grep -Fq "$marker" "$PREFIX-stream.log"; then
+    return 0
+  fi
+  refresh_navigation_snapshot
+  if [[ -f "$PREFIX-persisted-nav.log" ]] && grep -Fq "$marker" "$PREFIX-persisted-nav.log"; then
+    printf 'tab_switch_scenario_completed_via=persisted-store\n' >> "$PREFIX-device.log" || true
+    return 0
+  fi
+  return 1
+}
+
 app_is_running() {
   [[ "$APP_PID" =~ ^[1-9][0-9]*$ ]] && /bin/kill -0 "$APP_PID" >/dev/null 2>&1
 }
@@ -186,6 +202,45 @@ gate_http_dispatch() {
     done
   fi
   printf 'gate_dispatch_status_final=%s\n' "$DISPATCH_STATUS" >> "$PREFIX-device.log"
+}
+
+# Triggers the App-side tab-switch-during-load scenario over the loopback gate
+# dispatch server, then waits for the App's completion marker. The scenario
+# re-opens the measured URL in the selected tab, switches to a second tab
+# while it is still loading, and switches back; it exercises the hidden-session
+# suspend/activate path and the event coalescing contract on the same snapshot
+# as the measured warm navigation.
+gate_scenario_tab_switch() {
+  local url=$1
+  local scenario_started waited dispatch_status
+  printf 'tab_switch_scenario_started=true url=%s\n' "$url" >> "$PREFIX-device.log"
+  scenario_started=$(monotonic_ms)
+  set +e
+  run_with_timeout 30 curl --fail --silent --show-error \
+    -H 'Content-Type: application/json' \
+    --data "{\"scenario\": \"tab-switch-during-load\", \"url\": \"$url\"}" \
+    "$GATE_DISPATCH_URL" >> "$PREFIX-device.log" 2>&1
+  dispatch_status=$?
+  set -e
+  printf 'tab_switch_scenario_dispatch_status=%s\n' "$dispatch_status" >> "$PREFIX-device.log"
+  if [[ "$dispatch_status" -ne 0 ]]; then
+    return 1
+  fi
+  waited=0
+  while (( waited < 30 )); do
+    if tab_switch_scenario_completed; then
+      printf 'tab_switch_scenario_wait_ms=%s\n' "$(( $(monotonic_ms) - scenario_started ))" >> "$PREFIX-device.log"
+      return 0
+    fi
+    if ! app_is_running; then
+      printf 'tab_switch_scenario_app_dead=true\n' >> "$PREFIX-device.log"
+      return 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  printf 'tab_switch_scenario_timed_out=true\n' >> "$PREFIX-device.log"
+  return 1
 }
 
 monotonic_ms() {
@@ -310,6 +365,22 @@ if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
       fi
       sleep 1
     done
+    # v1 negative-path evidence: after the measured warm navigation completes,
+    # re-open the measured URL and switch to a second tab and back while the
+    # page is loading again. This exercises the hidden-session suspend/activate
+    # path, the synchronous SetActive handoff, and the coalesced event pipeline
+    # that the 20x gate cannot reach with a single-tab warm navigation.
+    TAB_SWITCH_SCENARIO_STATUS=-1
+    if navigation_completed "$URL" && app_is_running; then
+      if gate_scenario_tab_switch "$URL"; then
+        TAB_SWITCH_SCENARIO_STATUS=0
+      else
+        TAB_SWITCH_SCENARIO_STATUS=1
+      fi
+    else
+      printf 'tab_switch_scenario_skipped=main-navigation-incomplete\n' >> "$PREFIX-device.log"
+    fi
+    printf 'tab_switch_scenario_status=%s\n' "$TAB_SWITCH_SCENARIO_STATUS" >> "$PREFIX-device.log"
   else
     # The app died before the settle/audit step. Keep the evidence record
     # complete and self-describing: the gate still rejects the attempt via
@@ -319,6 +390,8 @@ if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
     printf 'warm_settle_start=skipped-app-dead\nwarm_settle_waited_seconds=-1\n' >> "$PREFIX-device.log"
     printf 'openurl_status=skipped\nopenurl_blocked_by_system_prompt=skipped-app-dead\n' >> "$PREFIX-device.log"
     printf 'gate_dispatch_status=skipped-app-dead\ngate_dispatch_status_final=-1\n' >> "$PREFIX-device.log"
+    printf 'tab_switch_scenario_skipped=app-dead\n' >> "$PREFIX-device.log"
+    printf 'tab_switch_scenario_status=-1\n' >> "$PREFIX-device.log"
   fi
   printf 'DELIVERY_METHOD=%s\n' "$DELIVERY_METHOD" >> "$PREFIX-device.log"
 
@@ -332,6 +405,8 @@ else
   printf 'warm_settle_start=skipped-launch-failed\nwarm_settle_waited_seconds=-1\n' >> "$PREFIX-device.log"
   printf 'openurl_status=skipped\nopenurl_blocked_by_system_prompt=skipped-launch-failed\n' >> "$PREFIX-device.log"
   printf 'gate_dispatch_status=skipped-launch-failed\ngate_dispatch_status_final=-1\n' >> "$PREFIX-device.log"
+  printf 'tab_switch_scenario_skipped=launch-failed\n' >> "$PREFIX-device.log"
+  printf 'tab_switch_scenario_status=-1\n' >> "$PREFIX-device.log"
   printf 'DELIVERY_METHOD=unavailable\n' >> "$PREFIX-device.log"
 fi
 
@@ -515,7 +590,11 @@ def find_events(prefix, url):
 
 load_events = find_events("Engine load requested: ", smoke_url)
 location_events = find_events("Engine location: ", smoke_url)
-load = load_events[-1] if load_events else None
+# The v1 tab-switch scenario re-opens the measured URL after the warm
+# navigation completes, so the URL is loaded twice in the evidence window.
+# loadToCompleteMs must keep measuring the warm navigation (the first load),
+# not the scenario reload.
+load = load_events[0] if load_events else None
 location = None
 if load is not None:
     for index, at in location_events:
@@ -572,6 +651,33 @@ open_ids = sorted(set(requested) - set(connected) - set(failed))
 render_match = re.search(
     r"rendered_dark_pixels=(\d+)", Path(rendering_path).read_text(encoding="utf-8")
 )
+stats_line = next(
+    (line for line in reversed(lines) if "engine_event_stats delivered=" in line), None
+)
+stats_match = None
+if stats_line is not None:
+    stats_match = re.search(
+        r"engine_event_stats delivered=(\d+) coalesced=(\d+) total=(\d+)", stats_line
+    )
+engine_delivered = int(stats_match.group(1)) if stats_match else 0
+engine_coalesced = int(stats_match.group(2)) if stats_match else 0
+engine_total = int(stats_match.group(3)) if stats_match else 0
+browser_tab_deactivated = sum(1 for line in lines if "browser_tab_active=false" in line)
+initial_path_line = None
+if load is not None:
+    initial_path_line = next(
+        (line for line in lines[load[0]:] if "initial_load_deferred=" in line), None
+    )
+initial_load_path = initial_path_line is not None and "initial_load_deferred=true" in initial_path_line
+deferral_line = next(
+    (line for line in lines if "initial_load_deferred_ms=" in line), None
+)
+deferral_match = re.search(r"initial_load_deferred_ms=(\d+)", deferral_line) if deferral_line else None
+initial_load_deferred_ms = int(deferral_match.group(1)) if deferral_match else -1
+tab_switch_status_raw = metric("tab_switch_scenario_status")
+tab_switch_status = {
+    "0": "completed", "1": "aborted", "-1": "skipped",
+}.get(tab_switch_status_raw, "skipped")
 value = {
     "attempt": int(attempt),
     "locationMatched": location is not None,
@@ -593,6 +699,15 @@ value = {
     "launchAttempts": int_metric(metric("launch_attempts")),
     "logShowStatus": int_metric(metric("log_show_status")),
     "logEvidenceSource": metric("log_evidence_source") or "unknown",
+    "tabSwitchStatus": tab_switch_status,
+    "engineEventStats": {
+        "delivered": engine_delivered,
+        "coalesced": engine_coalesced,
+        "total": engine_total,
+    },
+    "browserTabDeactivatedCount": browser_tab_deactivated,
+    "initialLoadPath": initial_load_path,
+    "initialLoadDeferredMs": initial_load_deferred_ms,
 }
 Path(output).write_text(json.dumps(value, indent=2) + "\n", encoding="utf-8")
 PY

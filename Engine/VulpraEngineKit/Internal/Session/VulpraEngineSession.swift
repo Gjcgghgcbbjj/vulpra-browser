@@ -24,9 +24,13 @@ public final class VulpraEngineSession: EngineSession {
     private var requestedWindowID: String?
     private var pendingCommands: [(type: String, message: [String: Any])] = []
     private var pendingInitialLoadCommands: [(type: String, message: [String: Any])] = []
-    private var awaitingInitialPageStop = false
+    private var initialLoadQueuedAtNanoseconds: UInt64?
     private var stoppedByUser = false
     private var navigationFailureReported = false
+    private var eventCoalescer = EngineEventCoalescer()
+    private var eventFlushScheduled = false
+    private var navigationDeliveredCount = 0
+    private var navigationCoalescingBaseline = 0
     private var navigation = EngineNavigationEvent(
         sessionID: EngineSessionID(), url: nil, title: "", canGoBack: false, canGoForward: false
     )
@@ -100,9 +104,7 @@ public final class VulpraEngineSession: EngineSession {
             }
             Self.logger.notice("Engine window opened")
             navigationObserver?.engineSessionDidOpen(id)
-            if !pendingInitialLoadCommands.isEmpty {
-                awaitingInitialPageStop = true
-            }
+            flushInitialLoadCommands()
             flushPendingCommands()
         }
     }
@@ -113,7 +115,9 @@ public final class VulpraEngineSession: EngineSession {
         requestedWindowID = nil
         pendingCommands.removeAll()
         pendingInitialLoadCommands.removeAll()
-        awaitingInitialPageStop = false
+        initialLoadQueuedAtNanoseconds = nil
+        eventFlushScheduled = false
+        _ = eventCoalescer.drain()
         guard lifecycle.beginClose() else { return }
         guard let window else { lifecycle.finishClose(); return }
         self.window = nil
@@ -155,9 +159,11 @@ public final class VulpraEngineSession: EngineSession {
             return
         }
         if type == "GeckoView:LoadUri" {
-            // A2: deferred path — LoadUri waits for the first PageStop of the
-            // initial (about:blank) window before dispatch.
+            // A2: deferred path — LoadUri is queued until the engine window is
+            // open, then flushed at window-open (annex 21) instead of waiting
+            // for the initial about:blank PageStop (cold-nav half-beat).
             Self.logger.notice("initial_load_deferred=true")
+            initialLoadQueuedAtNanoseconds = DispatchTime.now().uptimeNanoseconds
             pendingInitialLoadCommands.append((type, message))
             return
         }
@@ -172,12 +178,31 @@ public final class VulpraEngineSession: EngineSession {
         }
     }
 
+    /// A2: flushes queued initial LoadUri commands at window-open instead of
+    /// waiting for the initial about:blank window's first PageStop, removing
+    /// the cold-navigation half-beat. The deferral duration is recorded as
+    /// evidence (initial_load_deferred_ms) so the blind spot in the warm-engine
+    /// navigation gate is closed by the cold-start fixture.
+    private func flushInitialLoadCommands() {
+        guard !pendingInitialLoadCommands.isEmpty else { return }
+        if let queuedAt = initialLoadQueuedAtNanoseconds {
+            let deferralMs = Int((DispatchTime.now().uptimeNanoseconds - queuedAt) / 1_000_000)
+            Self.logger.notice("initial_load_deferred_ms=\(deferralMs)")
+        }
+        initialLoadQueuedAtNanoseconds = nil
+        let initialLoads = pendingInitialLoadCommands
+        pendingInitialLoadCommands.removeAll()
+        for command in initialLoads { dispatch(command.type, command.message) }
+    }
+
     private func failOpen(_ failure: EngineFailure) {
         readinessObservation = nil
         requestedWindowID = nil
         pendingCommands.removeAll()
         pendingInitialLoadCommands.removeAll()
-        awaitingInitialPageStop = false
+        initialLoadQueuedAtNanoseconds = nil
+        eventFlushScheduled = false
+        _ = eventCoalescer.drain()
         lifecycle.fail(failure)
         Self.logger.error("Engine session failed: \(failure.code, privacy: .public)")
         progressObserver?.engineSession(id, didUpdate: .failed(sessionID: id, failure: failure))
@@ -185,7 +210,12 @@ public final class VulpraEngineSession: EngineSession {
 
     private func dispatch(_ type: String, _ message: [String: Any]) {
         guard let window else { return }
-        Self.logger.notice("Engine command dispatched: \(type, privacy: .public)")
+        if type == "GeckoView:SetActive" {
+            let active = message["active"] as? Bool ?? false
+            Self.logger.notice("Engine command dispatched: \(type, privacy: .public) active=\(active)")
+        } else {
+            Self.logger.notice("Engine command dispatched: \(type, privacy: .public)")
+        }
         let name = type as NSString
         let payload = message as NSDictionary
         withExtendedLifetime(name) {
@@ -201,6 +231,29 @@ public final class VulpraEngineSession: EngineSession {
     }
 
     private func handleOnMain(type: String, payload: [String: Any], callback: EngineABICallbackLease?) {
+        // Callback-carrying requests must never be coalesced or reordered:
+        // deliver any pending fire-and-forget state first, then the request.
+        if callback != nil {
+            flushCoalescedEvents()
+            handleImmediate(type: type, payload: payload, callback: callback)
+            return
+        }
+        if EngineEventDelivery.coalescedKinds.contains(type) {
+            _ = eventCoalescer.record(kind: type, payload: payload)
+            scheduleEventFlush()
+            return
+        }
+        if EngineEventDelivery.criticalKinds.contains(type) {
+            // State transitions must arrive in engine order: flush pending
+            // coalesced events first so location/progress precede PageStop
+            // exactly as the engine emitted them.
+            flushCoalescedEvents()
+        }
+        handleImmediate(type: type, payload: payload, callback: callback)
+    }
+
+    private func handleImmediate(type: String, payload: [String: Any], callback: EngineABICallbackLease?) {
+        navigationDeliveredCount += 1
         switch type {
         case "GeckoView:LocationChange":
             navigation = EngineNavigationEvent(
@@ -221,20 +274,20 @@ public final class VulpraEngineSession: EngineSession {
         case "GeckoView:PageStart":
             stoppedByUser = false
             navigationFailureReported = false
+            navigationDeliveredCount = 1
+            navigationCoalescingBaseline = eventCoalescer.coalescedCount
             progressObserver?.engineSession(id, didUpdate: .started(sessionID: id, url: Self.url(payload["uri"])))
         case "GeckoView:PageStop":
             let succeeded = payload["success"] as? Bool ?? false
+            let coalescedThisNavigation = eventCoalescer.coalescedCount - navigationCoalescingBaseline
+            Self.logger.notice(
+                "engine_event_stats delivered=\(navigationDeliveredCount) coalesced=\(coalescedThisNavigation) total=\(navigationDeliveredCount + coalescedThisNavigation)"
+            )
             Self.logger.notice("Engine page completed: \(succeeded, privacy: .public)")
             if succeeded || stoppedByUser {
                 progressObserver?.engineSession(id, didUpdate: .completed(sessionID: id, succeeded: succeeded))
             } else if !navigationFailureReported { reportNavigationFailure(payload) }
             stoppedByUser = false
-            if awaitingInitialPageStop {
-                awaitingInitialPageStop = false
-                let initialLoads = pendingInitialLoadCommands
-                pendingInitialLoadCommands.removeAll()
-                for command in initialLoads { dispatch(command.type, command.message) }
-            }
         case "GeckoView:ProgressChanged":
             let value = (payload["progress"] as? NSNumber)?.doubleValue ?? 0
             progressObserver?.engineSession(id, didUpdate: .changed(sessionID: id, fraction: max(0, min(1, value / 100))))
@@ -283,6 +336,51 @@ public final class VulpraEngineSession: EngineSession {
         default: break
         }
         resolve(callback, value: NSNull())
+    }
+
+    /// Delivery classes for engine events. High-frequency fire-and-forget
+    /// events are coalesced per main-queue turn; state-transition and
+    /// callback-carrying events are delivered immediately (after flushing
+    /// pending coalesced state) so engine ordering is preserved.
+    private enum EngineEventDelivery {
+        static let coalescedKinds: Set<String> = [
+            "GeckoView:ProgressChanged",
+            "GeckoView:LocationChange",
+            "GeckoView:PageTitleChanged",
+            "GeckoView:SecurityChanged",
+        ]
+        static let criticalKinds: Set<String> = [
+            "GeckoView:PageStart",
+            "GeckoView:PageStop",
+            "GeckoView:ContentCrash",
+            "GeckoView:ContentKill",
+            "GeckoView:OnLoadError",
+            "GeckoView:DOMWindowClose",
+            "GeckoView:FocusRequest",
+        ]
+    }
+
+    /// Schedules one coalesced-event flush for the next main-queue turn.
+    private func scheduleEventFlush() {
+        guard !eventFlushScheduled else { return }
+        eventFlushScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.eventFlushScheduled = false
+            self.flushCoalescedEvents()
+        }
+    }
+
+    /// Delivers pending coalesced events in first-arrival order. Called by the
+    /// scheduled flush and before every critical/callback-carrying event so
+    /// engine ordering is never violated.
+    private func flushCoalescedEvents() {
+        guard case .open = lifecycle.state, !eventCoalescer.isEmpty else { return }
+        eventFlushScheduled = false
+        let items = eventCoalescer.drain()
+        for item in items {
+            handleImmediate(type: item.kind, payload: item.payload, callback: nil)
+        }
     }
 
     private func reportNavigationFailure(_ payload: [String: Any]) {

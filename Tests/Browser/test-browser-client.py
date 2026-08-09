@@ -95,12 +95,13 @@ def main() -> None:
             "browser repeatedly reactivates or detaches the active engine view")
     require("reassertActivationIfNeeded" not in controller and
             "tabManager.selectedTab?.setActive(active)" in controller and
-            "tab?.setActive(self.isSceneActive)" in controller,
+            "tab.setActive(isSceneActive)" in controller,
             "browser did not retire page-load activation replay while preserving scene/tab activation")
     require("tab.retry(settings: BrowserSettingsStore.shared.value)" in controller,
             "browser no longer exposes user-triggered retry")
-    require("DispatchQueue.main.async { [weak self, weak tab] in" in controller,
-            "browser activates a newly attached view before queued navigation is flushed")
+    require("contentContainer.layoutIfNeeded()" in controller and
+            "DispatchQueue.main.async { [weak self, weak tab] in" not in controller,
+            "browser still defers SetActive to an async hop instead of activating synchronously after layout")
     require("suggestionWorkItem?.cancel()" in controller and
             "asyncAfter(deadline: .now() + 0.09" in controller,
             "omnibox suggestions are not coalesced before scanning local history")

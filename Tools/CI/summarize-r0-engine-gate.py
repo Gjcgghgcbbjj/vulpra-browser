@@ -16,6 +16,8 @@ ATTEMPT_KEYS = {
     "requestedLaunchIDs", "connectedLaunchIDs", "failedLaunchIDs", "openLaunchIDs",
     "deliveryMethod", "warmSettleSeconds", "gateDispatchStatus", "openurlStatus",
     "launchStatus", "launchAttempts", "logShowStatus", "logEvidenceSource",
+    "tabSwitchStatus", "engineEventStats", "browserTabDeactivatedCount",
+    "initialLoadPath", "initialLoadDeferredMs",
 }
 EVENT_KEYS = {
     "launchID", "childID", "processType", "pid", "stage",
@@ -192,6 +194,29 @@ def validate_attempt(value: object) -> dict[str, object]:
     evidence_source = value["logEvidenceSource"]
     if not isinstance(evidence_source, str) or not evidence_source:
         fail(f"attempt {attempt} logEvidenceSource is invalid")
+    tab_switch_status = value["tabSwitchStatus"]
+    if tab_switch_status != "completed":
+        fail(f"attempt {attempt} tab-switch-during-load scenario did not complete: {tab_switch_status}")
+    stats = value["engineEventStats"]
+    if not isinstance(stats, dict) or set(stats) != {"delivered", "coalesced", "total"}:
+        fail(f"attempt {attempt} engineEventStats has invalid keys")
+    delivered = integer(stats["delivered"], f"attempt {attempt} engineEventStats.delivered", 1)
+    coalesced = integer(stats["coalesced"], f"attempt {attempt} engineEventStats.coalesced")
+    total = integer(stats["total"], f"attempt {attempt} engineEventStats.total", 1)
+    if total != delivered + coalesced:
+        fail(f"attempt {attempt} engineEventStats total does not equal delivered + coalesced")
+    integer(
+        value["browserTabDeactivatedCount"],
+        f"attempt {attempt} browserTabDeactivatedCount", 1,
+    )
+    initial_path = value["initialLoadPath"]
+    if not isinstance(initial_path, bool):
+        fail(f"attempt {attempt} initialLoadPath must be a Boolean")
+    deferred_ms = integer(
+        value["initialLoadDeferredMs"], f"attempt {attempt} initialLoadDeferredMs", -1,
+    )
+    if initial_path and deferred_ms < 0:
+        fail(f"attempt {attempt} deferred load path is missing its deferral measurement")
     derived = validate_lifecycle(value["lifecycleEvents"])
     labels = ("requestedLaunchIDs", "connectedLaunchIDs", "failedLaunchIDs", "openLaunchIDs")
     stored_connected = id_array(value["connectedLaunchIDs"], f"attempt {attempt} connectedLaunchIDs")
@@ -241,6 +266,12 @@ def summarize(attempts: list[dict[str, object]], expected_count: int) -> dict[st
         "totalConnectedLaunches": sum(len(attempt["connectedLaunchIDs"]) for attempt in attempts),
         "totalFailedLaunches": 0,
         "totalOpenLaunches": 0,
+        "scenarioCompletedAttempts": sum(
+            1 for attempt in attempts if attempt["tabSwitchStatus"] == "completed"
+        ),
+        "totalDeliveredEvents": sum(attempt["engineEventStats"]["delivered"] for attempt in attempts),
+        "totalCoalescedEvents": sum(attempt["engineEventStats"]["coalesced"] for attempt in attempts),
+        "totalBrowserTabDeactivations": sum(attempt["browserTabDeactivatedCount"] for attempt in attempts),
     }
 
 

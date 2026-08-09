@@ -63,6 +63,11 @@ def valid_attempt(identifier: int, duration: int = 12000) -> dict[str, object]:
         "launchAttempts": 1,
         "logShowStatus": 0,
         "logEvidenceSource": "merged-system+stream",
+        "tabSwitchStatus": "completed",
+        "engineEventStats": {"delivered": 14, "coalesced": 9, "total": 23},
+        "browserTabDeactivatedCount": 2,
+        "initialLoadPath": False,
+        "initialLoadDeferredMs": -1,
     }
 
 
@@ -102,8 +107,20 @@ elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" =
 2026-07-30 12:00:01.000 Engine location: http://127.0.0.1:8765/?vulpra-warm=1
 2026-07-30 12:00:02.000 Engine page completed: true
 2026-07-30 12:00:02.500 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:02.600 initial_load_deferred=false
 2026-07-30 12:00:03.000 Engine location: http://127.0.0.1:8765/
 2026-07-30 12:00:04.000 Engine page completed: true
+2026-07-30 12:00:04.010 engine_event_stats delivered=14 coalesced=9 total=23
+2026-07-30 12:00:04.100 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:04.200 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:04.300 initial_load_deferred=false
+2026-07-30 12:00:05.100 browser_tab_active=false tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:05.200 browser_tab_active=true tab=22222222-2222-2222-2222-222222222222
+2026-07-30 12:00:05.500 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:06.100 browser_tab_active=false tab=22222222-2222-2222-2222-222222222222
+2026-07-30 12:00:06.200 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:06.500 Engine page completed: true
+2026-07-30 12:00:06.600 gate_scenario=tab-switch-during-load completed
 LOG
 elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" = show ]; then
   cat <<'LOG'
@@ -117,8 +134,20 @@ elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" =
 2026-07-30 12:00:01.000 Engine location: http://127.0.0.1:8765/?vulpra-warm=1
 2026-07-30 12:00:02.000 Engine page completed: true
 2026-07-30 12:00:02.500 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:02.600 initial_load_deferred=false
 2026-07-30 12:00:03.000 Engine location: http://127.0.0.1:8765/
 2026-07-30 12:00:04.000 Engine page completed: true
+2026-07-30 12:00:04.010 engine_event_stats delivered=14 coalesced=9 total=23
+2026-07-30 12:00:04.100 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:04.200 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:04.300 initial_load_deferred=false
+2026-07-30 12:00:05.100 browser_tab_active=false tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:05.200 browser_tab_active=true tab=22222222-2222-2222-2222-222222222222
+2026-07-30 12:00:05.500 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:06.100 browser_tab_active=false tab=22222222-2222-2222-2222-222222222222
+2026-07-30 12:00:06.200 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:06.500 Engine page completed: true
+2026-07-30 12:00:06.600 gate_scenario=tab-switch-during-load completed
 LOG
 elif [ "$1" = simctl ] && [ "$2" = launch ]; then
   /bin/sleep 300 >/dev/null 2>&1 &
@@ -168,9 +197,20 @@ fi
     require(evidence["gateDispatchStatus"] == 0 and evidence["warmSettleSeconds"] >= 0 and
             evidence["openurlStatus"] == "skipped",
             "Simulator harness evidence lost settle/delivery audit fields")
+    require(evidence["tabSwitchStatus"] == "completed",
+            "Simulator harness lost tab-switch-during-load scenario completion")
+    require(evidence["engineEventStats"] == {"delivered": 14, "coalesced": 9, "total": 23},
+            "Simulator harness lost engine event coalescing evidence")
+    require(evidence["browserTabDeactivatedCount"] >= 1,
+            "Simulator harness lost tab deactivation evidence")
+    require(evidence["initialLoadPath"] is False and evidence["initialLoadDeferredMs"] == -1,
+            "Simulator harness lost initial load path evidence")
     curl_log_text = curl_log.read_text(encoding="utf-8")
     require("vulpra://open?url=http%3A%2F%2F127.0.0.1%3A8765%2F" in curl_log_text,
             "Simulator harness did not send the measured deep link through the loopback gate dispatch")
+    require('"scenario", "tab-switch-during-load"' in curl_log_text or
+            '"scenario": "tab-switch-during-load"' in curl_log_text,
+            "Simulator harness did not dispatch the tab-switch-during-load scenario")
     log = operations.read_text(encoding="utf-8")
     for command in (
         "simctl create", "simctl spawn fixture-udid log show",
@@ -215,6 +255,19 @@ def test_single_attempt_gate(base: Path) -> None:
          "unresolved launches"),
         ("wrong-attempt", lambda value: value.update(attempt=2),
          "must be attempt 1"),
+        ("scenario-missing", lambda value: value.update(tabSwitchStatus="aborted"),
+         "scenario did not complete"),
+        ("events-missing", lambda value: value.update(
+            engineEventStats={"delivered": 0, "coalesced": 0, "total": 0}),
+         "engineEventStats.delivered"),
+        ("stats-mismatch", lambda value: value.update(
+            engineEventStats={"delivered": 5, "coalesced": 2, "total": 8}),
+         "does not equal delivered + coalesced"),
+        ("no-deactivation", lambda value: value.update(browserTabDeactivatedCount=0),
+         "browserTabDeactivatedCount"),
+        ("deferred-unmeasured", lambda value: value.update(
+            initialLoadPath=True, initialLoadDeferredMs=-1),
+         "deferral measurement"),
     )
     for name, mutate, token in single_mutations:
         directory = base / f"single-{name}"
@@ -259,6 +312,9 @@ def main() -> None:
         "monotonic_ms",
         "app_running_at_audit=false",
         "launch_ready=false",
+        "tab_switch_scenario_status=",
+        "gate_scenario=tab-switch-during-load completed",
+        "tab_switch_scenario_dispatch_status=",
     ):
         require(token in harness_text, f"R0 harness is missing {token}")
     with tempfile.TemporaryDirectory(prefix="vulpra-r0-gate-") as temporary:
@@ -298,6 +354,14 @@ def main() -> None:
             ("both-outcomes", lambda value: value.update(failedLaunchIDs=[1]), "both outcome sets"),
             ("wrong-delivery", lambda value: value.update(deliveryMethod="simctl-openurl"), "deliveryMethod"),
             ("gate-failed", lambda value: value.update(gateDispatchStatus=7), "gate dispatch did not succeed"),
+            ("scenario-missing", lambda value: value.update(tabSwitchStatus="aborted"),
+             "scenario did not complete"),
+            ("events-missing", lambda value: value.update(
+                engineEventStats={"delivered": 0, "coalesced": 0, "total": 0}),
+             "engineEventStats.delivered"),
+            ("stats-mismatch", lambda value: value.update(
+                engineEventStats={"delivered": 5, "coalesced": 2, "total": 8}),
+             "does not equal delivered + coalesced"),
         )
         for name, mutate, token in mutations:
             values = copy.deepcopy(valid)
