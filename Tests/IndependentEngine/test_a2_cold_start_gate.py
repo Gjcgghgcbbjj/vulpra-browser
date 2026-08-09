@@ -79,7 +79,15 @@ def main() -> None:
         require(summary["perPhaseP95MaxMs"]["firstNavigationDelayMs"] == [9700, 9700],
                 "A2 per-phase p95/max is wrong")
 
-        expect_failure(base, "missing-attempt", valid[:-1], "exactly 1...12", count=12)
+        # User policy: a single fresh-launch attempt is a valid A2 gate by
+        # itself (single-attempt gate first, 20x only after it passes).
+        single = base / "single"
+        write_attempts(single, [valid_attempt(1)])
+        result = run(single, 1)
+        require(result.returncode == 0, result.stderr or result.stdout)
+        summary = json.loads((base / "a2-summary.json").read_text(encoding="utf-8"))
+        require(summary["a2Passed"] == 1 and summary["a2Attempts"] == 1,
+                "single-attempt A2 gate did not produce a 1/1 summary")
         expect_failure(base, "too-few", valid[:8], "at least 10")
         slow = copy.deepcopy(valid)
         slow[0]["firstNavigationDelayMs"] = 31_000

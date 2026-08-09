@@ -112,8 +112,8 @@ def summarize(attempts: list[dict[str, object]], expected_count: int) -> dict[st
     identifiers = [attempt["attempt"] for attempt in attempts]
     if identifiers != list(range(1, expected_count + 1)):
         fail(f"attempt identifiers must be exactly 1...{expected_count}, got {identifiers}")
-    if expected_count < 10:
-        fail("A2 cold-start gate requires at least 10 fresh-launch attempts")
+    if expected_count != 1 and expected_count < 10:
+        fail("A2 cold-start gate requires a single attempt or at least 10 fresh-launch attempts")
     per_phase: dict[str, list[int]] = {phase: [] for phase in PHASES}
     deferred_paths: dict[bool, list[int]] = {True: [], False: []}
     for attempt in attempts:
