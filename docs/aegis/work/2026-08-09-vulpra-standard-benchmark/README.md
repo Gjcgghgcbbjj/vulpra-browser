@@ -25,7 +25,7 @@
 ```
 Configuration/benchmarks.json        清单：设备策略、固定源、启动/得分/超时配置（schema v1）
 Tools/CI/benchmark-fixture.py        fetch（下载+SHA-256+安全解包+源清单）
-                                     generate（生成同源 runner 页 + 落地页）
+                                     generate（同源 runner 页：auto 启动 / controller 就绪表达式）
 Engine/…/VulpraEngineSession.swift   PageTitleChanged → "Engine title: …" 公共日志（1 行）
 Tools/CI/run-simulator-benchmark.sh  模拟器 harness：装 App → 开 runner URL → 等分数 title → 证据 JSON
 Tools/CI/summarize-benchmark.py      语义 gate：分数>0、App 存活、launch 成功、证据链完整
@@ -47,9 +47,13 @@ Tests/IndependentEngine/test_benchmark_contract.py    portable 契约（清单/�
 
 ### 关键决策
 
-- **MotionMark 方向 gate**：MotionMark 的 Start 按钮在非横屏下被禁用。runner 页与基准同源，
-  因此直接等待 `#start-button` 变为可用（帧率探测完成）后调用 `benchmarkController.startBenchmark()`
-  ——不改基准源码、不需要横屏。
+- **MotionMark 方向 gate**：MotionMark 的 Start 按钮在竖屏下被永久禁用
+  （`updateStartButtonState`：`isInLandscapeOrientation=false` 时按钮不可点；iPad Pro 12.9
+  竖屏 1024×1366 下永远如此）。runner 页与基准同源，因此**不等按钮**，而是等
+  `benchmarkController.frameRateDetectionComplete === true`（`startReadyPath`/`startReadyValue`
+  结构化就绪条件，无 eval/动态代码）后直接调用 `benchmarkController.startBenchmark()`
+  ——帧率探测失败也会走到 `frameRateDeterminationComplete` 置位，保证不卡死；不改基准源码、
+  不需要横屏。
 - **设备**：App `TARGETED_DEVICE_FAMILY=1,2`（原生 iPad）；工作流选 iPad Pro 12.9-inch，
   竖屏 1024×1366 满足 Speedometer 3.1 的 850×650 最小视口，且无需无头旋转。
 - **安全**：`benchmark-fixture.py fetch` 的 tar 解包是"安全 tar"——拒绝绝对路径、拒绝 `..` 穿越

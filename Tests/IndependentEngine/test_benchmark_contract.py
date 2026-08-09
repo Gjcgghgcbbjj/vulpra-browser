@@ -160,8 +160,12 @@ def check_generate(manifest: dict[str, object]) -> None:
                 "motionmark runner missing startObject")
         require('"startMethod": "startBenchmark"' in motion_text,
                 "motionmark runner missing startMethod")
-        require('"startReadySelector": "#start-button"' in motion_text,
-                "motionmark runner missing startReadySelector")
+        require('"startReadyPath": "benchmarkController.frameRateDetectionComplete"' in motion_text,
+                "motionmark runner missing frameRateDetectionComplete ready path")
+        require('"startReadyValue": true' in motion_text,
+                "motionmark runner missing startReadyValue true")
+        require('"startReadySelector": "#start-button"' not in motion_text,
+                "motionmark must not wait for the portrait-disabled Start button")
 
         # A stale source tree pinned to a different commit must be rejected.
         stale = base / "stale"
@@ -488,7 +492,8 @@ function run(id, doc, win) {{
 function scenario(id, steps, ms = 3600) {{
   return new Promise((resolve, reject) => {{
     const calls = {{ value: 0 }};
-    const win = {{ benchmarkController: {{ startBenchmark() {{ calls.value++; }} }} }};
+    const history = [];
+    const win = {{ benchmarkController: {{ frameRateDetectionComplete: false, startBenchmark() {{ calls.value++; }} }} }};
     const frame = {{ contentWindow: win, contentDocument: null }};
     const doc = makeDoc(frame, {{}});
     frame.contentDocument = doc;
@@ -496,8 +501,9 @@ function scenario(id, steps, ms = 3600) {{
     let t = 0;
     const timer = setInterval(() => {{
       t += 500;
-      steps(t, doc.state);
-      if (t >= ms) {{ clearInterval(timer); resolve({{ doc, calls }}); }}
+      steps(t, doc.state, win);
+      history.push({{ t, calls: calls.value }});
+      if (t >= ms) {{ clearInterval(timer); resolve({{ doc, calls, history }}); }}
     }}, 500);
     setTimeout(() => {{ clearInterval(timer); reject(new Error("timeout")); }}, ms + 2000);
   }});
@@ -513,11 +519,13 @@ await delay(100); // let the browser-shaped globals settle (no-op)
   console.log("speedometer3 OK");
 }}}}
 
-{{{{ // motionmark controller start
-  const {{ doc, calls }} = await scenario("motionmark", (t, s) => {{
-    if (t >= 1000) s.startButtonDisabled = false;
+{{{{ // motionmark controller start: waits for frameRateDetectionComplete, not the portrait-disabled button
+  const {{ doc, calls, history }} = await scenario("motionmark", (t, s, win) => {{
+    if (t >= 1000) win.benchmarkController.frameRateDetectionComplete = true;
     if (t >= 2000) s.scoreText = "123.45 @ 60fps";
   }});
+  assert(history.length > 0 && history[0].calls === 0,
+         `motionmark started before frame-rate detection: ${{history.length ? history[0].calls : "no ticks"}}`);
   assert(calls.value === 1, `motionmark start calls: ${{calls.value}}`);
   assert(doc.title === "VulpraBenchmark motionmark score=123.45_@_60fps", `motionmark title: ${{doc.title}}`);
   console.log("motionmark OK");

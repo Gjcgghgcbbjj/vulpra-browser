@@ -4,7 +4,7 @@
   "device": {
     "family": "ipad",
     "preferName": "iPad Pro 12.9-inch",
-    "reason": "Native iPad app (TARGETED_DEVICE_FAMILY=1,2); portrait 1024x1366 satisfies the Speedometer 3.1 850x650 minimum viewport without headless rotation. MotionMark's orientation-gated Start button is bypassed by the same-origin runner invoking benchmarkController.startBenchmark() after frame-rate detection, so landscape is not required."
+    "reason": "Native iPad app (TARGETED_DEVICE_FAMILY=1,2); portrait 1024x1366 satisfies the Speedometer 3.1 850x650 minimum viewport without headless rotation. MotionMark's landscape-only Start button is never enabled in portrait, so the same-origin runner waits for benchmarkController.frameRateDetectionComplete (FPS detection always completes, even on failure) and then calls benchmarkController.startBenchmark() directly — no landscape required."
   },
   "fixture": {
     "benchmarkRoot": "/benchmarks",
@@ -52,11 +52,11 @@
         "start": "controller",
         "startObject": "benchmarkController",
         "startMethod": "startBenchmark",
-        "startReadySelector": "#start-button",
-        "startReadyEnabled": true,
         "scoreSelector": "#results .score",
         "scoreTitlePrefix": "VulpraBenchmark motionmark score=",
-        "timeoutSeconds": 3600
+        "timeoutSeconds": 3600,
+        "startReadyPath": "benchmarkController.frameRateDetectionComplete",
+        "startReadyValue": true
       },
       "enabledByDefault": true,
       "requiresJitBackend": false

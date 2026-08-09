@@ -77,8 +77,19 @@ RUNNER_TEMPLATE = """<!doctype html>
     if (!win || !doc) {{ return; }}
     if (!started) {{
       if (CONFIG.start === "controller") {{
-        var readyEl = doc.querySelector(CONFIG.startReadySelector);
-        if (!readyEl || readyEl.disabled === CONFIG.startReadyEnabled) {{ return; }}
+        if (CONFIG.startReadyPath) {{
+          var readyTarget = win;
+          var readyParts = CONFIG.startReadyPath.split(".");
+          var readyOk = true;
+          for (var i = 0; i < readyParts.length; i++) {{
+            if (!readyTarget) {{ readyOk = false; break; }}
+            readyTarget = readyTarget[readyParts[i]];
+          }}
+          if (!readyOk || readyTarget !== CONFIG.startReadyValue) {{ return; }}
+        }} else {{
+          var readyEl = doc.querySelector(CONFIG.startReadySelector);
+          if (!readyEl || readyEl.disabled === CONFIG.startReadyEnabled) {{ return; }}
+        }}
         var target = win;
         var parts = CONFIG.startObject.split(".");
         for (var i = 0; i < parts.length; i++) {{
@@ -217,13 +228,29 @@ def validate_entry(entry: dict[str, object]) -> tuple[str, dict[str, object], di
     if not isinstance(run["timeoutSeconds"], int) or run["timeoutSeconds"] <= 0:
         fail(f"benchmark {benchmark_id} run.timeoutSeconds must be a positive integer")
     if start == "controller":
-        for key in ("startObject", "startMethod", "startReadySelector"):
+        for key in ("startObject", "startMethod"):
             if not isinstance(run.get(key), str) or not run[key]:
                 fail(f"benchmark {benchmark_id} run.{key} is missing for controller start")
-        if not isinstance(run.get("startReadyEnabled"), bool):
-            fail(f"benchmark {benchmark_id} run.startReadyEnabled must be a Boolean")
+        has_selector_ready = "startReadySelector" in run or "startReadyEnabled" in run
+        has_path_ready = "startReadyPath" in run or "startReadyValue" in run
+        if has_selector_ready == has_path_ready:
+            fail(f"benchmark {benchmark_id} run must use exactly one ready mechanism: "
+                 "startReadySelector+startReadyEnabled or startReadyPath+startReadyValue")
+        if has_path_ready:
+            ready_path = run.get("startReadyPath")
+            if not isinstance(ready_path, str) or not ready_path \
+                    or not all(part.isidentifier() for part in ready_path.split(".")):
+                fail(f"benchmark {benchmark_id} run.startReadyPath must be a dotted identifier path")
+            if not isinstance(run.get("startReadyValue"), bool):
+                fail(f"benchmark {benchmark_id} run.startReadyValue must be a Boolean")
+        else:
+            if not isinstance(run.get("startReadySelector"), str) or not run["startReadySelector"]:
+                fail(f"benchmark {benchmark_id} run.startReadySelector is missing for controller start")
+            if not isinstance(run.get("startReadyEnabled"), bool):
+                fail(f"benchmark {benchmark_id} run.startReadyEnabled must be a Boolean")
     else:
-        for key in ("startObject", "startMethod", "startReadySelector", "startReadyEnabled"):
+        for key in ("startObject", "startMethod", "startReadySelector",
+                    "startReadyEnabled", "startReadyPath", "startReadyValue"):
             if key in run:
                 fail(f"benchmark {benchmark_id} run.{key} is only valid for controller start")
     return benchmark_id, source, run
@@ -398,8 +425,12 @@ def cmd_generate(args: argparse.Namespace) -> int:
         if run["start"] == "controller":
             config["startObject"] = run["startObject"]
             config["startMethod"] = run["startMethod"]
-            config["startReadySelector"] = run["startReadySelector"]
-            config["startReadyEnabled"] = run["startReadyEnabled"]
+            if "startReadyPath" in run:
+                config["startReadyPath"] = run["startReadyPath"]
+                config["startReadyValue"] = run["startReadyValue"]
+            else:
+                config["startReadySelector"] = run["startReadySelector"]
+                config["startReadyEnabled"] = run["startReadyEnabled"]
         runner_dir = fixture_dir / runner_root.strip("/")
         runner_dir.mkdir(parents=True, exist_ok=True)
         page = RUNNER_TEMPLATE.format(
