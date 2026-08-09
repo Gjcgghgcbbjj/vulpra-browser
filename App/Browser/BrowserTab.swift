@@ -1,4 +1,5 @@
 import Foundation
+import os
 import UIKit
 import VulpraEngineKit
 
@@ -31,6 +32,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     let id: UUID
     let isPrivate: Bool
     weak var observer: BrowserTabObserver?
+    private let logger = Logger(subsystem: "com.vulpra.browser", category: "browser-tab")
     private let runtime: any EngineRuntime
     private(set) var session: (any EngineSession)?
     private var engineSurface: (any EngineView)?
@@ -41,6 +43,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     private(set) var progress = 0
     private(set) var isLoading = false
     private(set) var lastFailure: EngineFailure?
+    private(set) var lastTerminationReason: EngineTerminationReason?
     private(set) var httpFallbackURL: URL?
     private(set) var lastAccess: Date
     private(set) var thumbnail: UIImage?
@@ -162,6 +165,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
 
     func engineSessionDidOpen(_ id: EngineSessionID) {
         lastFailure = nil
+        lastTerminationReason = nil
         observer?.browserTabContentDidChange(self)
     }
 
@@ -199,7 +203,14 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     }
 
     func engineSession(_ id: EngineSessionID, didTerminate reason: EngineTerminationReason) {
-        suspend(); observer?.browserTabContentDidChange(self)
+        // Keep url/title/canGoBack/canGoForward/thumbnail so the tab can offer
+        // recovery; suspend() closes the dead session, drops the surface and
+        // resets progress state. The reason is recorded for device-side
+        // diagnosis (jetsam vs Gecko kill vs invalid state).
+        logger.error("content process terminated tab=\(id, privacy: .public) reason=\(reason.rawValue, privacy: .public)")
+        lastTerminationReason = reason
+        suspend()
+        observer?.browserTabContentDidChange(self)
     }
 
     func engineSession(_ id: EngineSessionID, requestedContextMenu element: EngineContextMenuElement) {
