@@ -1,117 +1,117 @@
 {
-    "schemaVersion": 1,
-    "targetState": "independent",
-    "r0Evidence": {
-        "repeatProducerRunIds": [
-            30598301958,
-            30598347174
-        ],
-        "repeatCompileRunIds": [
-            30598301958,
-            30598347174
-        ],
-        "selectedProducerRunId": 30598301958,
-        "promotionRunId": 30613021710,
-        "simulatorGateRunId": 31281979037,
-        "packageRunId": 31244000908
+  "schemaVersion": 1,
+  "targetState": "independent",
+  "r0Evidence": {
+    "repeatProducerRunIds": [
+      30598301958,
+      30598347174
+    ],
+    "repeatCompileRunIds": [
+      30598301958,
+      30598347174
+    ],
+    "selectedProducerRunId": 30598301958,
+    "promotionRunId": 30613021710,
+    "simulatorGateRunId": 31281979037,
+    "packageRunId": 31244000908
+  },
+  "gates": [
+    {
+      "id": "verified-v5-artifact",
+      "status": "verified",
+      "evidence": [
+        "Configuration/engine-artifact-lock.json",
+        "run:30598301958:repeat-native-gecko-v5-pair",
+        "run:30598347174:repeat-native-gecko-v5-pair",
+        "run:30613021710:repeat-verified-immutable-promotion"
+      ]
     },
-    "gates": [
-        {
-            "id": "verified-v5-artifact",
-            "status": "verified",
-            "evidence": [
-                "Configuration/engine-artifact-lock.json",
-                "run:30598301958:repeat-native-gecko-v5-pair",
-                "run:30598347174:repeat-native-gecko-v5-pair",
-                "run:30613021710:repeat-verified-immutable-promotion"
-            ]
-        },
-        {
-            "id": "verified-abi-inventory",
-            "status": "verified",
-            "evidence": [
-                "Configuration/engine-abi-inventory.json",
-                "Tests/IndependentEngine/test_abi_inventory.py"
-            ]
-        },
-        {
-            "id": "independent-runtime-startup",
-            "status": "verified",
-            "evidence": [
-                "run:30213751790:window-open-load-location-page-complete"
-            ]
-        },
-        {
-            "id": "independent-process-host",
-            "status": "verified",
-            "evidence": [
-                "run:30213751790:engine-process-request-connected"
-            ]
-        },
-        {
-            "id": "app-contract-migration",
-            "status": "verified",
-            "evidence": [
-                "Tests/Browser/test-browser-client.py",
-                "run:30214371123:portable-browser-pass"
-            ]
-        },
-        {
-            "id": "old-target-removal-ready",
-            "status": "verified",
-            "evidence": [
-                "Tests/IndependentEngine/test_xcode_staging.py",
-                "Vulpra.xcodeproj/project.pbxproj"
-            ]
-        },
-        {
-            "id": "package-cutover-ready",
-            "status": "verified",
-            "evidence": [
-                "Tests/Browser/test-package-workflow.py",
-                ".github/workflows/build-ios-packages.yml"
-            ]
-        },
-        {
-            "id": "old-source-unreferenced",
-            "status": "verified",
-            "evidence": [
-                "Tests/IndependentEngine/test_internal_boundaries.py",
-                "Tests/IndependentEngine/test_ownership.py"
-            ]
-        },
-        {
-            "id": "old-targets-removed",
-            "status": "verified",
-            "evidence": [
-                "Tests/RuntimeShell/test-xcode-graph.py",
-                "run:30214371123:xcode-graph-pass"
-            ]
-        },
-        {
-            "id": "old-workflows-retired",
-            "status": "verified",
-            "evidence": [
-                "Tests/IndependentEngine/test_ownership.py",
-                "Tests/Browser/test-package-workflow.py"
-            ]
-        },
-        {
-            "id": "simulator-navigation-verified",
-            "status": "verified",
-            "evidence": [
-                "run:31251212588:r0-engine-gate-20-20",
-                "run:31251212588:deliveryMethod-gate-http-dispatch",
-                "run:31251212588:p95-and-max-load-to-complete-bounds"
-            ]
-        },
-        {
-            "id": "package-verified",
-            "status": "verified",
-            "evidence": [
-                "run:31244000908:ipa-tipa-validation-sha256-pass",
-                "dist/SHA256SUMS"
-            ]
-        }
-    ]
+    {
+      "id": "verified-abi-inventory",
+      "status": "verified",
+      "evidence": [
+        "Configuration/engine-abi-inventory.json",
+        "Tests/IndependentEngine/test_abi_inventory.py"
+      ]
+    },
+    {
+      "id": "independent-runtime-startup",
+      "status": "verified",
+      "evidence": [
+        "run:30213751790:window-open-load-location-page-complete"
+      ]
+    },
+    {
+      "id": "independent-process-host",
+      "status": "verified",
+      "evidence": [
+        "run:30213751790:engine-process-request-connected"
+      ]
+    },
+    {
+      "id": "app-contract-migration",
+      "status": "verified",
+      "evidence": [
+        "Tests/Browser/test-browser-client.py",
+        "run:30214371123:portable-browser-pass"
+      ]
+    },
+    {
+      "id": "old-target-removal-ready",
+      "status": "verified",
+      "evidence": [
+        "Tests/IndependentEngine/test_xcode_staging.py",
+        "Vulpra.xcodeproj/project.pbxproj"
+      ]
+    },
+    {
+      "id": "package-cutover-ready",
+      "status": "verified",
+      "evidence": [
+        "Tests/Browser/test-package-workflow.py",
+        ".github/workflows/build-ios-packages.yml"
+      ]
+    },
+    {
+      "id": "old-source-unreferenced",
+      "status": "verified",
+      "evidence": [
+        "Tests/IndependentEngine/test_internal_boundaries.py",
+        "Tests/IndependentEngine/test_ownership.py"
+      ]
+    },
+    {
+      "id": "old-targets-removed",
+      "status": "verified",
+      "evidence": [
+        "Tests/RuntimeShell/test-xcode-graph.py",
+        "run:30214371123:xcode-graph-pass"
+      ]
+    },
+    {
+      "id": "old-workflows-retired",
+      "status": "verified",
+      "evidence": [
+        "Tests/IndependentEngine/test_ownership.py",
+        "Tests/Browser/test-package-workflow.py"
+      ]
+    },
+    {
+      "id": "simulator-navigation-verified",
+      "status": "verified",
+      "evidence": [
+        "run:31251212588:r0-engine-gate-20-20",
+        "run:31251212588:deliveryMethod-gate-http-dispatch",
+        "run:31251212588:p95-and-max-load-to-complete-bounds"
+      ]
+    },
+    {
+      "id": "package-verified",
+      "status": "verified",
+      "evidence": [
+        "run:31244000908:ipa-tipa-validation-sha256-pass",
+        "dist/SHA256SUMS"
+      ]
+    }
+  ]
 }
