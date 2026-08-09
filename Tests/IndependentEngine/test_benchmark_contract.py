@@ -147,6 +147,16 @@ def check_generate(manifest: dict[str, object]) -> None:
                     f"{benchmark_id} runner page must not use eval")
             require('document.title = CONFIG.scoreTitlePrefix + text' in text,
                     f"{benchmark_id} runner page must publish the score via title")
+        # Speedometer3 gate must carry the representative subset query and progress wiring.
+        speedometer = fixture / "runner" / "speedometer3.html"
+        speedometer_text = speedometer.read_text(encoding="utf-8")
+        require('"progress": {' in speedometer_text,
+                "speedometer3 runner page missing progress config")
+        require('"progressTitlePrefix": "VulpraBenchmark speedometer3 progress="' in speedometer_text,
+                "speedometer3 runner page missing progress title prefix")
+        require("suites=TodoMVC-JavaScript-ES5,Editor-CodeMirror,Charts-chartjs,Perf-Dashboard" in speedometer_text,
+                "speedometer3 iframe src must carry the representative suites query")
+
         require((fixture / "index.html").is_file(), "landing index.html missing")
         landing = (fixture / "index.html").read_text(encoding="utf-8")
         for benchmark_id in ids:
@@ -464,7 +474,9 @@ const {{ readFileSync }} = await import("node:fs");
 const fixture = {json.dumps(str(fixture / "runner"))};
 
 function makeDoc(frame, overrides = {{}}) {{
-  const state = {{ title: "initial", startButtonDisabled: true, scoreText: "", ...overrides }};
+  const state = {{ title: "initial", startButtonDisabled: true, scoreText: "",
+                   progressLabel: "", progressText: "",
+                   progressValue: null, progressMax: null, ...overrides }};
   return {{
     state,
     title: state.title,
@@ -475,6 +487,12 @@ function makeDoc(frame, overrides = {{}}) {{
     }},
     querySelector(sel) {{
       if (sel === "#start-button") return {{ disabled: state.startButtonDisabled }};
+      if (sel === "#info-label") return state.progressLabel ? {{ textContent: state.progressLabel }} : null;
+      if (sel === "#info-progress") return state.progressText ? {{ textContent: state.progressText }} : null;
+      if (sel === "#progress-completed") {{
+        if (state.progressValue == null || state.progressMax == null) return null;
+        return {{ value: state.progressValue, max: state.progressMax }};
+      }}
       if (sel === "#result-number" || sel === "#result-summary .score" || sel === "#results .score") {{
         return state.scoreText ? {{ textContent: state.scoreText }} : null;
       }}
@@ -502,7 +520,7 @@ function scenario(id, steps, ms = 3600) {{
     const timer = setInterval(() => {{
       t += 500;
       steps(t, doc.state, win);
-      history.push({{ t, calls: calls.value }});
+      history.push({{ t, calls: calls.value, title: doc.title }});
       if (t >= ms) {{ clearInterval(timer); resolve({{ doc, calls, history }}); }}
     }}, 500);
     setTimeout(() => {{ clearInterval(timer); reject(new Error("timeout")); }}, ms + 2000);
@@ -517,6 +535,30 @@ await delay(100); // let the browser-shaped globals settle (no-op)
   const {{ doc }} = await scenario("speedometer3", (t, s) => {{ if (t >= 1000) s.scoreText = "17.40"; }});
   assert(doc.title === "VulpraBenchmark speedometer3 score=17.40", `speedometer title: ${{doc.title}}`);
   console.log("speedometer3 OK");
+}}}}
+
+{{{{ // speedometer3 progress lines are published before the final score
+  const {{ doc, history }} = await scenario("speedometer3", (t, s) => {{
+    if (t >= 1000) {{
+      s.progressLabel = "Running TodoMVC";
+      s.progressText = "3/11";
+      s.progressValue = 3;
+      s.progressMax = 11;
+    }}
+    if (t >= 2000) {{
+      s.progressLabel = "";
+      s.progressText = "";
+      s.progressValue = null;
+      s.progressMax = null;
+      s.scoreText = "17.40";
+    }}
+  }});
+  const titles = history.map((h) => h.title);
+  assert(titles.some((t) => t.startsWith("VulpraBenchmark speedometer3 progress=")
+                     && t.includes("bar=3/11") && t.includes("elapsed=")),
+         `progress title missing: ${{titles.join(" | ")}}`);
+  assert(doc.title === "VulpraBenchmark speedometer3 score=17.40", `final score title: ${{doc.title}}`);
+  console.log("speedometer3-progress OK");
 }}}}
 
 {{{{ // motionmark controller start: waits for frameRateDetectionComplete, not the portrait-disabled button

@@ -4,7 +4,7 @@
   "device": {
     "family": "ipad",
     "preferName": "iPad Pro 12.9-inch",
-    "reason": "Native iPad app (TARGETED_DEVICE_FAMILY=1,2); portrait 1024x1366 satisfies the Speedometer 3.1 850x650 minimum viewport without headless rotation. MotionMark's landscape-only Start button is never enabled in portrait, so the same-origin runner waits for benchmarkController.frameRateDetectionComplete (FPS detection always completes, even on failure) and then calls benchmarkController.startBenchmark() directly — no landscape required."
+    "reason": "Native iPad app (TARGETED_DEVICE_FAMILY=1,2); portrait 1024x1366 satisfies the Speedometer 3.1 850x650 minimum viewport without headless rotation. MotionMark's landscape-only Start button is never enabled in portrait, so the same-origin runner waits for benchmarkController.frameRateDetectionComplete (FPS detection always completes, even on failure) and then calls benchmarkController.startBenchmark() directly \u2014 no landscape required."
   },
   "fixture": {
     "benchmarkRoot": "/benchmarks",
@@ -25,15 +25,20 @@
       },
       "run": {
         "entry": "index.html",
-        "query": "startAutomatically=true&iterationCount=1",
+        "query": "startAutomatically=true&iterationCount=1&suites=TodoMVC-JavaScript-ES5,Editor-CodeMirror,Charts-chartjs,Perf-Dashboard",
         "start": "auto",
         "scoreSelector": "#result-number",
         "scoreTitlePrefix": "VulpraBenchmark speedometer3 score=",
-        "timeoutSeconds": 5400
+        "timeoutSeconds": 3600,
+        "progress": {
+          "labelSelector": "#info-label",
+          "textSelector": "#info-progress",
+          "barSelector": "#progress-completed"
+        }
       },
       "enabledByDefault": true,
       "requiresJitBackend": false,
-      "notes": "First-pass Simulator gate on the JIT-disabled v5 engine uses the upstream-supported iterationCount=1 (single iteration still yields the real Speedometer geomean score from #result-number). The default 10-iteration run does not complete within CI budget in interpreter mode (observed: full suite still running after 2h15m on macOS runner); restore iterationCount=10 together with a JIT-enabled engine. timeoutSeconds=5400 is wall-clock budget for the interpreter-mode single-iteration run."
+      "notes": "First-pass Simulator gate on the JIT-disabled v5 engine. A single iteration of the full default suite (20 suites / 58 subtests) does not complete within CI budget in interpreter mode (observed: still running after 2h15m on the macOS runner with iterationCount=1), so this gate runs an explicit representative subset via suites= (TodoMVC-JavaScript-ES5, Editor-CodeMirror, Charts-chartjs, Perf-Dashboard; 4 suites / 11 subtests) at iterationCount=1. The reported #result-number score is the Speedometer geomean of this subset only and is NOT comparable to the official full-suite Speedometer score; it is a stable same-engine regression proxy. Restore the full default suite (drop the suites= param) and iterationCount=10 together with a JIT-enabled engine, then re-baseline. timeoutSeconds=3600 is the wall-clock budget for the interpreter-mode subset run; the runner page also publishes progress lines ('Engine title: VulpraBenchmark speedometer3 progress=...') so a slow or stalled suite is visible in the evidence log."
     },
     {
       "id": "motionmark",

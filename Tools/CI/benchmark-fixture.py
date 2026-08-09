@@ -71,6 +71,8 @@ RUNNER_TEMPLATE = """<!doctype html>
   var CONFIG = {config_json};
   var frame = document.getElementById("bench");
   var started = false;
+  var lastProgress = "";
+  var t0 = Date.now();
   var timer = setInterval(function () {{
     var win = null, doc = null;
     try {{ win = frame.contentWindow; doc = frame.contentDocument; }} catch (e) {{ return; }}
@@ -102,6 +104,27 @@ RUNNER_TEMPLATE = """<!doctype html>
       }}
       started = true;
       return;
+    }}
+    if (CONFIG.progress) {{
+      var parts = [];
+      var labelEl = doc.querySelector(CONFIG.progress.labelSelector);
+      var textEl = doc.querySelector(CONFIG.progress.textSelector);
+      var barEl = doc.querySelector(CONFIG.progress.barSelector);
+      var label = labelEl ? (labelEl.textContent || "") : "";
+      var text = textEl ? (textEl.textContent || "") : "";
+      if (label) {{ parts.push(label.replace(/\\s+/g, "_")); }}
+      if (text) {{ parts.push(text.replace(/\\s+/g, "_")); }}
+      if (barEl && barEl.max != null && barEl.value != null) {{
+        parts.push("bar=" + barEl.value + "/" + barEl.max);
+      }}
+      if (parts.length > 0) {{
+        parts.push("elapsed=" + Math.floor((Date.now() - t0) / 1000) + "s");
+        var progress = "progress=" + parts.join("|");
+        if (progress !== lastProgress) {{
+          lastProgress = progress;
+          document.title = CONFIG.progressTitlePrefix + progress;
+        }}
+      }}
     }}
     var el = doc.querySelector(CONFIG.scoreSelector);
     var text = el ? (el.textContent || "") : "";
@@ -221,6 +244,15 @@ def validate_entry(entry: dict[str, object]) -> tuple[str, dict[str, object], di
     for key in ("scoreSelector", "scoreTitlePrefix", "timeoutSeconds"):
         if key not in run:
             fail(f"benchmark {benchmark_id} run.{key} is missing")
+    progress = run.get("progress")
+    if progress is not None:
+        if not isinstance(progress, dict):
+            fail(f"benchmark {benchmark_id} run.progress must be an object")
+        for key in ("labelSelector", "textSelector", "barSelector"):
+            value = progress.get(key)
+            if not isinstance(value, str) or not value or not value.startswith("#"):
+                fail(f"benchmark {benchmark_id} run.progress.{key} "
+                     "must be a CSS selector starting with #")
     if not isinstance(run["scoreSelector"], str) or not run["scoreSelector"]:
         fail(f"benchmark {benchmark_id} run.scoreSelector is invalid")
     if not isinstance(run["scoreTitlePrefix"], str) or not run["scoreTitlePrefix"]:
@@ -422,6 +454,9 @@ def cmd_generate(args: argparse.Namespace) -> int:
             "scoreSelector": run["scoreSelector"],
             "scoreTitlePrefix": run["scoreTitlePrefix"],
         }
+        if run.get("progress"):
+            config["progress"] = run["progress"]
+            config["progressTitlePrefix"] = f"VulpraBenchmark {benchmark_id} progress="
         if run["start"] == "controller":
             config["startObject"] = run["startObject"]
             config["startMethod"] = run["startMethod"]
