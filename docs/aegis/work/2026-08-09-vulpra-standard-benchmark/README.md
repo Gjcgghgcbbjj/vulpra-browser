@@ -106,6 +106,27 @@ gate 在当前引擎上**必挂**。因此：
 - `python3 -m py_compile`（全部新增/改动 Python）+ `bash -n`（全部新增/改动 shell）通过。
 - `Tests/IndependentEngine/run-portable.sh` 全套通过，含新增 `test_benchmark_contract.py`。
 
+## 首次真实 CI 运行（2026-08-09，run 31324368690）实测结论
+
+首次在 macOS runner 上真实跑 benchmark gate，暴露并修复三个问题（均只改 harness / 清单，
+不重编 Gecko）：
+
+1. **macOS 无 GNU `date +%s%3N`**：harness 用 GNU-only 语法取 epoch 毫秒，在 BSD date 上输出
+   字面量 `17863027033N`，`$(( ))` 算术失败 → 脚本 exit 1，连 attempt JSON 都没写出来。
+   修复：portable `epoch_ms()`（`python3 -c 'import time; print(int(time.time()*1000))'`）。
+2. **timeout 循环是迭代计数而非墙钟**：`for ((_second=1; _second<=TIMEOUT; _second++))` 每次
+   迭代 sleep 1，但 `benchmark_completed()` 每 30s 触发一次全量 `log show`（实测阻塞 ~90s），
+   导致 1800s 名义超时实际跑了 2h15m 墙钟。修复：墙钟 deadline（`date +%s` 差值）+
+   `log show` 兜底刷新间隔 30s→300s（stream log 才是分数主源，persisted 只是 fallback）。
+3. **Speedometer 3.1 默认 10 次迭代在解释器模式跑不完**：页面加载成功（iframe
+   `index.html?startAutomatically=true` page completed）、content 进程持续活跃无 JS 错误，
+   但 2h15m 内无分数 title——JIT-disabled 引擎跑完整 10 次迭代远超 CI 预算。修复：
+   `run.query` 用官方支持的 `iterationCount=1`（单次迭代仍产出真实 geomean 分数），
+   `timeoutSeconds` 提到 5400s 墙钟。
+
+设备选择修复（`1d1c9eb`）同时验证通过：`iPad-Pro-12-9-inch-6th-generation-16GB` 与
+iOS 26.4 runtime 兼容，CoreSimulator 403 消失，App 正常启动（PID 9299）。
+
 ## 尚未完成 / 后续
 
 - **首次真实 CI 运行**：workflow_dispatch 跑 `benchmark-ci.yml`（当前分支合入后）验证 Simulator

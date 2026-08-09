@@ -25,14 +25,15 @@
       },
       "run": {
         "entry": "index.html",
-        "query": "startAutomatically=true",
+        "query": "startAutomatically=true&iterationCount=1",
         "start": "auto",
         "scoreSelector": "#result-number",
         "scoreTitlePrefix": "VulpraBenchmark speedometer3 score=",
-        "timeoutSeconds": 1800
+        "timeoutSeconds": 5400
       },
       "enabledByDefault": true,
-      "requiresJitBackend": false
+      "requiresJitBackend": false,
+      "notes": "First-pass Simulator gate on the JIT-disabled v5 engine uses the upstream-supported iterationCount=1 (single iteration still yields the real Speedometer geomean score from #result-number). The default 10-iteration run does not complete within CI budget in interpreter mode (observed: full suite still running after 2h15m on macOS runner); restore iterationCount=10 together with a JIT-enabled engine. timeoutSeconds=5400 is wall-clock budget for the interpreter-mode single-iteration run."
     },
     {
       "id": "motionmark",

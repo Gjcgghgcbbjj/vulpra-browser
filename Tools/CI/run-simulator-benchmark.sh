@@ -76,6 +76,10 @@ run_with_timeout() {
   python3 "$SCRIPT_DIR/run-with-timeout.py" "$seconds" "$@"
 }
 
+epoch_ms() {
+  python3 -c 'import time; print(int(time.time() * 1000))'
+}
+
 mkdir -p "$OUTPUT"
 OUTPUT=$(CDPATH='' cd -- "$OUTPUT" && pwd)
 ATTEMPT_START_ISO=$(date '+%Y-%m-%d %H:%M:%S')
@@ -145,7 +149,11 @@ refresh_log_snapshot() {
     age=$(python3 -c 'import os,sys; print(int(os.stat(sys.argv[1]).st_mtime))' "$snapshot" 2>/dev/null || echo 0)
     age=$(( $(date +%s) - age ))
   fi
-  if (( age >= 30 )); then
+  # Stream log is the primary score source; the persisted snapshot is only a
+  # fallback, and a full `log show --start <attempt>` on a long run can block
+  # ~90s. Refresh rarely so the wall-clock benchmark timeout is not consumed
+  # by log-show stalls.
+  if (( age >= 300 )); then
     run_with_timeout 90 xcrun simctl spawn "$UDID" log show --style compact --info --debug \
       --start "$ATTEMPT_START_ISO" --predicate "$LOG_PREDICATE" \
       > "$PREFIX-persisted.log.tmp" 2>&1 || true
@@ -212,10 +220,11 @@ done
 set -e
 printf 'launch_status=%s\nlaunch_attempts=%s\n' "$LAUNCH_STATUS" "$LAUNCH_ATTEMPTS" >> "$PREFIX-device.log"
 
-LAUNCH_START_EPOCH_MS=$(date +%s%3N)
+LAUNCH_START_EPOCH_MS=$(epoch_ms)
 COMPLETED=false
 if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
-  for ((_second = 1; _second <= TIMEOUT_SECONDS; _second++)); do
+  benchmark_deadline=$(( $(date +%s) + TIMEOUT_SECONDS ))
+  while (( $(date +%s) < benchmark_deadline )); do
     if benchmark_completed; then
       COMPLETED=true
       break
@@ -232,7 +241,7 @@ if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
 else
   printf 'launch_ready=false\n' >> "$PREFIX-device.log"
 fi
-ELAPSED_MS=$(( $(date +%s%3N) - LAUNCH_START_EPOCH_MS ))
+ELAPSED_MS=$(( $(epoch_ms) - LAUNCH_START_EPOCH_MS ))
 printf 'benchmark_completed=%s\nelapsed_ms=%s\n' "$COMPLETED" "$ELAPSED_MS" >> "$PREFIX-device.log"
 
 APP_SURVIVED=false
