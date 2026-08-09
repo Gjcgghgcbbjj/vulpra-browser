@@ -1,6 +1,13 @@
 name: Vulpra Standard Benchmarks
 
 on:
+  # workflow_dispatch requires the workflow file on the default branch, which
+  # benchmark-ci.yml is not yet merged into. The push trigger below is scoped
+  # to this feature branch so the first real Simulator run can start now;
+  # remove it once the workflow exists on the default branch.
+  push:
+    branches:
+      - fix/browser-performance-20260729
   workflow_dispatch:
     inputs:
       xcode_version:
