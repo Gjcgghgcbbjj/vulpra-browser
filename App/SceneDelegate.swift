@@ -29,6 +29,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.tintColor = VulpraAppearance.accent
         window.rootViewController = browser
         self.browser = browser
+        MemoryPressureRouter.attach(runtime: VulpraEngine.runtime, controller: browser)
         self.window = window
         window.makeKeyAndVisible()
 #if DEBUG

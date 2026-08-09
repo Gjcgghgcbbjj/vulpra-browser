@@ -11,6 +11,8 @@ public final class VulpraEngineRuntime: EngineRuntime {
     private var startupTimeoutTask: Task<Void, Never>?
     private let startupTimeoutNanoseconds: UInt64
     private var childProcesses = EngineChildProcessLifecycle()
+    public var onMemoryPressure: ((EngineRuntimeMemoryPressure) -> Void)?
+    private var memoryPressureMonitor: MemoryPressureMonitor?
     private var pendingPrefVerification: PrefVerificationState?
     private static let childLogger = Logger(
         subsystem: "com.vulpra.browser.engine-kit", category: "child-lifecycle"
@@ -40,6 +42,7 @@ public final class VulpraEngineRuntime: EngineRuntime {
         }
         if case .ready(let capabilities) = lifecycle.state { return capabilities }
         if case .failed(let failure) = lifecycle.state { throw failure }
+        startMemoryPressureMonitoring()
         scheduleStartupTimeout()
 
         let identifier = UUID()
@@ -218,6 +221,15 @@ public final class VulpraEngineRuntime: EngineRuntime {
         ])
     }
 
+    private func startMemoryPressureMonitoring() {
+        guard memoryPressureMonitor == nil else { return }
+        let monitor = MemoryPressureMonitor { [weak self] level in
+            self?.onMemoryPressure?(level)
+        }
+        monitor.start()
+        memoryPressureMonitor = monitor
+    }
+
     private func markReady() {
         applyRDDProcessStartupTimeout()
         applyHTTPSOnlyMode()
@@ -235,6 +247,8 @@ public final class VulpraEngineRuntime: EngineRuntime {
 
     private func markFailed(_ failure: EngineFailure) {
         lifecycle.fail(failure)
+        memoryPressureMonitor?.stop()
+        memoryPressureMonitor = nil
         startupTimeoutTask?.cancel()
         startupTimeoutTask = nil
         completeObservers(.failure(failure))

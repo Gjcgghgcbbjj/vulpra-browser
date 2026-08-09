@@ -31,5 +31,6 @@ python3 "$ROOT/Tests/IndependentEngine/test_process_pool_policy.py"
 python3 "$ROOT/Tests/IndependentEngine/test_event_payload_contract.py"
 python3 "$ROOT/Tests/IndependentEngine/test_focus_autofill_contract.py"
 python3 "$ROOT/Tests/IndependentEngine/test_hardware_keyboard_contract.py"
+python3 "$ROOT/Tests/IndependentEngine/test_low_memory_monitor.py"
 
 echo "PASS: portable independent-engine gate"
