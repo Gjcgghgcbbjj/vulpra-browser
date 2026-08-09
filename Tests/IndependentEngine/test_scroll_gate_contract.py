@@ -118,6 +118,20 @@ def check_source_wiring() -> None:
                 f"{harness_name} does not retry blank screenshots")
         require("screenshot_audit=rendered" in harness,
                 f"{harness_name} does not record accepted render evidence")
+    scroll = (ROOT / "Tools/CI" / "run-simulator-scroll.sh").read_text(encoding="utf-8")
+    # The loopback dispatch response body ("ok") is appended to device.log
+    # without a trailing newline; the harness must terminate the line and the
+    # JSON metric must match `name=` anywhere so dispatchStatus is not lost
+    # (run 31311535903 recorded -1 despite a successful dispatch).
+    require("printf '\\n' >> \"$PREFIX-device.log\"" in scroll,
+            "scroll harness does not terminate the curl body line")
+    require("line.find(marker)" in scroll,
+            "scroll harness metric does not match name= anywhere in the line")
+    workflow = (ROOT / ".github" / "workflows" / "simulator-smoke.yml").read_text(encoding="utf-8")
+    require("top:32vh" in workflow and "left:14vw" in workflow,
+            "scroll fixture dark marker is outside the screenshot audit region")
+    require("min-height:15000px" in workflow and "scrollTo(0,y)" in workflow,
+            "scroll fixture no longer drives an in-page auto-scroll")
 
 
 def main() -> None:

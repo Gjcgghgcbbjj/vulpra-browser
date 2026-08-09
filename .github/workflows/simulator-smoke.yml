@@ -499,7 +499,7 @@ jobs:
           printf '%s\n' \
             '<!doctype html><html><head><meta charset="utf-8"><title>Vulpra Scroll Fixture</title>' \
             '<style>html,body{margin:0;background:#fff}body{min-height:15000px}' \
-            'main{position:fixed;top:8px;left:8px;background:#102a24;color:#fff;font:700 16px system-ui;padding:4px 8px}</style></head>' \
+            'main{position:fixed;top:32vh;left:14vw;width:72vw;height:36vh;background:#102a24;color:#fff;font:700 28px system-ui;display:grid;place-items:center}</style></head>' \
             '<body><main data-vulpra-scroll-fixture>Vulpra Scroll Fixture</main>' \
             '<script>let y=0;function step(){y+=40;if(y>12000)y=0;window.scrollTo(0,y);requestAnimationFrame(step)}requestAnimationFrame(step)</script>' \
             '</body></html>' \

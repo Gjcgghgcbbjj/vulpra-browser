@@ -224,6 +224,11 @@ if [[ "$LAUNCH_STATUS" -eq 0 && "$APP_PID" =~ ^[1-9][0-9]*$ ]]; then
       "$GATE_DISPATCH_URL" >> "$PREFIX-device.log" 2>&1
     dispatch_status=$?
     set -e
+    # curl's response body ("ok") is appended without a trailing newline and
+    # would otherwise concatenate onto the next evidence line as
+    # "okscroll_scenario_dispatch_status=0", which the JSON writer could not
+    # parse (run 31311535903 dispatchStatus=-1). Terminate the line first.
+    printf '\n' >> "$PREFIX-device.log"
     printf 'scroll_scenario_dispatch_status=%s\n' "$dispatch_status" >> "$PREFIX-device.log"
     if [[ "$dispatch_status" -eq 0 ]]; then
       for ((_attempt = 1; _attempt <= SCENARIO_TIMEOUT_SECONDS; _attempt++)); do
@@ -349,9 +354,14 @@ survived, crash_count, output, device_log_path = sys.argv[6:10]
 lines = Path(log_path).read_text(encoding="utf-8", errors="replace").splitlines()
 
 def metric(name):
+    # Match `name=` anywhere in the line, not only at the start: the loopback
+    # dispatch response body ("ok") can concatenate onto the next evidence
+    # line and a leading-prefix match would silently miss it.
     for line in Path(device_log_path).read_text(encoding="utf-8", errors="replace").splitlines():
-        if line.startswith(name + "="):
-            return line[len(name) + 1:].strip()
+        marker = name + "="
+        index = line.find(marker)
+        if index != -1:
+            return line[index + len(marker):].strip()
     return None
 
 completed = None
