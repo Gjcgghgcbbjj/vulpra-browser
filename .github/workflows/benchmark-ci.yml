@@ -278,9 +278,10 @@ jobs:
           # iPad (TARGETED_DEVICE_FAMILY=1,2) so benchmarks see a native tablet
           # viewport: Speedometer 3.1 requires >= 850x650, which the
           # iPad Pro 12.9-inch portrait (1024x1366) satisfies headlessly.
-          # MotionMark's orientation-gated Start button is bypassed by the
-          # same-origin runner calling benchmarkController.startBenchmark()
-          # after frame-rate detection, so landscape is not required.
+          # MotionMark's Start button is permanently disabled in portrait, so the
+          # same-origin runner waits for benchmarkController.frameRateDetectionComplete
+          # (startReadyPath) and then calls startBenchmark() directly; landscape not
+          # required.
           device_type="$(xcrun simctl list devicetypes -j | python3 -c '
           import json, sys
           values = [item for item in json.load(sys.stdin)["devicetypes"]
