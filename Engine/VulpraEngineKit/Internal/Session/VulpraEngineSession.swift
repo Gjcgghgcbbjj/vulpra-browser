@@ -266,11 +266,19 @@ public final class VulpraEngineSession: EngineSession {
             }
             navigationObserver?.engineSession(id, didUpdate: navigation)
         case "GeckoView:PageTitleChanged":
+            let title = payload["title"] as? String ?? ""
             navigation = EngineNavigationEvent(
-                sessionID: id, url: navigation.url, title: payload["title"] as? String ?? "",
+                sessionID: id, url: navigation.url, title: title,
                 canGoBack: navigation.canGoBack, canGoForward: navigation.canGoForward
             )
             navigationObserver?.engineSession(id, didUpdate: navigation)
+            // The Simulator benchmark harness reads scores from the page
+            // title (same-origin runner pages set document.title to
+            // "VulpraBenchmark <id> score=<text>"); emit a public notice so
+            // the unified system log carries the title as evidence.
+            if !title.isEmpty {
+                Self.logger.notice("Engine title: \(title, privacy: .public) monotonic_ns=\(DispatchTime.now().uptimeNanoseconds)")
+            }
         case "GeckoView:PageStart":
             stoppedByUser = false
             navigationFailureReported = false

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "description": "Pinned standard web benchmarks for Vulpra Simulator benchmark gates. Sources are immutable upstream codeload tarballs (fixed commit + SHA-256); Tools/CI/benchmark-fixture.py downloads, verifies, and serves them same-origin with a score-reporting runner page. Scores are captured from the page title (GeckoView:PageTitleChanged -> 'Engine title: ...' log line) so no JS injection channel is required.",
+  "device": {
+    "family": "ipad",
+    "preferName": "iPad Pro 12.9-inch",
+    "reason": "Native iPad app (TARGETED_DEVICE_FAMILY=1,2); portrait 1024x1366 satisfies the Speedometer 3.1 850x650 minimum viewport without headless rotation. MotionMark's orientation-gated Start button is bypassed by the same-origin runner invoking benchmarkController.startBenchmark() after frame-rate detection, so landscape is not required."
+  },
+  "fixture": {
+    "benchmarkRoot": "/benchmarks",
+    "runnerRoot": "/runner"
+  },
+  "benchmarks": [
+    {
+      "id": "speedometer3",
+      "displayName": "Speedometer 3.1",
+      "version": "3.1",
+      "purpose": "Web application responsiveness (simulated user interaction timing)",
+      "source": {
+        "repository": "WebKit/Speedometer",
+        "refName": "release/3.1",
+        "commit": "1386415be8fef2f6b6bbdbe1828872471c5d802a",
+        "archiveURL": "https://codeload.github.com/WebKit/Speedometer/tar.gz/1386415be8fef2f6b6bbdbe1828872471c5d802a",
+        "archiveSHA256": "cfefa818d7789ed2f2b9f3f1bf608cc35e4e8241489eef47049296ce92791313"
+      },
+      "run": {
+        "entry": "index.html",
+        "query": "startAutomatically=true",
+        "start": "auto",
+        "scoreSelector": "#result-number",
+        "scoreTitlePrefix": "VulpraBenchmark speedometer3 score=",
+        "timeoutSeconds": 1800
+      }
+    },
+    {
+      "id": "motionmark",
+      "displayName": "MotionMark 1.3.2",
+      "version": "1.3.2",
+      "purpose": "Graphics and animation frame-rate (canvas rendering at target fps)",
+      "source": {
+        "repository": "WebKit/MotionMark",
+        "refName": "motionmark-release-1.3.2",
+        "commit": "0e740d50f2321d255f6176e2f57493574c735996",
+        "archiveURL": "https://codeload.github.com/WebKit/MotionMark/tar.gz/0e740d50f2321d255f6176e2f57493574c735996",
+        "archiveSHA256": "14b746f05b388a382d315186efd6e19017f7f67b3846d20759ab30fe83c2f985"
+      },
+      "run": {
+        "entry": "MotionMark/index.html",
+        "query": "",
+        "start": "controller",
+        "startObject": "benchmarkController",
+        "startMethod": "startBenchmark",
+        "startReadySelector": "#start-button",
+        "startReadyEnabled": true,
+        "scoreSelector": "#results .score",
+        "scoreTitlePrefix": "VulpraBenchmark motionmark score=",
+        "timeoutSeconds": 3600
+      }
+    },
+    {
+      "id": "jetstream",
+      "displayName": "JetStream 3.0",
+      "version": "3.0",
+      "purpose": "JavaScript and WebAssembly throughput (geometric mean of benchmark scores)",
+      "source": {
+        "repository": "WebKit/JetStream",
+        "refName": "JetStream3.0",
+        "commit": "06785cf861ac44855f168cbbe829278c2802e6de",
+        "archiveURL": "https://codeload.github.com/WebKit/JetStream/tar.gz/06785cf861ac44855f168cbbe829278c2802e6de",
+        "archiveSHA256": "0361851eb2ddeb003e06be74239c3f7ce437c64e774a29ba446faaed9ab16fa9"
+      },
+      "run": {
+        "entry": "index.html",
+        "query": "startDelay=0",
+        "start": "auto",
+        "scoreSelector": "#result-summary .score",
+        "scoreTitlePrefix": "VulpraBenchmark jetstream score=",
+        "timeoutSeconds": 5400
+      }
+    }
+  ]
+}
