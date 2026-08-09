@@ -88,6 +88,18 @@ def check_source_wiring() -> None:
         "> 25", "> 100", "#if DEBUG",
     ):
         require(token in sampler_text, f"ScrollFrameSampler missing {token!r}")
+    # Recording fidelity (run 31315659136 review): a real main-thread stall
+    # longer than 5s must be CLAMPED into the stats (trips max/stall budget),
+    # never dropped, while background/resume gaps are excluded by resetting the
+    # frame anchor on UIApplication lifecycle notifications.
+    require("longFrameCeiling" in sampler_text and "min(interval" in sampler_text,
+            "ScrollFrameSampler must clamp long foreground gaps instead of dropping them")
+    require("didEnterBackgroundNotification" in sampler_text
+            and "willEnterForegroundNotification" in sampler_text,
+            "ScrollFrameSampler must reset the frame anchor across background/foreground")
+    require("interval >= 0 { intervals.append" in sampler_text
+            and "interval < 5" not in sampler_text,
+            "ScrollFrameSampler must record long frames instead of the old drop guard")
     for token in (
         "runScrollPerformanceScenario", "gate_scenario=scroll-performance",
         "completed", "waitForIdleLoad", "tab.isLoading", "ScrollFrameSampler",
