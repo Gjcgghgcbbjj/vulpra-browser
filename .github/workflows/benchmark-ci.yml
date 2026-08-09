@@ -12,9 +12,9 @@ on:
         default: vulpra-engine-v5-r0.3-candidate
         type: string
       benchmarks:
-        description: Comma-separated benchmark ids (speedometer3,motionmark,jetstream)
+        description: Comma-separated benchmark ids from Configuration/benchmarks.json (defaults to enabledByDefault; jetstream requires the JIT backend and is refused)
         required: false
-        default: speedometer3,motionmark,jetstream
+        default: speedometer3,motionmark
         type: string
       attempts:
         description: Attempts per benchmark (1 = single-attempt gate)
@@ -59,18 +59,12 @@ jobs:
         run: |
           set -euo pipefail
           ids='${{ inputs.benchmarks }}'
-          python3 - "$ids" <<'PY'
-          import json, sys
-          manifest = json.load(open('Configuration/benchmarks.json'))
-          known = {entry['id'] for entry in manifest['benchmarks']}
-          wanted = [item.strip() for item in sys.argv[1].split(',') if item.strip()]
-          if not wanted:
-              raise SystemExit('no benchmark ids selected')
-          missing = [item for item in wanted if item not in known]
-          if missing:
-              raise SystemExit(f'unknown benchmark ids: {", ".join(missing)}')
-          PY
-          echo "benchmark ids: $ids"
+          # Shared validator: refuses unknown ids, empty selections, and
+          # requiresJitBackend benchmarks (JetStream 3.0 wasm cannot run on the
+          # JIT-disabled v5 engine). Contract-covered by
+          # Tests/IndependentEngine/test_benchmark_contract.py.
+          selected="$(python3 Tools/CI/validate-benchmark-selection.py --ids "$ids")"
+          echo "benchmark ids: $selected"
 
       - name: Restore verified native Simulator engine v5
         shell: bash

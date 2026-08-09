@@ -30,7 +30,9 @@
         "scoreSelector": "#result-number",
         "scoreTitlePrefix": "VulpraBenchmark speedometer3 score=",
         "timeoutSeconds": 1800
-      }
+      },
+      "enabledByDefault": true,
+      "requiresJitBackend": false
     },
     {
       "id": "motionmark",
@@ -55,7 +57,9 @@
         "scoreSelector": "#results .score",
         "scoreTitlePrefix": "VulpraBenchmark motionmark score=",
         "timeoutSeconds": 3600
-      }
+      },
+      "enabledByDefault": true,
+      "requiresJitBackend": false
     },
     {
       "id": "jetstream",
@@ -76,7 +80,10 @@
         "scoreSelector": "#result-summary .score",
         "scoreTitlePrefix": "VulpraBenchmark jetstream score=",
         "timeoutSeconds": 5400
-      }
+      },
+      "enabledByDefault": false,
+      "requiresJitBackend": true,
+      "notes": "JetStream 3.0 default suite includes ~12 WebAssembly workloads (tsf-wasm, richards-wasm, sqlite3-wasm, 8bitbench-wasm, zlib-wasm, dotnet-interp/aot-wasm, j2cl-box2d-wasm, Dart-flute-todomvc-wasm, Kotlin-compose-wasm, transformersjs-bert-wasm, argon2-wasm, gcc-loops-wasm, quicksort-wasm, HashSet-wasm); the driver aborts the whole run when any sub-benchmark throws (JetStreamDriver.js start(): catch -> reportError -> throw e), and the page refuses a partial suite. The current v5 engine calls JS::DisableJitBackend() in every Gecko child process (toolkit/xre/IOSBootstrap.mm ChildProcessInitImpl), setting JitOptions.disableJitBackend=true, so wasm::HasSupport() is false (HasPlatformSupport -> HasJitBackend -> !disableJitBackend) and WebAssembly is unavailable. Therefore the full JetStream 3.0 gate is guaranteed to fail on the JIT-disabled engine: requiresJitBackend=true and enabledByDefault=false, and the benchmark workflow refuses to select it. Re-enable only together with a JIT-enabled engine build."
     }
   ]
 }

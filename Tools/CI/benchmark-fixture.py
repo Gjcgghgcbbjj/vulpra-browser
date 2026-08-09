@@ -170,6 +170,15 @@ def select_benchmarks(manifest: dict[str, object], ids: str | None) -> list[dict
     return [by_id[item] for item in wanted]
 
 
+def enabled_by_default_ids(manifest: dict[str, object]) -> list[str]:
+    """Ids the benchmark workflow runs by default (enabledByDefault entries)."""
+    entries = manifest.get("benchmarks")
+    if not isinstance(entries, list) or not entries:
+        fail("benchmarks manifest has no benchmarks list")
+    return [entry["id"] for entry in entries if entry.get("enabledByDefault") is True]
+
+
+
 def validate_entry(entry: dict[str, object]) -> tuple[str, dict[str, object], dict[str, object]]:
     benchmark_id = entry["id"]
     source = entry.get("source")
@@ -192,6 +201,12 @@ def validate_entry(entry: dict[str, object]) -> tuple[str, dict[str, object], di
     start = run.get("start")
     if start not in ("auto", "controller"):
         fail(f"benchmark {benchmark_id} run.start must be auto or controller")
+
+    for key in ("enabledByDefault", "requiresJitBackend"):
+        if not isinstance(entry.get(key), bool):
+            fail(f"benchmark {benchmark_id} {key} must be a Boolean")
+    if entry.get("requiresJitBackend") and not isinstance(entry.get("notes"), str):
+        fail(f"benchmark {benchmark_id} notes must explain its JIT-backend requirement")
     for key in ("scoreSelector", "scoreTitlePrefix", "timeoutSeconds"):
         if key not in run:
             fail(f"benchmark {benchmark_id} run.{key} is missing")

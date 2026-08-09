@@ -30,6 +30,8 @@ ROOT = Path(__file__).resolve().parents[2]
 GENERATOR = ROOT / "Tools" / "CI" / "benchmark-fixture.py"
 SUMMARIZER = ROOT / "Tools" / "CI" / "summarize-benchmark.py"
 HARNESS = ROOT / "Tools" / "CI" / "run-simulator-benchmark.sh"
+VALIDATOR = ROOT / "Tools" / "CI" / "validate-benchmark-selection.py"
+WORKFLOW = ROOT / ".github" / "workflows" / "benchmark-ci.yml"
 MANIFEST_PATH = ROOT / "Configuration" / "benchmarks.json"
 
 import importlib.util
@@ -74,6 +76,20 @@ def check_manifest_entries(manifest: dict[str, object]) -> None:
                 f"{benchmark_id} scoreTitlePrefix must start with VulpraBenchmark")
         require(run["scoreSelector"].startswith("#"),
                 f"{benchmark_id} scoreSelector must be a CSS id/class selector")
+        require(isinstance(entry.get("enabledByDefault"), bool)
+                and isinstance(entry.get("requiresJitBackend"), bool),
+                f"{benchmark_id} must declare enabledByDefault and requiresJitBackend Booleans")
+        if benchmark_id == "jetstream":
+            require(entry.get("enabledByDefault") is False
+                    and entry.get("requiresJitBackend") is True,
+                    "jetstream must be requiresJitBackend and NOT enabledByDefault "
+                    "(wasm suite cannot run on the JIT-disabled v5 engine)")
+            require(isinstance(entry.get("notes"), str) and len(entry["notes"]) > 80,
+                    "jetstream notes must document its JIT-backend/wasm dependency")
+        else:
+            require(entry.get("enabledByDefault") is True
+                    and entry.get("requiresJitBackend") is False,
+                    f"{benchmark_id} must be enabledByDefault without a JIT-backend requirement")
 
 
 def make_synthetic_sources(benchmark_dir: Path, manifest: dict[str, object]) -> None:
@@ -358,6 +374,45 @@ def check_summarizer(manifest: dict[str, object]) -> None:
         expect_failure("extra", extra, "identifiers must be exactly 1...2", count=2)
 
 
+def check_workflow_benchmark_defaults(manifest: dict[str, object]) -> None:
+    """The workflow's benchmarks input default must match enabledByDefault ids."""
+    workflow = WORKFLOW.read_text(encoding="utf-8")
+    expected = ",".join(benchmark_fixture.enabled_by_default_ids(manifest))
+    require("default: " + expected in workflow,
+            f"benchmark-ci.yml benchmarks input default must be {expected!r}")
+    require("validate-benchmark-selection.py --ids" in workflow,
+            "benchmark-ci.yml validation step must call the shared selector validator")
+    for benchmark_id in benchmark_fixture.enabled_by_default_ids(manifest):
+        require(f"{benchmark_id}," in workflow or f",{benchmark_id}\n" in workflow
+                or workflow.count(benchmark_id) >= 2,
+                f"benchmark-ci.yml gate loop must reference {benchmark_id}")
+
+
+def check_selection_validator() -> None:
+    """The shared selection validator must refuse bad/JIT-backend selections."""
+    spec = importlib.util.spec_from_file_location("vulpra_benchmark_validator", VALIDATOR)
+    validator = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(validator)
+
+    selected = validator.validate_selection("speedometer3,motionmark")
+    require([entry["id"] for entry in selected] == ["speedometer3", "motionmark"],
+            "validator must accept the default benchmark set")
+
+    for ids, token in (
+        ("jetstream", "JIT backend"),
+        ("speedometer3,jetstream", "JIT backend"),
+        ("", "no benchmark ids selected"),
+        ("speedometer3,bogus", "unknown benchmark ids"),
+    ):
+        try:
+            validator.validate_selection(ids)
+        except validator.benchmark_fixture.FixtureError as error:
+            require(token in str(error), f"validator rejection for {ids!r} lacks {token!r}: {error}")
+        else:
+            raise SystemExit(f"FAIL: validator accepted invalid selection {ids!r}")
+
+
 def check_source_wiring() -> None:
     session = (ROOT / "Engine" / "VulpraEngineKit" / "Internal" / "Session"
                / "VulpraEngineSession.swift").read_text(encoding="utf-8")
@@ -499,10 +554,13 @@ def main() -> None:
     check_generate(manifest)
     check_safe_extract()
     check_summarizer(manifest)
+    check_workflow_benchmark_defaults(manifest)
+    check_selection_validator()
     check_source_wiring()
     check_runner_simulation(manifest)
     print("PASS: benchmark manifest, fixture generator, secure tar, summarizer, "
-          "title evidence, harness wiring, and runner JS contracts")
+          "selection validator, workflow defaults, title evidence, harness "
+          "wiring, and runner JS contracts")
     return None
 
 
