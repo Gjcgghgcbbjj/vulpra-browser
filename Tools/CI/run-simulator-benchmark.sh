@@ -1,8 +1,8 @@
 #!/bin/bash
-# Standard-benchmark Simulator harness. Loads a pinned benchmark runner page
-# (Tools/CI/benchmark-fixture.py generate) as the App initial URL over the
-# loopback fixture server, waits for the same-origin runner to report the
-# final score through the page title ("VulpraBenchmark <id> score=<text>"),
+# Standard-benchmark Simulator harness. Loads a pinned benchmark entry page
+# (Tools/CI/benchmark-fixture.py generate, top-level with the fixture-injected
+# probe) as the App initial URL over the loopback fixture server, waits for the
+# probe to report progress/final score through the page title ("VulpraBenchmark <id> score=<text>"),
 # which VulpraEngineSession logs as "Engine title: ..." via
 # GeckoView:PageTitleChanged. The score is then parsed from the unified
 # system+stream evidence log.

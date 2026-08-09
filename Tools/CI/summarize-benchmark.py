@@ -3,9 +3,9 @@
 
 Runs against attempt-XX.json fixtures produced by the benchmark harness
 (Tools/CI/run-simulator-benchmark.sh). Each attempt loads a pinned benchmark
-runner page (Speedometer 3.1 / MotionMark 1.3.2 / JetStream 3.0 from
-Configuration/benchmarks.json) and captures the reported score from the
-page title ("VulpraBenchmark <id> score=<text>"), which the App logs as
+entry page (Speedometer 3.1 / MotionMark 1.3.2 / JetStream 3.0 from
+Configuration/benchmarks.json) with the fixture-injected reporting probe and
+captures the reported score from the page title ("VulpraBenchmark <id> score=<text>"), which the App logs as
 "Engine title: ..." through GeckoView:PageTitleChanged.
 
 This summarizer is the semantic gate: it requires every attempt to capture a

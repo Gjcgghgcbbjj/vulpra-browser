@@ -246,7 +246,7 @@ jobs:
             --benchmark-dir .build/benchmarks \
             --ids '${{ env.BENCHMARKS }}'
 
-      - name: Generate benchmark runner fixture
+      - name: Generate benchmark fixture
         shell: bash
         run: |
           set -euo pipefail
@@ -292,7 +292,7 @@ jobs:
           # viewport: Speedometer 3.1 requires >= 850x650, which the
           # iPad Pro 12.9-inch portrait (1024x1366) satisfies headlessly.
           # MotionMark's Start button is permanently disabled in portrait, so the
-          # same-origin runner waits for benchmarkController.frameRateDetectionComplete
+          # fixture-injected probe waits for benchmarkController.frameRateDetectionComplete
           # (startReadyPath) and then calls startBenchmark() directly; landscape not
           # required.
           device_type="$(xcrun simctl list devicetypes -j | python3 -c '
@@ -331,7 +331,11 @@ jobs:
           for benchmark in $(echo '${{ env.BENCHMARKS }}' | tr ',' ' '); do
             bench_evidence="$evidence/$benchmark"
             mkdir -p "$bench_evidence/attempts"
-            runner_url="http://127.0.0.1:8765/runner/$benchmark.html"
+            # The App loads the benchmark entry page itself (top-level, no runner iframe):
+            # the fixture server serves the whole generated fixture dir, so
+            # /benchmarks/<id>/<entry>?<query> resolves to the copied pinned tree + probe.
+            entry_path="$(python3 Tools/CI/benchmark-fixture.py url --benchmark "$benchmark")"
+            runner_url="http://127.0.0.1:8765$entry_path"
             printf 'benchmark %s single-attempt gate attempt 1 starting at %s\n' \
               "$benchmark" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
             Tools/CI/run-simulator-benchmark.sh \

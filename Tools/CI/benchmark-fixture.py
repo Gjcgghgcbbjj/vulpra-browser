@@ -11,24 +11,37 @@ Two subcommands:
            manifest pins the exact commit + hash that produced the tree.
 
   generate --fixture-dir DIR --benchmark-dir DIR [--ids id[,id...]]
-           Emit DIR/runner/<id>.html wrapper pages plus a DIR/index.html
-           landing page. Each runner iframes the same-origin pinned sources
-           (/benchmarks/<id>/...), starts the benchmark ("auto" via query
-           params, or "controller" by calling the benchmark's own JS object
-           after its Start control becomes ready), polls the score DOM, and
-           writes the score into document.title as
-           "VulpraBenchmark <id> score=<text>". The App's
-           GeckoView:PageTitleChanged handler logs "Engine title: <title>",
-           so the Simulator harness can read the score from the unified log
-           stream with no JS injection channel.
+           Emit DIR/benchmarks/<id>/ (a byte-identical copy of each verified
+           pinned source tree) plus a DIR/index.html landing page. The run.entry
+           page of each copy gets a small same-document probe appended before
+           </body>. The probe starts the benchmark ("auto" via the run.query URL
+           params, or "controller" by calling the benchmark's own JS object once
+           its ready condition holds), polls the score DOM, and writes
+           "VulpraBenchmark <id> progress=.../score=<text>" into
+           document.title. The App's GeckoView:PageTitleChanged handler logs
+           "Engine title: <title>", so the Simulator harness can read progress
+           and score from the unified log stream with no JS injection channel.
 
-The sources themselves are never modified: benchmarks stay byte-identical to
-the pinned upstream commits so scores remain comparable across runs. The
-wrapper approach keeps automation (auto-start, score capture) outside the
-pinned tree.
+           The served fixture is the TOP-LEVEL benchmark entry page itself
+           (no wrapper iframe): the fixture server in benchmark-ci.yml serves
+           the whole generated fixture dir, so /benchmarks/<id>/... resolves to
+           the copied tree. Each copy carries a .vulpra-fixture.json manifest
+           recording sourceCommit + entry SHA-256s + probe SHA-256 so the
+           rewrite is fully provenance-pinned.
 
-Portable: pure stdlib (urllib, tarfile, hashlib, json). Network is only used
-by `fetch`, and only to hit the pinned codeload URLs.
+  url      --ids id[,id...]
+           Print the fixture URL path (benchmarkRoot + entry + run.query) for
+           each selected benchmark, one per line. Used by benchmark-ci.yml to
+           build the App initial URL.
+
+The pinned sources are never modified in place: `fetch` verifies the archive
+SHA-256, `generate` copies the verified tree into the fixture and appends only
+the probe (a pure reporting/controller shim that does not touch benchmark
+timing code), and .vulpra-fixture.json pins the hashes. Scores remain
+comparable across runs.
+
+Portable: pure stdlib (urllib, tarfile, hashlib, json, shutil). Network is
+only used by `fetch`, and only to hit the pinned codeload URLs.
 """
 
 from __future__ import annotations
@@ -38,6 +51,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 import tarfile
 import tempfile
@@ -52,92 +66,80 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 SCORE_RE = re.compile(r"^[0-9]+(?:\.[0-9]+)?")
 
-RUNNER_TEMPLATE = """<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vulpra Benchmark Runner: {display_name}</title>
-<style>
-  html, body {{ margin: 0; height: 100%; background: #14181d; }}
-  iframe {{ display: block; width: 100%; height: 100%; border: 0; }}
-</style>
-</head>
-<body>
-<iframe id="bench" src="{iframe_src}" title="{display_name}"></iframe>
-<script>
-(function () {{
+ENTRY_PROBE_SCRIPT = """<script>
+(function () {
   "use strict";
-  var CONFIG = {config_json};
-  var frame = document.getElementById("bench");
-  var started = false;
+  var CONFIG = __CONFIG_JSON__;
   var lastProgress = "";
   var t0 = Date.now();
-  var timer = setInterval(function () {{
-    var win = null, doc = null;
-    try {{ win = frame.contentWindow; doc = frame.contentDocument; }} catch (e) {{ return; }}
-    if (!win || !doc) {{ return; }}
-    if (!started) {{
-      if (CONFIG.start === "controller") {{
-        if (CONFIG.startReadyPath) {{
-          var readyTarget = win;
-          var readyParts = CONFIG.startReadyPath.split(".");
-          var readyOk = true;
-          for (var i = 0; i < readyParts.length; i++) {{
-            if (!readyTarget) {{ readyOk = false; break; }}
-            readyTarget = readyTarget[readyParts[i]];
-          }}
-          if (!readyOk || readyTarget !== CONFIG.startReadyValue) {{ return; }}
-        }} else {{
-          var readyEl = doc.querySelector(CONFIG.startReadySelector);
-          if (!readyEl || readyEl.disabled === CONFIG.startReadyEnabled) {{ return; }}
-        }}
-        var target = win;
-        var parts = CONFIG.startObject.split(".");
-        for (var i = 0; i < parts.length; i++) {{
-          target = target[parts[i]];
-          if (!target) {{ return; }}
-        }}
-        var fn = target[CONFIG.startMethod];
-        if (typeof fn !== "function") {{ return; }}
-        fn.call(target);
-      }}
-      started = true;
-      return;
-    }}
-    if (CONFIG.progress) {{
-      var parts = [];
-      var labelEl = doc.querySelector(CONFIG.progress.labelSelector);
-      var textEl = doc.querySelector(CONFIG.progress.textSelector);
-      var barEl = doc.querySelector(CONFIG.progress.barSelector);
+  var started = false;
+  var done = false;
+  function tick() {
+    if (!started) {
+      if (CONFIG.start === "controller") {
+        var ready = false;
+        if (CONFIG.startReadyPath) {
+          var target = window;
+          var parts = CONFIG.startReadyPath.split(".");
+          ready = true;
+          for (var i = 0; i < parts.length; i++) {
+            if (!target) { ready = false; break; }
+            target = target[parts[i]];
+          }
+          if (ready && target !== CONFIG.startReadyValue) { ready = false; }
+        } else if (CONFIG.startReadySelector) {
+          var readyEl = document.querySelector(CONFIG.startReadySelector);
+          if (!readyEl || readyEl.disabled === CONFIG.startReadyEnabled) { ready = false; }
+          else { ready = true; }
+        }
+        if (!ready) { return; }
+        var target2 = window;
+        var parts2 = CONFIG.startObject.split(".");
+        for (var j = 0; j < parts2.length; j++) {
+          target2 = target2[parts2[j]];
+          if (!target2) { return; }
+        }
+        var fn = target2[CONFIG.startMethod];
+        if (typeof fn !== "function") { return; }
+        started = true;
+        fn.call(target2);
+      } else {
+        started = true;
+      }
+    }
+    if (done) { return; }
+    if (CONFIG.progress) {
+      var bits = [];
+      var labelEl = document.querySelector(CONFIG.progress.labelSelector);
+      var textEl = document.querySelector(CONFIG.progress.textSelector);
+      var barEl = document.querySelector(CONFIG.progress.barSelector);
       var label = labelEl ? (labelEl.textContent || "") : "";
       var text = textEl ? (textEl.textContent || "") : "";
-      if (label) {{ parts.push(label.replace(/\\s+/g, "_")); }}
-      if (text) {{ parts.push(text.replace(/\\s+/g, "_")); }}
-      if (barEl && barEl.max != null && barEl.value != null) {{
-        parts.push("bar=" + barEl.value + "/" + barEl.max);
-      }}
-      if (parts.length > 0) {{
-        parts.push("elapsed=" + Math.floor((Date.now() - t0) / 1000) + "s");
-        var progress = "progress=" + parts.join("|");
-        if (progress !== lastProgress) {{
+      if (label) { bits.push(label.replace(/\\s+/g, "_")); }
+      if (text) { bits.push(text.replace(/\\s+/g, "_")); }
+      if (barEl && barEl.max != null && barEl.value != null) {
+        bits.push("bar=" + barEl.value + "/" + barEl.max);
+      }
+      if (bits.length > 0) {
+        bits.push("elapsed=" + Math.floor((Date.now() - t0) / 1000) + "s");
+        var progress = "progress=" + bits.join("|");
+        if (progress !== lastProgress) {
           lastProgress = progress;
           document.title = CONFIG.progressTitlePrefix + progress;
-        }}
-      }}
-    }}
-    var el = doc.querySelector(CONFIG.scoreSelector);
+        }
+      }
+    }
+    var el = document.querySelector(CONFIG.scoreSelector);
     var text = el ? (el.textContent || "") : "";
     text = text.replace(/^\\s+|\\s+$/g, "").replace(/\\s+/g, "_");
-    if (text && text !== "Error" && text !== "error") {{
-      clearInterval(timer);
+    if (text && text !== "Error" && text !== "error") {
+      done = true;
       document.title = CONFIG.scoreTitlePrefix + text;
-    }}
-  }}, 500);
-}})();
+    }
+  }
+  setInterval(tick, 500);
+})();
 </script>
-</body>
-</html>
 """
 
 LANDING_TEMPLATE = """<!doctype html>
@@ -348,6 +350,20 @@ def sha256_of(path: Path) -> str:
     return digest.hexdigest()
 
 
+def sha256_of_bytes(payload: bytes) -> str:
+    return hashlib.sha256(payload).hexdigest()
+
+
+def inject_probe(payload: bytes, probe: str) -> bytes:
+    """Append the reporting probe before </body> (case-insensitive), else at EOF."""
+    marker = b"</body>"
+    index = payload.lower().rfind(marker)
+    probe_bytes = probe.encode("utf-8")
+    if index == -1:
+        return payload + probe_bytes
+    return payload[:index] + probe_bytes + payload[index:]
+
+
 def download_verified(archive_url: str, expected_sha256: str, benchmark_id: str) -> Path:
     temporary = tempfile.NamedTemporaryFile(prefix=f"vulpra-bench-{benchmark_id}-", suffix=".tar.gz", delete=False)
     temporary.close()
@@ -418,9 +434,8 @@ def cmd_generate(args: argparse.Namespace) -> int:
     if not isinstance(fixture, dict):
         fail("benchmarks manifest has no fixture section")
     benchmark_root = fixture.get("benchmarkRoot")
-    runner_root = fixture.get("runnerRoot")
-    if not isinstance(benchmark_root, str) or not isinstance(runner_root, str):
-        fail("benchmarks manifest fixture.benchmarkRoot/runnerRoot are invalid")
+    if not isinstance(benchmark_root, str) or not benchmark_root.startswith("/"):
+        fail("benchmarks manifest fixture.benchmarkRoot is invalid")
     benchmark_dir = Path(args.benchmark_dir)
     fixture_dir = Path(args.fixture_dir)
     links = []
@@ -447,7 +462,7 @@ def cmd_generate(args: argparse.Namespace) -> int:
                 )
         query = run.get("query") or ""
         query_text = f"?{query}" if query else ""
-        iframe_src = f"{benchmark_root}/{benchmark_id}/{run['entry']}{query_text}"
+        entry_url = f"{benchmark_root}/{benchmark_id}/{run['entry']}{query_text}"
         config = {
             "id": benchmark_id,
             "start": run["start"],
@@ -466,23 +481,60 @@ def cmd_generate(args: argparse.Namespace) -> int:
             else:
                 config["startReadySelector"] = run["startReadySelector"]
                 config["startReadyEnabled"] = run["startReadyEnabled"]
-        runner_dir = fixture_dir / runner_root.strip("/")
-        runner_dir.mkdir(parents=True, exist_ok=True)
-        page = RUNNER_TEMPLATE.format(
-            display_name=entry.get("displayName", benchmark_id),
-            iframe_src=iframe_src,
-            config_json=json.dumps(config, sort_keys=True),
+        probe = ENTRY_PROBE_SCRIPT.replace(
+            "__CONFIG_JSON__", json.dumps(config, sort_keys=True)
         )
-        (runner_dir / f"{benchmark_id}.html").write_text(page, encoding="utf-8")
+        target_dir = fixture_dir / benchmark_root.strip("/") / benchmark_id
+        if target_dir.exists():
+            shutil.rmtree(target_dir)
+        shutil.copytree(source_dir, target_dir)
+        target_entry = target_dir / run["entry"]
+        original = target_entry.read_bytes()
+        patched = inject_probe(original, probe)
+        target_entry.write_bytes(patched)
+        provenance = {
+            "schemaVersion": 1,
+            "id": benchmark_id,
+            "repository": source["repository"],
+            "refName": source["refName"],
+            "commit": source["commit"],
+            "archiveSHA256": source["archiveSHA256"],
+            "entry": run["entry"],
+            "sourceEntrySHA256": sha256_of_bytes(original),
+            "fixtureEntrySHA256": sha256_of_bytes(patched),
+            "probeScriptSHA256": sha256_of_bytes(probe.encode("utf-8")),
+        }
+        (target_dir / ".vulpra-fixture.json").write_text(
+            json.dumps(provenance, indent=2) + "\n", encoding="utf-8"
+        )
         links.append(
-            f'<li><a href="{runner_root}/{benchmark_id}.html">{entry.get("displayName", benchmark_id)}</a></li>'
+            f'<li><a href="{entry_url}">{entry.get("displayName", benchmark_id)}</a></li>'
         )
-        print(f"generate: wrote {runner_dir / (benchmark_id + '.html')}")
+        print(
+            f"generate: wrote {target_entry} "
+            f"(entry sha256 {provenance['fixtureEntrySHA256']})"
+        )
     fixture_dir.mkdir(parents=True, exist_ok=True)
     (fixture_dir / "index.html").write_text(
         LANDING_TEMPLATE.format(links="\n".join(links)), encoding="utf-8"
     )
     print(f"generate: wrote {fixture_dir / 'index.html'}")
+    return 0
+
+
+def cmd_url(args: argparse.Namespace) -> int:
+    """Print the fixture URL path for each selected benchmark, one per line."""
+    manifest = load_manifest()
+    fixture = manifest.get("fixture")
+    benchmark_root = fixture.get("benchmarkRoot") if isinstance(fixture, dict) else None
+    if not isinstance(benchmark_root, str) or not benchmark_root.startswith("/"):
+        fail("benchmarks manifest fixture.benchmarkRoot is invalid")
+    for benchmark_id, _source, run in (
+        validate_entry(entry) for entry in select_benchmarks(manifest, args.ids)
+    ):
+        query = run.get("query") or ""
+        query_text = f"?{query}" if query else ""
+        print(f"{benchmark_root}/{benchmark_id}/{run['entry']}{query_text}")
     return 0
 
 
@@ -495,10 +547,15 @@ def main() -> int:
     fetch_parser.add_argument("--ids", default=None, help="comma-separated benchmark ids")
     fetch_parser.add_argument("--force", action="store_true", help="re-fetch even if present")
 
-    generate_parser = subparsers.add_parser("generate", help="emit same-origin runner pages")
+    generate_parser = subparsers.add_parser(
+        "generate", help="emit the served fixture (copied benchmark trees + probe)"
+    )
     generate_parser.add_argument("--fixture-dir", required=True, type=Path)
     generate_parser.add_argument("--benchmark-dir", required=True, type=Path)
     generate_parser.add_argument("--ids", default=None, help="comma-separated benchmark ids")
+
+    url_parser = subparsers.add_parser("url", help="print benchmark entry URL paths")
+    url_parser.add_argument("--ids", default=None, help="comma-separated benchmark ids")
 
     args = parser.parse_args()
     try:
@@ -506,6 +563,8 @@ def main() -> int:
             return cmd_fetch(args)
         if args.command == "generate":
             return cmd_generate(args)
+        if args.command == "url":
+            return cmd_url(args)
         fail("no subcommand")
     except (FixtureError, OSError) as error:
         print(f"benchmark-fixture-error: {error}", file=sys.stderr)

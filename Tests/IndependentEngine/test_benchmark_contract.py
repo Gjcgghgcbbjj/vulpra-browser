@@ -55,9 +55,8 @@ def load_manifest() -> dict[str, object]:
             "benchmarks.json device.family must be ipad")
     fixture = manifest.get("fixture")
     require(isinstance(fixture, dict)
-            and fixture.get("benchmarkRoot") == "/benchmarks"
-            and fixture.get("runnerRoot") == "/runner",
-            "benchmarks.json fixture roots must be /benchmarks and /runner")
+            and fixture.get("benchmarkRoot") == "/benchmarks",
+            "benchmarks.json fixture.benchmarkRoot must be /benchmarks")
     return manifest
 
 
@@ -125,6 +124,17 @@ def run_generator(args: list[str], cwd: Path) -> subprocess.CompletedProcess[str
     )
 
 
+def entry_url_for(manifest: dict[str, object], benchmark_id: str) -> str:
+    """Entry URL path exactly as `benchmark-fixture.py url` prints it."""
+    root = manifest["fixture"]["benchmarkRoot"]
+    for entry in manifest["benchmarks"]:
+        if entry["id"] == benchmark_id:
+            query = entry["run"].get("query") or ""
+            query_text = f"?{query}" if query else ""
+            return f"{root}/{benchmark_id}/{entry['run']['entry']}{query_text}"
+    raise SystemExit(f"FAIL: unknown benchmark id {benchmark_id}")
+
+
 def check_generate(manifest: dict[str, object]) -> None:
     with tempfile.TemporaryDirectory(prefix="vulpra-bench-gen-") as temporary:
         base = Path(temporary)
@@ -135,45 +145,70 @@ def check_generate(manifest: dict[str, object]) -> None:
             "generate", "--fixture-dir", str(fixture), "--benchmark-dir", str(sources),
         ], ROOT)
         require(result.returncode == 0, f"generate failed: {result.stderr}")
+        require(not (fixture / "runner").exists(),
+                "generate must not emit iframe runner pages")
         ids = [entry["id"] for entry in manifest["benchmarks"]]
-        for benchmark_id in ids:
-            runner = fixture / "runner" / f"{benchmark_id}.html"
-            require(runner.is_file(), f"runner page missing: {runner}")
-            text = runner.read_text(encoding="utf-8")
-            require("iframe" in text and 'id="bench"' in text,
-                    f"{benchmark_id} runner page has no bench iframe")
-            require("http://" not in text, f"{benchmark_id} runner page leaks an absolute URL")
+        for entry in manifest["benchmarks"]:
+            benchmark_id, source, run = benchmark_fixture.validate_entry(entry)
+            patched = fixture / "benchmarks" / benchmark_id / run["entry"]
+            require(patched.is_file(), f"patched benchmark entry missing: {patched}")
+            text = patched.read_text(encoding="utf-8")
+            require(f"data-entry={benchmark_id}" in text,
+                    f"{benchmark_id} patched entry lost the pinned source content")
+            require(f"VulpraBenchmark {benchmark_id} score=" in text,
+                    f"{benchmark_id} patched entry must publish the score via title")
+            require("iframe" not in text and 'id="bench"' not in text,
+                    f"{benchmark_id} patched entry must not use an iframe")
+            require("http://" not in text,
+                    f"{benchmark_id} patched entry leaks an absolute URL")
             require("eval(" not in text and "new Function" not in text,
-                    f"{benchmark_id} runner page must not use eval")
+                    f"{benchmark_id} patched entry must not use eval")
             require('document.title = CONFIG.scoreTitlePrefix + text' in text,
-                    f"{benchmark_id} runner page must publish the score via title")
+                    f"{benchmark_id} patched entry must publish the score via title")
+            provenance = fixture / "benchmarks" / benchmark_id / ".vulpra-fixture.json"
+            require(provenance.is_file(), f"{benchmark_id} provenance manifest missing")
+            recorded = json.loads(provenance.read_text(encoding="utf-8"))
+            require(recorded.get("commit") == source["commit"]
+                    and recorded.get("sourceEntrySHA256")
+                    and recorded.get("fixtureEntrySHA256")
+                    and recorded.get("probeScriptSHA256")
+                    and recorded.get("entry") == run["entry"],
+                    f"{benchmark_id} provenance manifest incomplete")
+            entry_url = entry_url_for(manifest, benchmark_id)
+            require(entry_url.startswith(f"/benchmarks/{benchmark_id}/")
+                    and f"/{run['entry']}" in entry_url,
+                    f"{benchmark_id} entry url is wrong: {entry_url}")
         # Speedometer3 gate must carry the representative subset query and progress wiring.
-        speedometer = fixture / "runner" / "speedometer3.html"
+        speedometer = fixture / "benchmarks" / "speedometer3" / "index.html"
         speedometer_text = speedometer.read_text(encoding="utf-8")
         require('"progress": {' in speedometer_text,
-                "speedometer3 runner page missing progress config")
+                "speedometer3 patched entry missing progress config")
         require('"progressTitlePrefix": "VulpraBenchmark speedometer3 progress="' in speedometer_text,
-                "speedometer3 runner page missing progress title prefix")
-        require("suites=TodoMVC-JavaScript-ES5,Editor-CodeMirror,Charts-chartjs,Perf-Dashboard" in speedometer_text,
-                "speedometer3 iframe src must carry the representative suites query")
+                "speedometer3 patched entry missing progress title prefix")
+        speedometer_url = entry_url_for(manifest, "speedometer3")
+        require("suites=TodoMVC-JavaScript-ES5,Editor-CodeMirror,Charts-chartjs,Perf-Dashboard" in speedometer_url,
+                "speedometer3 entry url must carry the representative suites query")
+        url_result = run_generator(["url", "--ids", "speedometer3"], ROOT)
+        require(url_result.returncode == 0 and url_result.stdout.strip() == speedometer_url,
+                f"url subcommand must print the speedometer3 entry path: {url_result.stdout!r}")
 
         require((fixture / "index.html").is_file(), "landing index.html missing")
         landing = (fixture / "index.html").read_text(encoding="utf-8")
         for benchmark_id in ids:
-            require(f"/runner/{benchmark_id}.html" in landing,
+            require(f"/benchmarks/{benchmark_id}/" in landing,
                     f"landing page missing link to {benchmark_id}")
 
-        # MotionMark runner must wire the controller start path.
-        motion = fixture / "runner" / "motionmark.html"
+        # MotionMark patched entry must wire the controller start path.
+        motion = fixture / "benchmarks" / "motionmark" / "MotionMark" / "index.html"
         motion_text = motion.read_text(encoding="utf-8")
         require('"startObject": "benchmarkController"' in motion_text,
-                "motionmark runner missing startObject")
+                "motionmark patched entry missing startObject")
         require('"startMethod": "startBenchmark"' in motion_text,
-                "motionmark runner missing startMethod")
+                "motionmark patched entry missing startMethod")
         require('"startReadyPath": "benchmarkController.frameRateDetectionComplete"' in motion_text,
-                "motionmark runner missing frameRateDetectionComplete ready path")
+                "motionmark patched entry missing frameRateDetectionComplete ready path")
         require('"startReadyValue": true' in motion_text,
-                "motionmark runner missing startReadyValue true")
+                "motionmark patched entry missing startReadyValue true")
         require('"startReadySelector": "#start-button"' not in motion_text,
                 "motionmark must not wait for the portrait-disabled Start button")
 
@@ -279,7 +314,7 @@ def valid_attempt(identifier: int, benchmark_id: str, score: float = 17.4,
     return {
         "attempt": identifier,
         "benchmark": benchmark_id,
-        "url": f"http://127.0.0.1:8765/runner/{benchmark_id}.html",
+        "url": f"http://127.0.0.1:8765/benchmarks/{benchmark_id}/index.html",
         "completed": True,
         "scoreText": text,
         "score": score,
@@ -396,6 +431,8 @@ def check_workflow_benchmark_defaults(manifest: dict[str, object]) -> None:
             f"benchmark-ci.yml benchmarks input default must be {expected!r}")
     require("validate-benchmark-selection.py --ids" in workflow,
             "benchmark-ci.yml validation step must call the shared selector validator")
+    require("benchmark-fixture.py url" in workflow,
+            "benchmark-ci.yml must build the App URL via the fixture url subcommand")
     for benchmark_id in benchmark_fixture.enabled_by_default_ids(manifest):
         require(f"{benchmark_id}," in workflow or f",{benchmark_id}\n" in workflow
                 or workflow.count(benchmark_id) >= 2,
@@ -455,9 +492,9 @@ def check_source_wiring() -> None:
         require(token in workflow, f"benchmark workflow missing {token!r}")
 
 
-def check_runner_simulation(manifest: dict[str, object]) -> None:
+def check_probe_simulation(manifest: dict[str, object]) -> None:
     if shutil.which("node") is None:
-        print("SKIP: node not available; runner JS simulation skipped")
+        print("SKIP: node not available; probe JS simulation skipped")
         return
     with tempfile.TemporaryDirectory(prefix="vulpra-bench-node-") as temporary:
         base = Path(temporary)
@@ -469,133 +506,127 @@ def check_runner_simulation(manifest: dict[str, object]) -> None:
         ], ROOT)
         require(result.returncode == 0, f"generate failed for node simulation: {result.stderr}")
 
-        script = f'''
-const {{ readFileSync }} = await import("node:fs");
-const fixture = {json.dumps(str(fixture / "runner"))};
+        script = ("""const { readFileSync } = await import("node:fs");
+const fixture = __FIXTURE_DIR__;
+const entries = {"jetstream": "benchmarks/jetstream/index.html", "motionmark": "benchmarks/motionmark/MotionMark/index.html", "speedometer3": "benchmarks/speedometer3/index.html"};
 
-function makeDoc(frame, overrides = {{}}) {{
-  const state = {{ title: "initial", startButtonDisabled: true, scoreText: "",
+function makeDoc(overrides = {}) {
+  const state = { title: "initial", scoreText: "",
                    progressLabel: "", progressText: "",
-                   progressValue: null, progressMax: null, ...overrides }};
-  return {{
+                   progressValue: null, progressMax: null, ...overrides };
+  return {
     state,
     title: state.title,
-    getElementById(id) {{
-      if (id === "bench") return frame;
-      if (id === "start-button") return {{ disabled: state.startButtonDisabled }};
-      return null;
-    }},
-    querySelector(sel) {{
-      if (sel === "#start-button") return {{ disabled: state.startButtonDisabled }};
-      if (sel === "#info-label") return state.progressLabel ? {{ textContent: state.progressLabel }} : null;
-      if (sel === "#info-progress") return state.progressText ? {{ textContent: state.progressText }} : null;
-      if (sel === "#progress-completed") {{
+    querySelector(sel) {
+      if (sel === "#start-button") return { disabled: state.startButtonDisabled ?? true };
+      if (sel === "#info-label") return state.progressLabel ? { textContent: state.progressLabel } : null;
+      if (sel === "#info-progress") return state.progressText ? { textContent: state.progressText } : null;
+      if (sel === "#progress-completed") {
         if (state.progressValue == null || state.progressMax == null) return null;
-        return {{ value: state.progressValue, max: state.progressMax }};
-      }}
-      if (sel === "#result-number" || sel === "#result-summary .score" || sel === "#results .score") {{
-        return state.scoreText ? {{ textContent: state.scoreText }} : null;
-      }}
+        return { value: state.progressValue, max: state.progressMax };
+      }
+      if (sel === "#result-number" || sel === "#result-summary .score" || sel === "#results .score") {
+        return state.scoreText ? { textContent: state.scoreText } : null;
+      }
       return null;
-    }},
-  }};
-}}
+    },
+  };
+}
 
-function run(id, doc, win) {{
-  const html = readFileSync(`${{fixture}}/${{id}}.html`, "utf8");
-  const script = html.match(/<script>([\\s\\S]*?)<\\/script>/)[1];
-  new Function("document", script)(doc);
-}}
+function run(id, doc, win) {
+  const html = readFileSync(`${fixture}/${entries[id]}`, "utf8");
+  const match = html.match(new RegExp("<script>([^]*?)</script>"));
+  if (!match) throw new Error("probe script not found in " + entries[id]);
+  new Function("document", "window", match[1])(doc, win);
+}
 
-function scenario(id, steps, ms = 3600) {{
-  return new Promise((resolve, reject) => {{
-    const calls = {{ value: 0 }};
+function scenario(id, steps, ms = 3600) {
+  return new Promise((resolve, reject) => {
+    const calls = { value: 0 };
     const history = [];
-    const win = {{ benchmarkController: {{ frameRateDetectionComplete: false, startBenchmark() {{ calls.value++; }} }} }};
-    const frame = {{ contentWindow: win, contentDocument: null }};
-    const doc = makeDoc(frame, {{}});
-    frame.contentDocument = doc;
+    const win = { benchmarkController: { frameRateDetectionComplete: false, startBenchmark() { calls.value++; } } };
+    const doc = makeDoc();
     run(id, doc, win);
     let t = 0;
-    const timer = setInterval(() => {{
+    const timer = setInterval(() => {
       t += 500;
       steps(t, doc.state, win);
-      history.push({{ t, calls: calls.value, title: doc.title }});
-      if (t >= ms) {{ clearInterval(timer); resolve({{ doc, calls, history }}); }}
-    }}, 500);
-    setTimeout(() => {{ clearInterval(timer); reject(new Error("timeout")); }}, ms + 2000);
-  }});
-}}
+      history.push({ t, calls: calls.value, title: doc.title });
+      if (t >= ms) { clearInterval(timer); resolve({ doc, calls, history }); }
+    }, 500);
+    setTimeout(() => { clearInterval(timer); reject(new Error("timeout")); }, ms + 2000);
+  });
+}
 
-function assert(cond, msg) {{ if (!cond) throw new Error("ASSERT FAIL: " + msg); }}
+function assert(cond, msg) { if (!cond) throw new Error("ASSERT FAIL: " + msg); }
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 await delay(100); // let the browser-shaped globals settle (no-op)
 
-{{{{ // speedometer3 auto-start
-  const {{ doc }} = await scenario("speedometer3", (t, s) => {{ if (t >= 1000) s.scoreText = "17.40"; }});
-  assert(doc.title === "VulpraBenchmark speedometer3 score=17.40", `speedometer title: ${{doc.title}}`);
+{{ // speedometer3 auto-start
+  const { doc } = await scenario("speedometer3", (t, s) => { if (t >= 1000) s.scoreText = "17.40"; });
+  assert(doc.title === "VulpraBenchmark speedometer3 score=17.40", `speedometer title: ${doc.title}`);
   console.log("speedometer3 OK");
-}}}}
+}}
 
-{{{{ // speedometer3 progress lines are published before the final score
-  const {{ doc, history }} = await scenario("speedometer3", (t, s) => {{
-    if (t >= 1000) {{
+{{ // speedometer3 progress lines are published before the final score
+  const { doc, history } = await scenario("speedometer3", (t, s) => {
+    if (t >= 1000) {
       s.progressLabel = "Running TodoMVC";
       s.progressText = "3/11";
       s.progressValue = 3;
       s.progressMax = 11;
-    }}
-    if (t >= 2000) {{
+    }
+    if (t >= 2000) {
       s.progressLabel = "";
       s.progressText = "";
       s.progressValue = null;
       s.progressMax = null;
       s.scoreText = "17.40";
-    }}
-  }});
+    }
+  });
   const titles = history.map((h) => h.title);
   assert(titles.some((t) => t.startsWith("VulpraBenchmark speedometer3 progress=")
                      && t.includes("bar=3/11") && t.includes("elapsed=")),
-         `progress title missing: ${{titles.join(" | ")}}`);
-  assert(doc.title === "VulpraBenchmark speedometer3 score=17.40", `final score title: ${{doc.title}}`);
+         `progress title missing: ${titles.join(" | ")}`);
+  assert(doc.title === "VulpraBenchmark speedometer3 score=17.40", `final score title: ${doc.title}`);
   console.log("speedometer3-progress OK");
-}}}}
+}}
 
-{{{{ // motionmark controller start: waits for frameRateDetectionComplete, not the portrait-disabled button
-  const {{ doc, calls, history }} = await scenario("motionmark", (t, s, win) => {{
+{{ // motionmark controller start: waits for frameRateDetectionComplete, not the portrait-disabled button
+  const { doc, calls, history } = await scenario("motionmark", (t, s, win) => {
     if (t >= 1000) win.benchmarkController.frameRateDetectionComplete = true;
     if (t >= 2000) s.scoreText = "123.45 @ 60fps";
-  }});
+  });
   assert(history.length > 0 && history[0].calls === 0,
-         `motionmark started before frame-rate detection: ${{history.length ? history[0].calls : "no ticks"}}`);
-  assert(calls.value === 1, `motionmark start calls: ${{calls.value}}`);
-  assert(doc.title === "VulpraBenchmark motionmark score=123.45_@_60fps", `motionmark title: ${{doc.title}}`);
+         `motionmark started before frame-rate detection: ${history.length ? history[0].calls : "no ticks"}`);
+  assert(calls.value === 1, `motionmark start calls: ${calls.value}`);
+  assert(doc.title === "VulpraBenchmark motionmark score=123.45_@_60fps", `motionmark title: ${doc.title}`);
   console.log("motionmark OK");
-}}}}
+}}
 
-{{{{ // jetstream auto-start
-  const {{ doc }} = await scenario("jetstream", (t, s) => {{ if (t >= 1500) s.scoreText = "245.32"; }});
-  assert(doc.title === "VulpraBenchmark jetstream score=245.32", `jetstream title: ${{doc.title}}`);
+{{ // jetstream auto-start
+  const { doc } = await scenario("jetstream", (t, s) => { if (t >= 1500) s.scoreText = "245.32"; });
+  assert(doc.title === "VulpraBenchmark jetstream score=245.32", `jetstream title: ${doc.title}`);
   console.log("jetstream OK");
-}}}}
+}}
 
-{{{{ // error text must not become a score
-  const {{ doc }} = await scenario("speedometer3", (t, s) => {{ if (t >= 1000) s.scoreText = "Error"; }});
-  assert(doc.title === "initial", `error guard failed: ${{doc.title}}`);
+{{ // error text must not become a score
+  const { doc } = await scenario("speedometer3", (t, s) => { if (t >= 1000) s.scoreText = "Error"; });
+  assert(doc.title === "initial", `error guard failed: ${doc.title}`);
   console.log("error-guard OK");
-}}}}
-console.log("RUNNER JS SIMULATION PASSED");
+}}
+console.log("PROBE JS SIMULATION PASSED");
 process.exit(0);
-'''
+""").replace("__FIXTURE_DIR__", json.dumps(str(fixture)))
         node_file = base / "simulate.mjs"
         node_file.write_text(script, encoding="utf-8")
         result = subprocess.run(
             ["node", str(node_file)], text=True, capture_output=True, check=False, timeout=120
         )
         require(result.returncode == 0,
-                f"runner JS simulation failed: {result.stdout}\n{result.stderr}")
-        require("RUNNER JS SIMULATION PASSED" in result.stdout,
-                f"runner JS simulation did not complete: {result.stdout}")
+                f"probe JS simulation failed: {result.stdout}\n{result.stderr}")
+        require("PROBE JS SIMULATION PASSED" in result.stdout,
+                f"probe JS simulation did not complete: {result.stdout}")
 
 
 def main() -> None:
@@ -607,10 +638,10 @@ def main() -> None:
     check_workflow_benchmark_defaults(manifest)
     check_selection_validator()
     check_source_wiring()
-    check_runner_simulation(manifest)
+    check_probe_simulation(manifest)
     print("PASS: benchmark manifest, fixture generator, secure tar, summarizer, "
           "selection validator, workflow defaults, title evidence, harness "
-          "wiring, and runner JS contracts")
+          "wiring, and probe JS contracts")
     return None
 
 
