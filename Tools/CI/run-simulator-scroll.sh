@@ -183,6 +183,7 @@ set +e
 for _launch_attempt in 1 2; do
   LAUNCH_ATTEMPTS=$_launch_attempt
   LAUNCH_OUTPUT=$(SIMCTL_CHILD_VULPRA_SMOKE_URL="$URL" \
+    SIMCTL_CHILD_VULPRA_GATE_DISPATCH_PORT="$GATE_DISPATCH_PORT" \
     run_with_timeout 180 xcrun simctl launch "$UDID" "$BUNDLE_ID" 2>&1)
   LAUNCH_STATUS=$?
   printf '%s\n' "$LAUNCH_OUTPUT" > "$PREFIX-launch.log"

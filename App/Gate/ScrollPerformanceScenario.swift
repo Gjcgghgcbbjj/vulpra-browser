@@ -3,8 +3,8 @@ import os
 import UIKit
 
 #if DEBUG
-/// Scroll-performance gate scenario (R1): loads a tall page that auto-scrolls
-/// in-page JS while a CADisplayLink samples the App main-thread render cadence.
+/// Scroll-performance gate scenario (R1): samples the App main-thread render
+/// cadence while the fixture page auto-scrolls in-page JS.
 ///
 /// The Simulator cannot inject touch input, so the scroll is driven by the
 /// fixture page itself (`requestAnimationFrame` scroll steps). This exercises
@@ -14,10 +14,13 @@ import UIKit
 /// acceptance requires: p95 frame interval below 20 ms, no main-thread stall
 /// above 100 ms, hitch rate below 1% (60 Hz budget, hitch > 25 ms).
 ///
-/// The harness triggers it through the loopback GateDispatchServer after the
-/// fixture page completes its initial load and asserts the scenario completes
-/// while the app stays alive. Kept in its own DEBUG file so the browser owner
-/// stays under the product line budget.
+/// The fixture page is already loaded at launch (VULPRA_SMOKE_URL) and is
+/// auto-scrolling when the harness dispatches after page-complete; the
+/// scenario does NOT reload it, so the sample window measures steady-state
+/// scroll cadence instead of reload + scroll. The harness triggers it through
+/// the loopback GateDispatchServer and asserts the scenario completes while
+/// the app stays alive. Kept in its own DEBUG file so the browser owner stays
+/// under the product line budget.
 extension BrowserViewController {
     func runScrollPerformanceScenario(url: URL, seconds: Int = 10) {
         let gateLogger = Logger(subsystem: "com.vulpra.browser", category: "gate")
@@ -27,9 +30,11 @@ extension BrowserViewController {
             gateLogger.notice("gate_scenario=scroll-performance aborted-no-selected-tab")
             return
         }
-        open(url)
-        // Poll the tab's loading flag on the main queue until the fixture
-        // page settles (or a hard deadline), then start the frame window.
+        // The fixture page was loaded at launch and its JS keeps scrolling, so
+        // the only prerequisite is that the tab is not mid-load. Poll the
+        // loading flag on the main queue (with a hard deadline) so the sample
+        // window never captures a page transition, then settle one more second
+        // for the final load frame to flush.
         waitForIdleLoad(tab: tab, gateLogger: gateLogger, url: url, duration: duration, waited: 0)
     }
 
