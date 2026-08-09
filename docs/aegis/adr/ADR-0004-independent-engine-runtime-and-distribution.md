@@ -199,3 +199,41 @@ only device/simulator native v5 kernels remain.
 - This amendment is an advisory Aegis record. Physical-device behavior,
   JIT-on-device, OpenIn-on-device, and App Store distribution eligibility are
   NOT claimed by this amendment and remain external validation items.
+
+## Amendment - 2026-08-09 - Real-device rendering entitlements, verified RDD startup-timeout delivery, and content-process termination diagnosis are enforced on the final snapshot.
+
+- Status: amended
+
+### Change Summary
+- EngineProcess.appex now carries the same `com.apple.security.iokit-user-client-class`
+  (IOSurfaceRootUserClient + AGXDevice/AGXCommandQueue/AGXDeviceUserClient/
+  AGXSharedUserClient) and `com.apple.private.security.no-sandbox` as the App so
+  the GPU process can create a Metal device on real devices instead of silently
+  falling back to software WebRender (observed as 卡顿/发热/滑动慢半拍 on the
+  prior package). The App Store variant keeps standard entitlements.
+- RDD startup-timeout delivery is now verified end-to-end: the runtime sends
+  `GeckoView:Preferences:SetPref` for `media.rdd-process.startup_timeout_ms`
+  (30000, PREF_INT=64, user branch) through the ABI dispatcher with a callback;
+  the packaged `GeckoViewPreferences.sys.mjs` replies and the runtime records
+  `rdd-timeout-pref-set verified ... isSet=true`. The 2026-08-09 20-attempt gate
+  shows isSet=true on 76 evidence lines with zero isSet=false/timeouts, and
+  161/161 child launches connected (0 failed, 0 open).
+- Content-process termination is diagnosed instead of silently reloading:
+  BrowserTab logs the termination reason (category `browser-tab`), keeps
+  url/title/back-forward/thumbnail state, and exposes `lastTerminationReason`
+  until the next session opens.
+- Final snapshot `5942698` re-closed the hosted Simulator R0 gate:
+  single-attempt gate run `31288215667` and 20-attempt gate run `31288670337`
+  (20/20, p95=1623ms, max=3111ms).
+
+### Evidence References
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31288215667
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31288670337
+- commit 8aea481 (didTerminate diagnosis + os_log compile fix)
+- commit 5942698 (final gates.json binding)
+- final package run 31294387233 @ 5942698
+
+### Boundary
+- Physical-device retest of the new package (Metal smoothness, swipe-up reload
+  triage, heat) is the remaining external validation; JIT-on-device, OpenIn,
+  and App Store distribution eligibility are NOT claimed here.

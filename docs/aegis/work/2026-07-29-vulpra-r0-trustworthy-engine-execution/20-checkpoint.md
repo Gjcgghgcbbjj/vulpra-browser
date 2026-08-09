@@ -213,3 +213,60 @@
   JIT evidence remain external and unverified.
 - Advisory decision: needs-verification for physical-device/JIT/OpenIn/App
   Store; hosted Simulator R0 is verified.
+
+## Checkpoint Update - 2026-08-09: real-device perf/RDD fixes re-verified, final snapshot
+
+- Current todo: R0 gates re-closed on the final snapshot after the
+  real-device GPU entitlement fix, RDD SetPref verification, and
+  content-process termination diagnosis; remaining todos are final
+  closeout commands and external physical-device gates.
+- Active slice: final verification + package binding on HEAD `5942698`.
+- Completed todos:
+  - Real-device perf fix (`7fc9601`): EngineProcess.appex now carries the
+    same `iokit-user-client-class` (5 Metal/AGX clients) + `no-sandbox`
+    as the App so the GPU process can create a Metal device on-device
+    instead of falling back to software WebRender (卡顿/发热/滑动慢半拍).
+  - RDD startup-timeout fix re-verified on the final snapshot:
+    `GeckoView:Preferences:SetPref` for
+    `media.rdd-process.startup_timeout_ms = 30000` (pref name + type 64
+    corrected in `c096583`, ABI callback verification in `a3d6bb4`/
+    `6d2f17f`).
+  - Single-attempt gate: run `31288215667` @ `8aea481` PASS (also proves
+    the os_log `EngineSessionID` interpolation fix compiles).
+  - 20-attempt R0 gate: run `31288670337` @ `8aea481` **20/20 passed**:
+    161 child launches requested / 161 connected / 0 failed / 0 open,
+    p95 load-to-complete `1623ms`, max `3111ms`
+    (bounds p95<=15000ms, max<=30000ms), deliveryMethod
+    `gate-http-dispatch` with `gateDispatchStatus=0`.
+  - RDD SetPref delivery evidence: `rdd-timeout-pref-set verified
+    pref=media.rdd-process.startup_timeout_ms expected=30000 isSet=true`
+    on 76 evidence lines across attempts; 0 `isSet=false` / timed-out /
+    error lines. Gecko confirmed the user-branch pref was set.
+  - Content-process termination diagnosis (`8aea481`): BrowserTab logs
+    `content process terminated tab=<uuid> reason=<reason>` (category
+    `browser-tab`) and exposes `lastTerminationReason` until the next
+    session opens; url/title/back-forward state and thumbnail are kept so
+    the tab can offer recovery instead of a silent white flash reload.
+  - `engine-cutover-gates.json` updated:
+    repeatProducerRunIds/repeatCompileRunIds `[30598301958, 30598347174]`,
+    selectedProducerRunId `30598301958`, promotionRunId `30613021710`,
+    simulatorGateRunId `31288670337`, packageRunId `<pending>`.
+  - Portable suites pass locally on the final snapshot
+    (IndependentEngine + Browser + RuntimeShell);
+    `--require-r0-complete` -> `cutover-ready`.
+- Evidence refs:
+  - run:30598301958:device-and-simulator-builds-green
+  - run:30598347174:device-and-simulator-builds-green
+  - run:30613021710:repeat-compare-promotion-release-lock
+  - run:31288215667:single-attempt-gate-pass
+  - run:31288670337:r0-engine-gate-20-20-final
+  - commit:8aea481:didTerminate-reason-diagnosis
+  - commit:5942698:final-gates-json
+- Blocked on: none.
+- Next step: final package run `31294387233` binding `5942698`, copy
+  IPA/TIPA to the Windows desktop, then run the final verification
+  commands (portable suites, `--require-r0-complete`, Aegis workspace
+  check, retirement scan) and push the evidence set. Physical-device
+  validation (Metal/WebRender smoothness, swipe-up reload triage,
+  OpenIn, JIT, App Store distribution) remains an external gate awaiting
+  user retest of the new package.

@@ -1,12 +1,13 @@
 # Vulpra Independent Engine Package Baseline
 
 Date: `2026-07-27`
-Last amended: `2026-08-08`
+Last amended: `2026-08-09`
 Status: `package-verified-simulator-20-20`
 ArchitectureReviewRequired: `yes`
 Independent engine cutover: `complete-v5-r0.3`
 Historical loopback executable evidence: `available`
 Current hosted Simulator gate: `verified-20-20`
+Final snapshot: `5942698` (real-device GPU entitlements + verified RDD timeout + termination diagnosis)
 Physical-device validation: `needs-verification`
 
 ## Evidence Boundary
@@ -60,15 +61,20 @@ Firefox source `27b462b22705a8860f7ab0d33aa5b4b658ae5932`, patch set SHA-256
   `30598347174` (repeat), both compiling native device + Simulator kernels
   with byte-identical repeat-build Mach-O identity.
 - Immutable promotion: run `30613021710` (`vulpra-engine-v5-r0.3-candidate`).
-- Hosted Simulator R0 gate: run `31237088851` at HEAD `4b2dc58`,
-  **20/20 attempts passed**: location matched 20/20, page completed 20/20,
-  rendered dark pixels 845360, app alive 20/20, crash count 0/20,
-  child launches 162 requested / 162 connected / 0 failed / 0 open,
-  p95 load-to-complete `1810ms`, max `1961ms`
+- Hosted Simulator R0 gate (final snapshot): single-attempt run
+  `31288215667` and 20-attempt run `31288670337` at HEAD `8aea481`
+  (final docs commit `5942698`), **20/20 attempts passed**: 161 child
+  launches requested / 161 connected / 0 failed / 0 open,
+  p95 load-to-complete `1623ms`, max `3111ms`
   (bounds: p95<=15000ms, max<=30000ms), deliveryMethod
   `gate-http-dispatch` with `gateDispatchStatus=0` on all attempts.
-- Final package: run `31244000908` at HEAD `4b2dc58`, IPA/TIPA validated
-  with SHA-256 below.
+- RDD startup-timeout pref delivery verified: `rdd-timeout-pref-set
+  verified pref=media.rdd-process.startup_timeout_ms expected=30000
+  isSet=true` on 76 evidence lines, 0 isSet=false/timed-out (the 5 s
+  default was the earlier failure mechanism; 30 s user-branch pref is now
+  confirmed delivered by the packaged GeckoViewPreferences handler).
+- Final package: run `31294387233` at HEAD `5942698`, IPA/TIPA validated
+  with SHA-256 below (pending completion).
 - The Simulator R0 gate measures warm-engine navigation lifecycle stability
   on software WebRender; physical-device Metal/WebRender, JIT, OpenIn,
   and App Store distribution eligibility remain external gates.
@@ -153,8 +159,8 @@ python3 Tests/IndependentEngine/test_cutover_readiness.py --require-r0-complete 
 ./Tests/Browser/run-portable.sh
 GitHub engine producer pair 30598301958 + 30598347174 (repeat compile verified)
 GitHub promotion run 30613021710
-GitHub hosted Simulator R0 gate 31237088851 (20/20)
-GitHub final package run 31244000908 (IPA/TIPA + SHA-256)
+GitHub hosted Simulator R0 gate 31288670337 (20/20, final snapshot)
+GitHub final package run 31294387233 (IPA/TIPA + SHA-256, final snapshot)
 sha256sum -c dist/SHA256SUMS
 unzip -t Vulpra.ipa and Vulpra-TrollStore.tipa
 git diff --check
