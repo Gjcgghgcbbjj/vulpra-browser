@@ -237,3 +237,49 @@ only device/simulator native v5 kernels remain.
 - Physical-device retest of the new package (Metal smoothness, swipe-up reload
   triage, heat) is the remaining external validation; JIT-on-device, OpenIn,
   and App Store distribution eligibility are NOT claimed here.
+
+## Amendment - 2026-08-09 - Host-process low-memory early reclaim is enforced on the final snapshot.
+
+- Status: amended
+
+### Change Summary
+- Candidate 3 (low-memory early reclaim, App/EngineKit layer only, no Gecko
+  recompile; v5 lock `vulpra-engine-v5-r0.3-candidate` unchanged):
+  - `MemoryPressureMonitor` registers a host-process
+    `dispatch_source_memorypressure` source (warning + critical) and delivers
+    levels on the main actor, ahead of UIKit's late
+    `didReceiveMemoryWarning`.
+  - `EngineRuntime.onMemoryPressure` is the public channel;
+    `MemoryPressureRouter` maps warning -> light reclaim (release thumbnails,
+    deactivate idle sessions, cancel suggestion work) and critical -> heavy
+    LRU suspend (bounded keep-active cap, selected tab never touched), so the
+    App reduces its footprint before the content process can be selected by
+    jetsam (observed on-device as page reload on scroll / 上滑重新加载).
+  - Contract gate `Tests/IndependentEngine/test_low_memory_monitor.py` pins
+    the public API, monitor shape, App mapping, and the no-Gecko-symbol ABI
+    boundary.
+- Re-verified on the final snapshot HEAD `355c010`:
+  - single-attempt gate run `31295629075` PASS (r0Passed=1, 8/8 connected,
+    0 failed/open, p95=max=404ms);
+  - 20-attempt gate run `31296543332` **20/20 passed**: 160 child launches
+    requested / 160 connected / 0 failed / 0 open, p95 load-to-complete
+    `668ms`, max `2347ms` (bounds p95<=15000ms, max<=30000ms),
+    deliveryMethod `gate-http-dispatch`, `rdd-timeout-pref-set isSet=true`
+    on 75 evidence lines with 0 failures;
+  - final package run `31301272885` at HEAD `355c010`, IPA/TIPA SHA-256
+    verified below.
+
+### Evidence References
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31295629075
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31296543332
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31301272885
+- commit 355c010 (host-process memory pressure early reclaim)
+- final package run 31301272885 @ 355c010
+  - Vulpra.ipa 01fa37c624a9f61a112c83e98885d3610e6962e2544e9ac6aabf7d0637ada91c
+  - Vulpra-TrollStore.tipa 6519c9d4a40f21841ffa512b958868c55e20b8f740223b479e8abb55a9c4e4aa
+
+### Boundary
+- Physical-device retest of the new package (Metal smoothness, heat,
+  scroll responsiveness, swipe-up reload triage) is the remaining external
+  validation; JIT-on-device, OpenIn, and App Store distribution eligibility
+  are NOT claimed here.

@@ -270,3 +270,55 @@
   validation (Metal/WebRender smoothness, swipe-up reload triage,
   OpenIn, JIT, App Store distribution) remains an external gate awaiting
   user retest of the new package.
+
+## Checkpoint Update - 2026-08-09: candidate 3 low-memory early reclaim re-verified, final snapshot 355c010
+
+- Current todo: candidate 3 (host-process low-memory early reclaim) closed
+  with a fresh single-attempt + 20-attempt Simulator gate and a final
+  package run on HEAD `355c010`; remaining todos are final closeout
+  commands and external physical-device gates.
+- Active slice: final verification + package binding on HEAD `355c010`.
+- Completed todos:
+  - Candidate 3 (`355c010`): EngineKit `MemoryPressureMonitor` registers
+    `dispatch_source_memorypressure` (warning + critical), delivered on the
+    main actor through the public `EngineRuntime.onMemoryPressure`; the App
+    `MemoryPressureRouter` maps warning -> light reclaim (thumbnails, idle
+    sessions, suggestions) and critical -> bounded LRU suspend (cap 3,
+    selected tab untouched), ahead of UIKit's late
+    `didReceiveMemoryWarning`, so the content process is less likely to be
+    selected by jetsam (on-device 上滑重新加载 repair). No Gecko
+    recompile; v5 lock unchanged.
+  - Contract gate `test_low_memory_monitor.py` pins public API, monitor
+    shape, App mapping, line-budget boundary, and no-Gecko-symbol ABI
+    boundary (portable suite passes locally on HEAD `355c010`).
+  - Single-attempt gate: run `31295629075` @ `355c010` PASS
+    (r0Passed=1, 8/8 connected, 0 failed/open, p95=max=404ms).
+  - 20-attempt R0 gate: run `31296543332` @ `355c010` **20/20 passed**:
+    160 child launches requested / 160 connected / 0 failed / 0 open,
+    p95 load-to-complete `668ms`, max `2347ms`
+    (bounds p95<=15000ms, max<=30000ms), deliveryMethod
+    `gate-http-dispatch`, RDD SetPref isSet=true on 75 evidence lines with
+    0 failures.
+  - Final package: run `31301272885` @ `355c010`, SHA-256 verified:
+    Vulpra.ipa `01fa37c624a9f61a112c83e98885d3610e6962e2544e9ac6aabf7d0637ada91c`,
+    Vulpra-TrollStore.tipa
+    `6519c9d4a40f21841ffa512b958868c55e20b8f740223b479e8abb55a9c4e4aa`;
+    copied to the Windows desktop as
+    `Vulpra-355c010-tested.ipa` / `-tested.tipa` + SHA256SUMS.
+  - `engine-cutover-gates.json` updated:
+    simulatorGateRunId `31296543332`, packageRunId `31301272885`.
+  - Portable suites pass locally on the final snapshot
+    (IndependentEngine + Browser + RuntimeShell);
+    `--require-r0-complete` -> `cutover-ready`.
+- Evidence refs:
+  - run:31295629075:single-attempt-gate-pass-candidate3
+  - run:31296543332:r0-engine-gate-20-20-candidate3
+  - run:31301272885:final-package-candidate3
+  - commit:355c010:low-memory-early-reclaim
+- Blocked on: none.
+- Next step: run the final verification commands (portable suites,
+  `--require-r0-complete`, Aegis workspace check, retirement scan), push
+  the evidence set, then user real-device retest of
+  `Vulpra-355c010-tested` (Metal smoothness, heat, scroll responsiveness,
+  swipe-up reload triage). JIT-on-device, OpenIn, and App Store
+  distribution eligibility remain external gates.

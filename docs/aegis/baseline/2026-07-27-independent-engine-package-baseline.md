@@ -7,7 +7,7 @@ ArchitectureReviewRequired: `yes`
 Independent engine cutover: `complete-v5-r0.3`
 Historical loopback executable evidence: `available`
 Current hosted Simulator gate: `verified-20-20`
-Final snapshot: `5942698` (real-device GPU entitlements + verified RDD timeout + termination diagnosis)
+Final snapshot: `355c010` (host-process low-memory early reclaim on top of real-device GPU entitlements + verified RDD timeout + termination diagnosis)
 Physical-device validation: `needs-verification`
 
 ## Evidence Boundary
@@ -73,8 +73,23 @@ Firefox source `27b462b22705a8860f7ab0d33aa5b4b658ae5932`, patch set SHA-256
   isSet=true` on 76 evidence lines, 0 isSet=false/timed-out (the 5 s
   default was the earlier failure mechanism; 30 s user-branch pref is now
   confirmed delivered by the packaged GeckoViewPreferences handler).
-- Final package: run `31294387233` at HEAD `5942698`, IPA/TIPA validated
-  with SHA-256 below (pending completion).
+- Host-process low-memory early reclaim (HEAD `355c010`): EngineKit
+  `MemoryPressureMonitor` registers `dispatch_source_memorypressure`
+  (warning + critical); `EngineRuntime.onMemoryPressure` + App
+  `MemoryPressureRouter` reclaim background tabs early (warning -> light
+  reclaim, critical -> bounded LRU suspend, selected tab untouched) so the
+  content process is less likely to be selected by jetsam (on-device
+  上滑重新加载 repair). No Gecko recompile; v5 lock unchanged.
+- Re-verified hosted Simulator gate on final snapshot `355c010`:
+  single-attempt run `31295629075` PASS (8/8 connected, p95=max=404ms)
+  and 20-attempt run `31296543332` **20/20 passed**: 160/160 connected,
+  0 failed / 0 open, p95 `668ms`, max `2347ms`, RDD SetPref isSet=true on
+  75 evidence lines with 0 failures.
+- Final package: run `31301272885` at HEAD `355c010`, IPA/TIPA validated:
+  - `Vulpra.ipa` SHA-256
+    `01fa37c624a9f61a112c83e98885d3610e6962e2544e9ac6aabf7d0637ada91c`
+  - `Vulpra-TrollStore.tipa` SHA-256
+    `6519c9d4a40f21841ffa512b958868c55e20b8f740223b479e8abb55a9c4e4aa`
 - The Simulator R0 gate measures warm-engine navigation lifecycle stability
   on software WebRender; physical-device Metal/WebRender, JIT, OpenIn,
   and App Store distribution eligibility remain external gates.
@@ -159,8 +174,8 @@ python3 Tests/IndependentEngine/test_cutover_readiness.py --require-r0-complete 
 ./Tests/Browser/run-portable.sh
 GitHub engine producer pair 30598301958 + 30598347174 (repeat compile verified)
 GitHub promotion run 30613021710
-GitHub hosted Simulator R0 gate 31288670337 (20/20, final snapshot)
-GitHub final package run 31294387233 (IPA/TIPA + SHA-256, final snapshot)
+GitHub hosted Simulator R0 gate 31296543332 (20/20, final snapshot 355c010)
+GitHub final package run 31301272885 (IPA/TIPA + SHA-256, final snapshot 355c010)
 sha256sum -c dist/SHA256SUMS
 unzip -t Vulpra.ipa and Vulpra-TrollStore.tipa
 git diff --check
