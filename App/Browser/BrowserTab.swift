@@ -181,7 +181,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         // Evidence for the hidden-session compositor-suspend contract: every
         // host-side activation change is recorded so the gate can prove the
         // App deactivates hidden tabs on switch and on scene background.
-        logger.notice("browser_tab_active=\(active) tab=\(id.uuidString, privacy: .public)")
+        logger.notice("browser_tab_active=\(active) tab=\(self.id.uuidString, privacy: .public)")
         session?.setActive(active); session?.setFocused(active)
     }
     func goBack() { session?.goBack() }
