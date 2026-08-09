@@ -258,7 +258,19 @@ for _screenshot_attempt in 1 2 3; do
   SCREENSHOT_STATUS=$?
   set -e
   if [[ "$SCREENSHOT_STATUS" -eq 0 && -s "$PREFIX-navigation.png" ]]; then
-    break
+    # Accept the capture only when the render audit proves the engine
+    # surface composited content. `simctl io screenshot` can race an
+    # OpenApplication foreground transition and capture a blank frame even
+    # when the page fully rendered (run 31310633542 R0 attempt-01: all
+    # functional markers green, screenshot pure white), so blank captures
+    # are retried after a settle instead of failing the gate.
+    "$SCRIPT_DIR/audit-rendering.sh" "$PREFIX-navigation.png" "$PREFIX-render-check.log"
+    dark=$(sed -n 's/^rendered_dark_pixels=\([0-9][0-9]*\)$/\1/p' "$PREFIX-render-check.log" | head -1)
+    if [[ "$dark" =~ ^[0-9]+$ ]] && (( dark >= 1000 )); then
+      printf 'screenshot_audit=rendered dark=%s\n' "$dark" >> "$PREFIX-device.log"
+      break
+    fi
+    printf 'screenshot_audit=blank dark=%s; recapturing\n' "${dark:-0}" >> "$PREFIX-device.log"
   fi
   sleep 10
 done
@@ -321,49 +333,9 @@ CRASH_COUNT=$(find "$PREFIX-crashes" -type f | wc -l | tr -d ' ')
 run_with_timeout 30 xcrun simctl terminate "$UDID" "$BUNDLE_ID" \
   > "$PREFIX-terminate.log" 2>&1 || true
 
-set +e
-swift - "$PREFIX-navigation.png" <<'SWIFT' > "$PREFIX-rendering.log"
-import CoreGraphics
-import Darwin
-import Foundation
-import ImageIO
-
-let path = CommandLine.arguments[1]
-guard let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
-      let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-    fputs("unable to decode simulator screenshot\n", stderr)
-    exit(1)
-}
-let width = image.width
-let height = image.height
-var pixels = [UInt8](repeating: 255, count: width * height * 4)
-let drewImage = pixels.withUnsafeMutableBytes { buffer -> Bool in
-    guard let context = CGContext(
-        data: buffer.baseAddress, width: width, height: height,
-        bitsPerComponent: 8, bytesPerRow: width * 4,
-        space: CGColorSpaceCreateDeviceRGB(),
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-    ) else { return false }
-    context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-    return true
-}
-guard drewImage else { exit(1) }
-var darkPixels = 0
-for y in (height / 4)..<(height * 3 / 4) {
-    for x in (width / 8)..<(width * 7 / 8) {
-        let offset = (y * width + x) * 4
-        if pixels[offset] < 220 && pixels[offset + 1] < 220 && pixels[offset + 2] < 220 {
-            darkPixels += 1
-        }
-    }
-}
-print("rendered_dark_pixels=\(darkPixels)")
-SWIFT
-SWIFT_STATUS=$?
-set -e
-if [[ "$SWIFT_STATUS" -ne 0 ]]; then
-  printf 'rendered_dark_pixels=0\n' > "$PREFIX-rendering.log"
-fi
+# Render audit for the evidence record (same dark-pixel semantics the
+# summarizers apply; blank captures were already retried above).
+"$SCRIPT_DIR/audit-rendering.sh" "$PREFIX-navigation.png" "$PREFIX-rendering.log"
 
 python3 - "$ATTEMPT" "$URL" "$SCROLL_SECONDS" "$LOG_EVIDENCE" "$PREFIX-rendering.log" \
   "$APP_SURVIVED" "$CRASH_COUNT" "$PREFIX.json" "$PREFIX-device.log" <<'PY'

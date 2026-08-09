@@ -120,9 +120,13 @@ def main() -> None:
     for token in (
         "rendered_dark_pixels=", "lifecycleEvents", "requestedLaunchIDs",
         "connectedLaunchIDs", "openLaunchIDs", "trap cleanup EXIT",
-        "(height / 4)..<(height * 3 / 4)",
     ):
         require(token in harness, f"Simulator harness is missing evidence field: {token}")
+    render_audit = (ROOT / "Tools/CI/audit-rendering.sh").read_text(encoding="utf-8")
+    require("audit-rendering.sh" in harness,
+            "Simulator harness does not use the shared render audit")
+    require("(height / 4)..<(height * 3 / 4)" in render_audit,
+            "shared render audit lost the central dark-pixel region")
     require("data-vulpra-engine-fixture" in simulator,
             "Simulator workflow lacks a deterministic central page marker")
     require('VulpraEngineRuntime/Frameworks/omni.ja' in simulator,

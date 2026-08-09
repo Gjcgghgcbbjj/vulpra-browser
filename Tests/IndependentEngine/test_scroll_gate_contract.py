@@ -102,6 +102,22 @@ def check_source_wiring() -> None:
     require("runScrollPerformanceScenario(url:seconds:)" in scene or
             "runScrollPerformanceScenario(url: url, seconds: seconds)" in scene,
             "SceneDelegate does not route into runScrollPerformanceScenario")
+    # Shared render audit: every Simulator harness must use it for both the
+    # evidence record and content-aware screenshot recapture (blank frames
+    # race `simctl io screenshot` foreground transitions).
+    audit = ROOT / "Tools/CI" / "audit-rendering.sh"
+    require(audit.is_file(), "missing shared audit-rendering.sh")
+    audit_text = audit.read_text(encoding="utf-8")
+    require("rendered_dark_pixels" in audit_text, "audit-rendering.sh lost its output marker")
+    require("exit 0" in audit_text, "audit-rendering.sh must always exit 0")
+    for harness_name in ("run-simulator-navigation.sh", "run-simulator-cold-start.sh",
+                         "run-simulator-scroll.sh"):
+        harness = (ROOT / "Tools/CI" / harness_name).read_text(encoding="utf-8")
+        require("audit-rendering.sh" in harness, f"{harness_name} does not use the shared render audit")
+        require("screenshot_audit=blank" in harness,
+                f"{harness_name} does not retry blank screenshots")
+        require("screenshot_audit=rendered" in harness,
+                f"{harness_name} does not record accepted render evidence")
 
 
 def main() -> None:
