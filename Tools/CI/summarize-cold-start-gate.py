@@ -10,7 +10,8 @@ immediate vs Path B deferred have two timing baselines).
 Phase budgets are split by ownership, calibrated to measured CI evidence:
 - App/EngineKit-owned phases stay strict (regression surface we can fix):
   appLaunchToEngineReadyMs <= 30000 (measured ~1-5s on macOS CI),
-  engineReadyToLoadRequestedMs <= 10000 (measured ~1.2s),
+  engineReadyToLoadRequestedMs <= 30000 (measured ~1.2s green; 21.7s under
+  pkd/runningboardd extension-launch retry on a fresh simulator),
   locationToPageCompleteMs <= 20000 (measured ~82ms).
 - Gecko-internal cold-start phases are regression tripwires, NOT UX budgets:
   the engine's FIRST navigation on a cold simulator takes 150-251s to reach
@@ -47,7 +48,12 @@ PHASES = (
 PHASE_BOUNDS_MS = {
     # Strict: App/EngineKit-owned phases (regression surface we can fix).
     "appLaunchToEngineReadyMs": 30_000,
-    "engineReadyToLoadRequestedMs": 10_000,
+    # Tripwire, NOT a UX budget: green is ~1.2s, but on a fresh simulator
+    # runningboardd can reject pkd's first extension launch request and the
+    # system retry succeeds ~21.7s later (run 31314323284 @ fa005e3). 30s is
+    # ~1.4x the worst measured value so an order-of-magnitude regression in
+    # the EngineKit launch path still trips.
+    "engineReadyToLoadRequestedMs": 30_000,
     "locationToPageCompleteMs": 20_000,
     # Tripwire: Gecko cold-start first-navigation one-time init cost (measured
     # 150-251s on CI simulators; see module docstring for evidence).
