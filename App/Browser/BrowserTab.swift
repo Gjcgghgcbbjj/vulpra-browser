@@ -207,7 +207,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         // recovery; suspend() closes the dead session, drops the surface and
         // resets progress state. The reason is recorded for device-side
         // diagnosis (jetsam vs Gecko kill vs invalid state).
-        logger.error("content process terminated tab=\(id, privacy: .public) reason=\(reason.rawValue, privacy: .public)")
+        logger.error("content process terminated tab=\(id.rawValue.uuidString, privacy: .public) reason=\(reason.rawValue, privacy: .public)")
         lastTerminationReason = reason
         suspend()
         observer?.browserTabContentDidChange(self)
