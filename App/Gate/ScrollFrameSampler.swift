@@ -1,5 +1,4 @@
 import Foundation
-import os
 import QuartzCore
 import UIKit
 
@@ -20,7 +19,6 @@ import UIKit
 /// the pinned 60 Hz budget so results are comparable across hosts.
 @MainActor
 final class ScrollFrameSampler: NSObject {
-    private let logger = Logger(subsystem: "com.vulpra.browser", category: "gate")
     private var displayLink: CADisplayLink?
     private var lastTimestamp: CFTimeInterval?
     private var intervals: [Double] = []

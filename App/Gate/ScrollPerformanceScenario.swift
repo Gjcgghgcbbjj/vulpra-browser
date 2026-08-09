@@ -52,11 +52,11 @@ extension BrowserViewController {
         }
         // Brief settle lets the final load frame flush before the sample window.
         DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
-            self?.sampleScroll(tab: tab, gateLogger: gateLogger, url: url, duration: duration)
+            self?.sampleScroll(gateLogger: gateLogger, url: url, duration: duration)
         }
     }
 
-    private func sampleScroll(tab: BrowserTab, gateLogger: Logger, url: URL, duration: Int) {
+    private func sampleScroll(gateLogger: Logger, url: URL, duration: Int) {
         let sampler = ScrollFrameSampler(duration: TimeInterval(duration))
         sampler.start()
         gateLogger.notice("gate_scenario=scroll-performance sampling-started url=\(url.absoluteString, privacy: .public)")
@@ -65,12 +65,14 @@ extension BrowserViewController {
                 gateLogger.notice("gate_scenario=scroll-performance aborted-no-frames")
                 return
             }
-            gateLogger.notice(
-                "gate_scenario=scroll-performance completed url=\(url.absoluteString, privacy: .public) "
+            // Build the plain String first: Logger string interpolation does not
+            // type-check multi-piece "+" concatenations in reasonable time
+            // (CI: "unable to type-check this expression in reasonable time").
+            let completed = "gate_scenario=scroll-performance completed url=\(url.absoluteString) "
                 + "sampled=\(stats.sampledFrames) p95=\(stats.p95FrameIntervalMs) "
                 + "max=\(stats.maxFrameIntervalMs) hitches=\(stats.hitchCount) "
                 + "stalls=\(stats.stallCount) refreshHz=\(stats.displayRefreshHz)"
-            )
+            gateLogger.notice("\(completed, privacy: .public)")
         }
     }
 }
