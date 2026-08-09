@@ -281,7 +281,7 @@ public final class VulpraEngineSession: EngineSession {
             let succeeded = payload["success"] as? Bool ?? false
             let coalescedThisNavigation = eventCoalescer.coalescedCount - navigationCoalescingBaseline
             Self.logger.notice(
-                "engine_event_stats delivered=\(navigationDeliveredCount) coalesced=\(coalescedThisNavigation) total=\(navigationDeliveredCount + coalescedThisNavigation)"
+                "engine_event_stats delivered=\(self.navigationDeliveredCount) coalesced=\(coalescedThisNavigation) total=\(self.navigationDeliveredCount + coalescedThisNavigation)"
             )
             Self.logger.notice("Engine page completed: \(succeeded, privacy: .public)")
             if succeeded || stoppedByUser {
