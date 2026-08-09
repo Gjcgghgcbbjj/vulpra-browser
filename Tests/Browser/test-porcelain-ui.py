@@ -130,15 +130,31 @@ def main() -> None:
         'simctl create "Vulpra-R0-',
         'simctl install "$UDID" "$APP"',
         'simctl io "$UDID" screenshot "$PREFIX-navigation.png"',
-        "for y in (height / 4)..<(height * 3 / 4)",
         'simctl shutdown "$UDID"',
         'simctl delete "$UDID"',
     ):
         require(token in navigation_harness, f"Simulator navigation harness is missing {token}")
+    # The dark-pixel render audit lives in the shared audit-rendering.sh
+    # (commit ae6f094 moved it out of the harness so all three Simulator
+    # harnesses reuse the same central-region loop). The harness must invoke
+    # the shared audit and the shared audit must contain the audit region.
+    require('"$SCRIPT_DIR/audit-rendering.sh" "$PREFIX-navigation.png"' in navigation_harness,
+            "Simulator navigation harness does not invoke the shared render audit")
+    render_audit = source("Tools/CI/audit-rendering.sh")
+    require("for y in (height / 4)..<(height * 3 / 4)" in render_audit,
+            "shared render audit is missing the central-region loop")
     require("example.com" not in workflow and "example.com" not in navigation_harness,
             "simulator workflow still depends on mutable external networking")
-    require("32vh" not in workflow,
-            "simulator fixture still changes proven page layout for pixel detection")
+    # The R0/A2 engine fixture's proven centered dark marker must stay fixed for
+    # pixel detection, but the scroll gate fixture deliberately offsets its own
+    # marker to top:32vh (pinned by test_scroll_gate_contract.py so the marker
+    # lands inside the shared audit region). Scope the layout freeze to the
+    # engine fixture so the scroll fixture is not blocked.
+    engine_fixture_lines = [
+        line for line in workflow.splitlines() if "data-vulpra-engine-fixture" in line
+    ]
+    require(engine_fixture_lines and all("32vh" not in line for line in engine_fixture_lines),
+            "engine fixture still changes proven page layout for pixel detection")
     require(workflow.count("Tools/CI/run-simulator-navigation.sh") == 2,
             "Simulator navigation must invoke the one reusable harness for the single-attempt fast gate and the repeated loop")
     require(navigation_harness.count("AppleLanguages -array zh-Hans") == 1,
