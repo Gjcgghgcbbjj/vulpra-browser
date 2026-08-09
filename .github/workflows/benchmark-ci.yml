@@ -297,13 +297,31 @@ jobs:
           # required.
           device_type="$(xcrun simctl list devicetypes -j | python3 -c '
           import json, sys
-          values = [item for item in json.load(sys.stdin)["devicetypes"]
-                    if item.get("name", "").startswith("iPad")]
-          if not values: raise SystemExit("no iPad Simulator type")
-          preferred = [item for item in values if "12.9-inch" in item["name"]]
-          if not preferred:
-              preferred = [item for item in values if "Pro" in item["name"]]
-          print((preferred or values)[-1]["identifier"])
+          devices = json.load(sys.stdin)["devicetypes"]
+          # The bare iPad-Pro identifier is the 12.9-inch (1st generation, 2015)
+          # model, which modern runtimes reject. Prefer current iPad Pro models.
+          preferred_ids = [
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-6th-generation-16GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-6th-generation-8GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-5th-generation",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-16GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M4-16GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M4-8GB",
+          ]
+          for want in preferred_ids:
+              if any(item.get("identifier") == want for item in devices):
+                  print(want)
+                  break
+          else:
+              fallback = [item for item in devices
+                          if item.get("name", "").startswith("iPad")
+                          and item.get("identifier") != "com.apple.CoreSimulator.SimDeviceType.iPad-Pro"
+                          and "--" not in item.get("identifier", "")
+                          and ("12.9-inch" in item.get("name", "") or "13-inch" in item.get("name", ""))]
+              if not fallback:
+                  raise SystemExit("no compatible iPad Simulator type")
+              print(fallback[-1]["identifier"])
           ')"
           echo "benchmark device_type: $device_type"
           evidence='.build/benchmark-gate'
