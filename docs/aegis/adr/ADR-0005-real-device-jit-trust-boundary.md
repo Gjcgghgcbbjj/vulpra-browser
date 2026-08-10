@@ -29,6 +29,12 @@ ADR-0004（2026-07-27）退役了 v3 GeckoView/Helper/RuntimeJITCoordinator 基�
   `js/xpconnect/src/nsXPConnect.cpp:120`），但上游 `javascript.options.main_process_disable_jit`
   pref 在 `XP_IOS` 下为 true → 主进程同样 `DisableJitBackend()`，从不尝试 MAP_JIT；5.267 能跑通
   的机制由此闭环（与 content 子进程的 `ChildProcessInitImpl` 禁用互为独立）。
+- **Route A' 源码级审查（2026-08-11）**：`allocate()` 失败语义 = `Linker::newCode →
+  `fail(cx)`（`ReportOutOfMemory`），非静默回退；但 `BaselineCompile` 仅在
+  `Method_CantCompile` 时 `disableBaselineCompile()`，allocate 失败走 `Method_Error` →
+  **编译失败不永久禁用 script，attach 后 warm-up 重触发即可 JIT，无需重启进程**；
+  `CanLikelyAllocateMoreExecutableMemory()` 未 init 时返回 true，拦不住编译入口 →
+  每次失败尝试都报 OOM，OOM 传播需真机冒烟观察（详见 work README）。
 - **appex 可附加性（2026-08-11，源码级）**：App 与 Engine Process 的 entitlements 均含
   `get-task-allow=true`；StikDebug 核心 attach 为 PID 级 `vAttach`（`debugApp(withPID:)`），
   外部动作/JS 脚本可对任意 PID 附加 → Route A/A' 的"附加对象 = content appex 子进程"成立，
@@ -47,7 +53,9 @@ boundary）**，后端与编排分开治理：
   `WaitForJITReadySignal` / `RuntimeJITCoordinator`）；`ptrace` / `task_for_pid` 生产者；
   path token（`geckoview.framework` / `ptrace_jit` / `/jit/` 等）；从固定已验证引擎产物回退。
 - **新增允许（本 ADR 转 recorded 后生效）**：Gecko 进程内执行 SM Ion/Baseline/Wasm JIT 后端，
-  以显式 opt-in（启动参数/环境变量）门控，默认保持解释器模式。
+  以显式 opt-in（**启动参数 argv**，源码级确认：appex 由 launchd 启动、XPC 启动消息
+无 env 通道，getenv 不可靠；argv 链路 `AsyncLaunch → mChildArgs.mArgs → XPC "argv" →
+HandleBootstrapMessage → ChildProcessInitImpl` 完整可用）门控，默认保持解释器模式。
 - **路线策略**：
   - Route A / A' 仅限开发/测试 TIPA 与 benchmark/回归 gate；**禁止进入发行包**。
   - Route B 仅在 EU 合规 gate（90% WPT / 80% Test262、Apple 安全承诺）下考虑，目标市场
