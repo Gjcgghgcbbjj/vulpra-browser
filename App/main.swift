@@ -21,13 +21,16 @@ private func vulpraEnableJitIfEligible() {
     var flags: UInt32 = 0
     guard vulpraCsops(getpid(), 0 /* CS_OPS_STATUS */, &flags,
                       MemoryLayout<UInt32>.size) == 0 else {
+        VulpraJitProbe.detail = "csops-unavailable"
         vulpraJitLogger.notice("Real-device JIT: csops status unavailable; interpreter-only")
         return
     }
     if flags & 0x800 /* CS_DEBUGGED */ != 0 {
         setenv("VULPRA_ENABLE_JIT", "1", 1)
+        VulpraJitProbe.detail = "CS_DEBUGGED"
         vulpraJitLogger.notice("Real-device JIT: process is CS_DEBUGGED; JIT enabled for engine children")
     } else {
+        VulpraJitProbe.detail = "not-debugged"
         vulpraJitLogger.notice("Real-device JIT: not CS_DEBUGGED; interpreter-only")
     }
 }

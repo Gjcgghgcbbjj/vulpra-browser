@@ -94,6 +94,15 @@ final class StartPageViewController: UIViewController {
         contentStack.addArrangedSubview(actionGrid)
         contentStack.addArrangedSubview(quickSection)
 
+        let jitLabel = UILabel()
+        jitLabel.text = "JIT: " + VulpraJitProbe.detail
+        jitLabel.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        jitLabel.textColor = .secondaryLabel
+        jitLabel.textAlignment = .center
+        jitLabel.numberOfLines = 0
+        jitLabel.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.addArrangedSubview(jitLabel)
+
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
