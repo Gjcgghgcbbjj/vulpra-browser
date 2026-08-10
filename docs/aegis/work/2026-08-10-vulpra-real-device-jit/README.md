@@ -39,6 +39,24 @@
    wasm::HasPlatformSupport()==false`。Baseline Interpreter / Wasm 同样依赖 JIT backend，
    无法在 `disableJitBackend` 下单独保留。
 
+6. **MAP_JIT 的唯一次尝试在进程级 `JS::Init()`，不是"页面 JS 首次编译时"**（决定 Route A
+   附加窗口的最关键时序证据）：
+   ```
+   JS_Init → JS::Init（Initialization.cpp:167, frontendOnly=No）
+     → js::jit::InitializeJit()                       [js/src/jit/JitContext.cpp]
+        → if (HasJitBackend()) InitProcessExecutableMemory()   [JitContext.cpp:139-141]
+           → ProcessExecutableMemory::init()           [js/src/jit/ProcessExecutableMemory.cpp]
+              → ReserveProcessExecutableMemory(MaxCodeBytesPerProcess)   // 唯一 mmap(MAP_JIT)
+   ```
+   - `InitializeJit` 定义在 **`js/src/jit/JitContext.cpp`**（2026 树中 `InitializeJit.cpp`
+     已不存在），其注释明说（[JitContext.cpp:128-130]）："This is the final point where we can set
+     disableJitBackend = true, before we use this flag below with the HasJitBackend call."
+   - `ProcessExecutableMemory` 是**进程级单例**（`MOZ_RUNINIT static ... execMemory;`），
+     64 位一次性保留 `MaxCodeBytesPerProcess = 2044MB`；`init()` 有
+     `MOZ_RELEASE_ASSERT(!initialized())`，失败返回 false；`AllocateExecutableMemory()`
+     /`allocate()` 断言 `initialized()` → **MAP_JIT 失败后没有任何重试路径**（release 下
+     后续 JIT 分配直接崩，不是回退）。
+
 ## 治理约束（最重要的前置门槛）
 
 任何真机 JIT 路线首先是一个**信任边界变更**，不是纯代码问题：
@@ -84,10 +102,19 @@ SpiderMonkey Ion/Baseline/Wasm 后端。含义：
 **`JS::DisableJitBackend()` 只在子进程**：`IOSBootstrap.mm` 的 `ChildProcessInitImpl` 里
 （真机 `#if !TARGET_OS_SIMULATOR`）；**`MainProcessInit` 从不调用**。
 
-**实证：真机主进程 JIT 未禁用但 App 正常工作**（5.267 benchmark 跑通）→
-MAP_JIT 失败（`ReserveProcessExecutableMemory` 返回 nullptr → `ProcessExecutableMemory::init()`
-返回 false）是**优雅降级，不崩溃**。这给 Route A 一个关键结论：附加 debugserver 只要发生在
-页面 JS 首次 JIT 编译**之前**，后续 mmap(MAP_JIT) 在 `CS_DEBUGGED` 置位后就能成功。
+**实证（5.267）的"优雅降级"真实机制 = 跳过，不是失败容错**：`IOSBootstrap.mm.patch`
+在 `ChildProcessInitImpl` 里、`XRE_InitChildProcess` **之前**调用 `JS::DisableJitBackend()` →
+content 子进程走到 `JS::Init()` 时 `HasJitBackend()==false` → `InitializeJit` 里
+`InitProcessExecutableMemory()` **根本不执行** → 解释器模式，全程没有 MAP_JIT 尝试（也就没有
+"失败"可言）。
+
+**时序修正（源码级）**：MAP_JIT 唯一尝试点 = content 子进程**启动早期的 `JS::Init()`**
+（`XRE_InitChildProcess` 内部），不是"页面 JS 首次编译时"。推论：
+- Route A 若只去掉 `DisableJitBackend`、而不赶在 **`JS::Init` 之前**附加 debugserver，
+  content 子进程会在启动早期因 `JS::Init()` 失败而无法启动（prelaunch 池进程同样）——
+  **不是优雅降级**。
+- 旧结论"首帧 JS 前附加即可"不成立；正确窗口是 **spawn 瞬间（JS_Init 前）**，或走下方
+  **A' 懒重试补丁**把窗口放宽到"首次 JIT 分配前"。
 
 **子进程 PID 已在 Swift 层暴露**：`GeckoChildProcessDidChange`（`GeckoChildProcessHost.cpp.patch`）
 → `EngineChildProcessEvent.processIdentifier: Int32?`（`EngineChildProcessLifecycle.swift`）→
@@ -123,9 +150,12 @@ Route A 可做 **PID 感知附加**（harness 监听子进程生命周期拿到 
    改为按环境变量/启动参数决定（默认关，benchmark 时开）。**这步是必须的**——当前真机构建在
    子进程硬禁 JIT，而 benchmark JS 跑在 content 子进程，不改代码则附加 debugserver 也没用。
 2. 重新产出 iphoneos 引擎 → 打包 TIPA。
-3. 附加 debugserver：对 JS 宿主进程（Vulpra.app 主进程 + content 子进程 appex 实例）在
-   **页面 JS 首次编译前**附加（最稳是"启动即附加"，即 StikDebug/SideJITServer 的标准流程；
-   MAP_JIT 在 `CS_DEBUGGED` 置位后成功）。
+3. 附加 debugserver：**必须在每个 content 子进程的 `JS::Init()` 之前**（≈spawn 瞬间、
+   进程启动早期）完成——MAP_JIT 唯一尝试点在那里，错过即该进程终局无 JIT。可行方式：
+   (a) PID 感知的 spawn 瞬间自动附加（`EngineChildProcessEvent.processIdentifier` 已暴露；
+       `debugserver --attach <pid>` 抢在 `XRE_InitChildProcess → JS_Init` 之前）；或
+   (b) 用下方 **A'（懒重试补丁）**把窗口放宽到"benchmark 页面加载前"，此时交互式
+       StikDebug"选 App"流程才来得及。仅靠交互式附加（启动后数秒）赶不上 appex 的 JS_Init。
 4. 带开 JIT 的启动参数跑 Speedometer 3.0 同子集，与 5.267 / 11.24 对齐。
 
 **开放问题**：
@@ -134,10 +164,46 @@ Route A 可做 **PID 感知附加**（harness 监听子进程生命周期拿到 
    调试器"；官方支持列表（截至 2026-06）没有浏览器。Vulpra 的 JS 在 content 子进程
    （NSExtension 多实例、动态 PID）——需要验证工具能否按 PID 附加 appex，或改用
    `debugserver --attach <pid>` 手动流程（PID 已由 `EngineChildProcessEvent` 提供）。
-2. **Fission 下每新增 content 进程都要在首帧 JS 前附加**：进程池预启动（prelaunch=2）缓解了
-   时序压力，但 benchmark 页面加载即编译，附加窗口可能只有秒级；必要时可先 `fission.autostart=false`
-   减小进程数（内容仍 OOP，现代 Gecko 无单进程内容模式）。
+2. **Fission 下每新增 content 进程都要在 JS_Init 前附加**：prelaunch=2 的预启动进程在
+   prelaunch 阶段就会跑 `JS::Init()`——若那时未附加，预启动进程直接启动失败，不是"留到页面加载
+   再补"。需要 `fission.autostart=false` / 减小 prelaunch 数来留出附加窗口，或直接用 A' 懒重试
+   补丁绕开该问题（推荐）。
 3. **iOS 版本**：iOS 18.4b1+ / iOS 26+ 的修补状态需按用户真机版本重新确认。
+4. **主进程是否调用 `JS::Init`**：`MainProcessInit` 对 JIT 从不禁用，但 Vulpra.app 主进程
+   是否实际创建 JS runtime（`GeckoViewOpenWindow` 在 main 侧有调用）未实证。5.267 能跑通说明
+   主进程要么不建 runtime、要么 MAP_JIT 在该路径成功——需要真机确认，影响 Route A 的附加对象清单
+   （若主进程也走 `JS::Init`，同样要在 JS_Init 前附加或走 A'）。
+
+
+### A'（推荐变体）：懒初始化 + 可重试 MAP_JIT（代码改动最小）
+
+动机：Route A 原案的附加窗口被锁死在"`JS::Init` 之前（spawn 瞬间）"，交互式工具赶不上、
+prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**失败可重试**后，窗口变成
+"首次 JIT 编译前"（benchmark 加载前，秒级且用户可控）。
+
+改动（3 处小 patch，建议直接并入 `0b9bdf7` 实验系列）：
+1. `js/src/jit/JitContext.cpp` `InitializeJit()`：把
+   `if (HasJitBackend()) { if (!InitProcessExecutableMemory()) return false; }` 改为
+   `if (HasJitBackend()) { (void)InitProcessExecutableMemory(); }`（失败 soft-fail + 日志）
+   → `JS::Init()` 不再因 MAP_JIT 失败而失败，进程以解释器正常启动。
+2. `js/src/jit/ProcessExecutableMemory.cpp` `ProcessExecutableMemory::allocate()`：入口加
+   `if (!initialized()) { if (HasJitBackend() && !init()) return nullptr; }`
+   （懒初始化 + 重试）。注意并发：`init()` 内含 `MOZ_RELEASE_ASSERT(!initialized())`，需要
+   once/锁语义防双跑（`allocate()` 已持 `lock_`，`init()` 不上锁 → 无死锁，但要防 double-init）。
+3. 确认 `ExecutableAllocator::systemAlloc` 的 nullptr 既有回退路径：`createPool` 已有失败检查，
+   Ion/Baseline 单次编译失败应回退解释器（release 下 `MOZ_ASSERT` 不生效，需真机冒烟确认不崩）。
+
+效果：
+- 无 debugserver：进程启动不崩；每次 JIT 分配返回 nullptr → 单次编译回退，页面仍解释器运行。
+- debugserver 附加后（`CS_DEBUGGED` 置位）：首次 JIT 分配重试 `mmap(MAP_JIT)` 成功 → 此后
+  Ion/Baseline 全走 JIT，无需重启进程。
+- 与 Route A step 1（`DisableJitBackend` 改启动参数控制）共用前置改动，唯一差别是时序窗口。
+
+待真机验证：
+- CS_DEBUGGED 置位后 `mmap(MAP_JIT)` 在本真机 iOS 版本上确实成功（iOS 18.4b1+ / iOS 26+
+  修补状态按真机确认）。
+- 分配失败路径对 Ion/Baseline 编译确实只回退不崩（release 构建）。
+- 先解释器后 JIT 的混合态对 benchmark 无影响（benchmark 页面加载在附加之后，首次编译即 JIT）。
 
 ### B. BrowserEngineCore / BrowserEngineKit witness API（发行，仅 EU）
 
