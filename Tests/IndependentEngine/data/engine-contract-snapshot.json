@@ -3,8 +3,8 @@
   "description": "Checked-in engine source contract snapshot for portable gates. Captures pref type declarations and compiled-only C++ payload keys from the pinned v5 engine. Provenance below must match Configuration/engine-artifact-lock.json; tests refuse a stale snapshot.",
   "provenance": {
     "firefoxCommit": "27b462b22705a8860f7ab0d33aa5b4b658ae5932",
-    "patchSetSHA256": "5515f9eae2973b6c545243ae8c11bb22179660ebd97419fb56211f7c6ac5a1e1",
-    "producerHeadSha": "8fa770ca23c513590de3d2d1c6214012c569db2b"
+    "patchSetSHA256": "b7f11022d7abdca9205017938ef06b1085132a7432d4e0c00facaa17e2bb59ec",
+    "producerHeadSha": "37c35fcad0fa9fc150f4e442b2f11f7277e1dac2"
   },
   "prefTypes": {
     "media.rdd-process.startup_timeout_ms": "int",
