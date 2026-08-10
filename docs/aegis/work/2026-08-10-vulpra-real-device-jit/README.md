@@ -59,6 +59,24 @@
      /`allocate()` 断言 `initialized()` → **MAP_JIT 失败后没有任何重试路径**（release 下
      后续 JIT 分配直接崩，不是回退）。
 
+## 实验编译状态（run 31374470622）
+
+- **iphonesimulator job 失败**（2026-08-10 11:30 UTC，`Build native runtime` 阶段 1h47m 处）：
+  `js/src/jit/ProcessExecutableMemory.cpp:999: error: 'pthread_jit_write_protect_np' is
+  unavailable: not available on iOS`。根因：`0b9bdf7` 把 `markExecutable` 的守卫从
+  `fast-WX && !XP_IOS` 放宽为 `fast-WX`，但 **iOS Simulator SDK 不声明 macOS-only 的
+  `pthread_jit_write_protect_np`**（模拟器运行时虽是 macOS，SDK 仍是 iOS）。
+- **修复**（`Engine/GeckoPatches/v5/platform/js/src/jit/ProcessExecutableMemory.cpp.patch`）：
+  守卫改为 `fast-WX && (!XP_IOS || TARGET_OS_SIMULATOR)`；模拟器分支用 `dlsym(RTLD_DEFAULT,
+  "pthread_jit_write_protect_np")` 运行时解析（模拟器运行时=macOS，符号必然存在）；真机
+  （`TARGET_OS_SIMULATOR==0`）不编译该分支。`verify-producer.py` 通过，patch 已在固定上游
+  验证可干净应用。
+- **iphoneos job 单独成功也无法 promote**：`promote-repeat-verified-pair` 需要双平台成对产物，
+  旧 run 无 sccache（早于 `8b80d6d` 修复启动），失败即全丢；重跑走修复后的工作流
+  （restore + always() 保存 sccache）。
+- 教训：**模拟器构建的编译期平台差异不等于真机**——`TARGET_OS_SIMULATOR` 下 SDK 仍是 iOS
+  SDK，macOS-only API 必须 dlsym 或条件排除；这已在 ADR-0005 草案的验证清单里。
+
 ## 治理约束（最重要的前置门槛）
 
 任何真机 JIT 路线首先是一个**信任边界变更**，不是纯代码问题：
