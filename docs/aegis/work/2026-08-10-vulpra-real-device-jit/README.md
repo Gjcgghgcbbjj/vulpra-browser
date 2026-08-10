@@ -174,8 +174,19 @@ vulpra v5 补丁系列（`Engine/GeckoPatches/v5/`）**主动回退**了上述�
 3. **治理**：ADR-0004 "no JIT" 条款撤销 + verify-producer/validate-ipa 的 forbidden token
    放行或重定义（BrowserEngineKit 内容进程很可能引入 `jit-ready-fd`/`ReportJITStatusForChild`
    之类 token，需先确认再改合约）。
-4. 移植口径参考：Bug 1887759（elm D205740，`199096b2e93e6ccda6cb1e467bb2ad5201cb6e0f`）
-   + Bug 1883457 Part 2（cedar，autoland `1080811a9d3dc3193ddf4b5a36575cfe2e455cc4`）。
+4. 移植口径参考（已逐一核实到提交级）：
+   - **Bug 1883457 Part 2** "Use be_memory_inline_jit_restrict_* APIs for JIT on iOS"
+     （2024-03-25，Nika Layzell）= 原始引入，改动 3 个文件：
+     `js/moz.configure`（iOS 启用 `JS_USE_APPLE_FAST_WX`）、`js/src/jit/JitOptions.cpp`、
+     `js/src/jit/ProcessExecutableMemory.cpp`。提交 `a599ba35bf94`（fork 内重落地；
+     首版 `3e0732554342` 因 StaticPrefList.yaml 构建破损被 `2ccc6b35c619` 回退）。
+   - **Bug 1887759** "Link to BrowserEngineCore on iOS"（elm，2024-03-27，
+     `199096b2e93e6ccda6cb1e467bb2ad5201cb6e0f`）= 链接 BrowserEngineCore。
+   - **Bug 1927599 Part 4** "Inline JIT calls on iOS"（2025-12-16，
+     `c3e0176a0945`）= 按 BrowserEngineCore 文档把 witness 调用内联进 header——
+     **固定上游 `27b462b2` 的 `ProcessExecutableMemory.h` 内容来源**（已对比 base 文件确认：
+     `#include <BrowserEngineCore/BEMemory.h>` + 构造/析构直接调
+     `be_memory_inline_jit_restrict_rwx_to_rw/rx_with_witness()`）。
 
 结论：**EU 发行路线的正解，工作量 = 撤销回退 + entitlement + 治理变更**；在目标市场不在 EU
 时不做。
@@ -209,7 +220,8 @@ vulpra v5 补丁系列（`Engine/GeckoPatches/v5/`）**主动回退**了上述�
 - https://github.com/mozilla/platform-tilt/issues/3 （iOS allow-jit 申请被拒的权威证据）
 - https://developer.apple.com/cn/support/alternative-browser-engines/ （EU 替代浏览器引擎要求）
 - https://developer.apple.com/documentation/browserenginekit/protecting-code-compiled-just-in-time （witness API）
-- https://hg.mozilla.org/integration/autoland/rev/1080811a9d3dc3193ddf4b5a36575cfe2e455cc4 （Bug 1883457 Part 2，iOS JIT）
+- https://github.com/mozilla-firefox/firefox/commit/a599ba35bf94b3ae3d093ead7fae9767ce62e1e3 （Bug 1883457 Part 2，iOS 启用 JS_USE_APPLE_FAST_WX + witness API）
+- https://github.com/mozilla-firefox/firefox/commit/c3e0176a09450e8a87c029c0cbdec0fca8f87a26 （Bug 1927599 Part 4，内联 witness 调用，base 27b462b2 内容来源）
 - https://hg.mozilla.org/projects/elm/rev/199096b2e93e6ccda6cb1e467bb2ad5201cb6e0f （Bug 1887759，链接 BrowserEngineCore）
 - https://github.com/nythepegasus/SideJITServer （debugserver 动态签名工具，iOS 17.0-17.3）
 - https://gist.githubusercontent.com/osy/8940e5ae5f24646b808f58d197883ca5/raw （iOS 18.4b1 修补逆向分析）
