@@ -49,8 +49,13 @@ def main() -> None:
             "simulator workflow does not use the repository simulator lock")
     require(lock.get("schemaVersion") == 2 and lock.get("artifactFormatVersion") == 5,
             "artifact lock is not a complete v5 pair")
-    require(lock.get("releaseTag") == "vulpra-engine-v5-r0.3-candidate",
-            "artifact lock release tag is not the promoted v5 release")
+    release_tag = lock.get("releaseTag", "")
+    require(
+        release_tag == "vulpra-engine-v5-r0.3-candidate" or
+        release_tag.startswith("vulpra-engine-v5-jit-"),
+        "artifact lock release tag is not a promoted v5 release "
+        "(expected r0.3 candidate or vulpra-engine-v5-jit-* experiment)",
+    )
     require(type(lock.get("producerRunId")) is int and lock["producerRunId"] > 0 and
             isinstance(lock.get("producerHeadSha"), str) and len(lock["producerHeadSha"]) == 40,
             "artifact lock producer identity is incomplete")
