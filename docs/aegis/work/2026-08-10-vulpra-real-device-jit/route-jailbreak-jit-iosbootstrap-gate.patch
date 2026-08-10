@@ -1,0 +1,36 @@
+diff --git a/toolkit/xre/IOSBootstrap.mm b/toolkit/xre/IOSBootstrap.mm
+index a13caf0..2d8cb778d3 100644
+--- a/toolkit/xre/IOSBootstrap.mm
++++ b/toolkit/xre/IOSBootstrap.mm
+@@ -138,11 +138,26 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+   mozilla::SetGeckoChildID(aArgv[aArgc - 2]);
+ 
+ #if !TARGET_OS_SIMULATOR
+-  // Real devices cannot allocate executable JIT memory without the
+-  // allow-jit entitlement (MAP_JIT), so stay interpreter-only there.
+-  // The Simulator runs on macOS where executable memory is available:
+-  // keep the full JIT backend enabled for benchmark/regression gates.
+-  JS::DisableJitBackend();
++  // Real devices can only allocate JIT memory (MAP_JIT) while a debugger is
++  // attached (CS_DEBUGGED). Default to interpreter-only; the benchmark
++  // harness enables JIT by injecting "-enable-jit" into the child argv on
++  // the parent side (GeckoChildProcessHost::AsyncLaunch writes
++  // mChildArgs.mArgs into the XPC "argv" array; the appex rebuilds argv in
++  // HandleBootstrapMessage and calls ChildProcessInitImpl(argc, argv)).
++  // getenv is NOT usable here: the appex is launched by launchd and the XPC
++  // bootstrap message carries no environment. With Route A' the attach
++  // window is any time before the first JIT allocation, not just before
++  // JS::Init.
++  bool enableJit = false;
++  for (int i = 0; i < aArgc; ++i) {
++    if (strcmp(aArgv[i], "-enable-jit") == 0) {
++      enableJit = true;
++      break;
++    }
++  }
++  if (!enableJit) {
++    JS::DisableJitBackend();
++  }
+ #endif
+ 
+ #if defined(MOZ_MEMORY)

@@ -2480,6 +2480,17 @@
       "upstreamPaths": [
         "toolkit/xre/nsAppRunner.cpp"
       ]
+    },
+    {
+      "order": 249,
+      "path": "platform/real-device-jit/route-jailbreak-jit.patch",
+      "sha256": "b707de9137d3b4abe5b4830525139bb8568bc5e9b9ac70736f0f42b871a528d6",
+      "owner": "engine-platform",
+      "purpose": "Gate the real-device JIT backend behind -enable-jit argv and forward the parent-side VULPRA_ENABLE_JIT opt-in into child XPC argv for jailbreak/debugger benchmark runs.",
+      "upstreamPaths": [
+        "ipc/glue/GeckoChildProcessHost.cpp",
+        "toolkit/xre/IOSBootstrap.mm"
+      ]
     }
   ]
 }

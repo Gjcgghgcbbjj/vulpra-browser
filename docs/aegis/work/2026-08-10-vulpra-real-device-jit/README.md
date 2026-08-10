@@ -514,6 +514,54 @@ vulpra v5 补丁系列（`Engine/GeckoPatches/v5/`）**主动回退**了上述�
   "权限更大所以 JIT 可用"不成立。
 
 
+## 越狱路线（Dopamine Allow JIT，2026-08-11 追加）
+
+状态：**最小补丁集已就绪并双文件验证；待真机验证**。用户提供 Dopamine 2（rootless
+隐根）真机一台，"Allow JIT in Apps" 已开启（Dopamine 2.1+ 内置开关，默认开，机制 =
+给所有 App 进程直接置 `CS_DEBUGGED`）。
+
+与 Route A/A' 的关系：Dopamine 在**进程启动前**（`JS::Init` 之前）就置好
+`CS_DEBUGGED` → `MAP_JIT` 在 `InitProcessExecutableMemory()` 时直接成功 → **不需要**
+A' 懒重试三件套（JitContext soft-fail / allocate 懒初始化+重试 / release 空守卫），
+也不需要 StikDebug / DDI / VPN / PID 发现 harness。引擎侧唯一必要改动 =
+`IOSBootstrap.mm` 门控（与 A' argv 补丁第 4 部分相同）。
+
+最小补丁集：**已纳入 v5 补丁系列 order 249**
+（`Engine/GeckoPatches/v5/platform/real-device-jit/route-jailbreak-jit.patch`，
+单补丁含两个文件的 diff，`upstreamPaths` 双声明；docs/ 下保留两个拆分文件
+`route-jailbreak-jit-iosbootstrap-gate.patch` / `route-jailbreak-jit-childhost-inject.patch`
+作为可读引用）：
+
+- `IOSBootstrap.mm`（门控，36 行）：`ChildProcessInitImpl` 扫 `aArgv` 找
+  `-enable-jit`，找到则不调用 `JS::DisableJitBackend()`；默认仍禁。与 A' argv
+  补丁第 4 部分逐字节一致。
+- `GeckoChildProcessHost.cpp`（主进程侧注入，14 行）：`PerformAsyncLaunch` 在
+  `push_back(mChildIDString)` 后按 `getenv("VULPRA_ENABLE_JIT")` 非空 →
+  `mChildArgs.mArgs.push_back("-enable-jit")` → XPC "argv" → appex
+  `HandleBootstrapMessage` 重建 argv → `ChildProcessInitImpl` 命中。主进程 env
+  可靠（scheme env / `launchctl setenv`）。
+
+验证状态（2026-08-11）：`verify-producer.py`（249 补丁全系列）PASS、
+`test_gecko_producer_v5.py` PASS（唯一补丁约束：合并后单补丁双 upstreamPaths，
+不与 order 128/201 冲突）、`test_gecko_producer_tools.py` PASS、
+`gecko-source-full-patched-20260730`（v5-only 基线）`git apply --check` PASS。
+push 到 `fix/browser-performance-20260729` 会因 `Engine/GeckoPatches/v5/**`
+路径匹配自动触发新的 produce run。
+
+触发方式（真机）：越狱设备上 `launchctl setenv VULPRA_ENABLE_JIT 1` 后启动 Vulpra
+（SpringBoard 继承 launchd env）；或 Xcode scheme env。默认（无 env）行为不变 =
+解释器模式。
+
+真机验证清单（Dopamine 2 设备）：
+- [ ] 装带门控补丁的 iphoneos 引擎 + TIPA（等 v5 编译绿后排队）
+- [ ] `launchctl setenv VULPRA_ENABLE_JIT 1` + 重启 Vulpra
+- [ ] syslog 确认 content 子进程 argv 含 `-enable-jit`（`EngineChildProcessEvent`
+      阶段日志已有先例）
+- [ ] Speedometer 3 同子集跑分，对比 5.267（解释器）→ 预期显著提升 = JIT 生效
+- [ ] 对照实验：不设 env 跑一次，确认仍 5.267 级（默认关未破坏）
+- [ ] 注意巨魔版在越狱状态的反例（dolphin-ios issue #116）：若 TrollStore 版不生效，
+      换越狱环境安装方式复测
+
 ## 推荐
 
 1. **先立治理变更评估（两个路线共用）**：新 ADR 撤销 ADR-0004 "no JIT" 条款，明确新的信任

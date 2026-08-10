@@ -1,0 +1,32 @@
+diff --git a/ipc/glue/GeckoChildProcessHost.cpp b/ipc/glue/GeckoChildProcessHost.cpp
+index 2e87ce65f53ceeb28fc41fc3668f43080b3df195..159bb81ae9dc8f9a68e43263ee6f37609d6a4cb4 100644
+--- a/ipc/glue/GeckoChildProcessHost.cpp
++++ b/ipc/glue/GeckoChildProcessHost.cpp
+@@ -99,6 +99,7 @@
+ #include "nsIThread.h"
+ 
+ #include <atomic>
++#include <cstdlib>
+ 
+ using mozilla::MonitorAutoLock;
+ using mozilla::Preferences;
+@@ -1419,6 +1420,19 @@
+ 
+   mChildArgs.mArgs.push_back(mChildIDString);
+ 
++#  ifdef XP_IOS
++  // Real-device JIT (Route A'/jailbreak): the appex child cannot read the
++  // environment (the XPC bootstrap message carries no env), so the parent
++  // forwards the VULPRA_ENABLE_JIT opt-in through the XPC "argv" array.
++  // ChildProcessInitImpl scans for "-enable-jit" before deciding whether to
++  // disable the JIT backend. The parent process itself reads the env var
++  // reliably (scheme env / launchctl setenv).
++  const char* vulpraEnableJit = getenv("VULPRA_ENABLE_JIT");
++  if (vulpraEnableJit && vulpraEnableJit[0] != '\0') {
++    mChildArgs.mArgs.push_back("-enable-jit");
++  }
++#  endif
++
+   mChildArgs.mArgs.push_back(ChildProcessType());
+ 
+ #  ifdef MOZ_ENABLE_FORKSERVER
