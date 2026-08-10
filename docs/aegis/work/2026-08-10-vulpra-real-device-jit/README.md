@@ -303,7 +303,9 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
 "首次 JIT 编译前"（benchmark 加载前，秒级且用户可控）。
 
 改动（3 处小 patch，草稿已就绪：
-`route-a-prime-lazy-jit-draft.patch`，2026-08-10 验证干净应用到 v5 系列之上）：
+`route-a-prime-lazy-jit-draft.patch`，2026-08-10 验证干净应用到 v5 系列之上；
+   2026-08-11 从固定上游 `27b462b2` 全新重建复验：v5 相关 patch（order 135/136/200/201）+
+   草稿依次 `git apply` 干净，5 个结果文件与既有 checkpoint 逐字节一致）：
 1. `js/src/jit/JitContext.cpp` `InitializeJit()`：把
    `if (HasJitBackend()) { if (!InitProcessExecutableMemory()) return false; }` 改为
    `if (HasJitBackend()) { (void)InitProcessExecutableMemory(); }`（失败 soft-fail）
