@@ -25,12 +25,16 @@ private func vulpraEnableJitIfEligible() {
         vulpraJitLogger.notice("Real-device JIT: csops status unavailable; interpreter-only")
         return
     }
-    if flags & 0x800 /* CS_DEBUGGED */ != 0 {
+    // On-device iOS reports CS_DEBUGGED at bit 28 (0x10000000); classic
+    // XNU cs_blobs.h places it at bit 11 (0x800). Accept either layout and
+    // surface the raw flags so the effective bit is visible on the start page.
+    let debuggedMask: UInt32 = 0x10000000 | 0x00000800
+    if flags & debuggedMask != 0 {
         setenv("VULPRA_ENABLE_JIT", "1", 1)
-        VulpraJitProbe.detail = "CS_DEBUGGED"
+        VulpraJitProbe.detail = String(format: "CS_DEBUGGED (flags=0x%08X)", flags)
         vulpraJitLogger.notice("Real-device JIT: process is CS_DEBUGGED; JIT enabled for engine children")
     } else {
-        VulpraJitProbe.detail = "not-debugged"
+        VulpraJitProbe.detail = String(format: "not-debugged (flags=0x%08X)", flags)
         vulpraJitLogger.notice("Real-device JIT: not CS_DEBUGGED; interpreter-only")
     }
 }
