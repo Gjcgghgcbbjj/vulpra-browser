@@ -52,14 +52,23 @@ def main() -> int:
     series_path = root / contract["patchSeries"]
     series = json.loads(series_path.read_text(encoding="utf-8"))
     patches = [str(series_path.parent / entry["path"]) for entry in series["patches"]]
-    check = run(["git", "-C", str(source), "apply", "--check", *patches], capture=True)
-    if check.returncode != 0:
-        sys.stderr.write(check.stderr or check.stdout)
-        fail("patch series does not apply cleanly")
-    applied = run(["git", "-C", str(source), "apply", *patches], capture=True)
-    if applied.returncode != 0:
-        sys.stderr.write(applied.stderr or applied.stdout)
-        fail("patch series application failed")
+    # Apply one patch at a time. A one-shot `git apply --check` validates
+    # every patch against the pristine tree, which rejects series where a
+    # later patch's context depends on an earlier patch touching the same
+    # file (e.g. the real-device JIT gate, order 249, layered on the v5
+    # IOSBootstrap.mm and GeckoChildProcessHost.cpp patches). Applying
+    # sequentially validates each patch against the state produced by its
+    # predecessors; on failure the already-applied patches are rolled back.
+    applied_patches: list[str] = []
+    for patch in patches:
+        applied = run(["git", "-C", str(source), "apply", patch], capture=True)
+        if applied.returncode != 0:
+            for applied_patch in reversed(applied_patches):
+                run(["git", "-C", str(source), "apply", "-R", applied_patch],
+                    capture=True)
+            sys.stderr.write(applied.stderr or applied.stdout)
+            fail(f"patch series does not apply cleanly (at {patch})")
+        applied_patches.append(patch)
 
     print(f"PASS: applied {len(patches)} Gecko v5 patches")
     return 0
