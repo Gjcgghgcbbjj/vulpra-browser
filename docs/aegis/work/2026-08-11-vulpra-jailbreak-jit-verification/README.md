@@ -38,11 +38,18 @@ launchctl setenv VULPRA_ENABLE_JIT 1
 launchctl unsetenv VULPRA_ENABLE_JIT
 ```
 
-### 3. 确认 JIT 生效
+### 3. 确认 JIT 生效（3 个检查，从轻到重）
 
-- syslog 观察 content 子进程启动参数含 `-enable-jit`
-  （`EngineChildProcessEvent` 阶段日志先例；或 `idevicesyslog`/StikDebug Console）
-- 或直接跑分看差距
+1. **env 确实设上了**（shell 里）：
+   ```sh
+   launchctl getenv VULPRA_ENABLE_JIT   # 应输出 1
+   ```
+2. **子进程真的带 `-enable-jit`**（argv 注入证据）：
+   - Mac:`idevicesyslog | grep -i vulpra | grep -iE 'child|content|pid'`
+   - 设备 NewTerm:`log stream --predicate 'process == "Vulpra"' --style compact`
+     找 `EngineChildProcessEvent` 阶段日志里的 `pid=`；越狱环境可
+     `ps aux | grep -i vulpra` 辅助（iOS ps 不一定显示完整 argv，以分数为准）。
+3. **最终判据 = 分数差距**：JIT 开明显高于 5.267 即生效。
 
 ### 4. Speedometer 3 跑分
 
@@ -66,6 +73,16 @@ launchctl unsetenv VULPRA_ENABLE_JIT
   （Dopamine 开关）、MAP_JIT 是否成功（崩溃/日志）。
 - **失败/冲突**：越狱态下 TrollStore 版拿不到 JIT → 换越狱安装方式；Choicy 禁用注入 →
   开 Allow JIT 无效。
+
+## 常见问题排查
+
+| 现象 | 排查 |
+| --- | --- |
+| TIPA 装不上/装完不出现 | TrollStore 版本；确认装的是 `Vulpra-TrollStore-jailbreak-jit.tipa`（不是旧版 `Vulpra-TrollStore.tipa`） |
+| 启动即崩 | 检查 Choicy 是否对 Vulpra 禁了 tweak 注入（Dopamine Allow JIT 依赖注入，被禁则无效）；崩溃报告看是否 MAP_JIT/exec-mem 相关 |
+| 打开正常但分数无提升 | `launchctl getenv VULPRA_ENABLE_JIT` 确认=1；确认 Dopamine → Settings → Allow JIT in Apps 开；syslog 看 argv 是否注入 |
+| 越狱态下 JIT 反而没开 | 巨魔版在越狱态已知有冲突先例（dolphin-ios #116）；换越狱环境直接安装 TIPA 复测 |
+| 重启后回到解释器 | `launchctl setenv` 重启后失效，重启后重设一次即可（与每次开浏览器无关） |
 
 ## 与既有路线的衔接
 
