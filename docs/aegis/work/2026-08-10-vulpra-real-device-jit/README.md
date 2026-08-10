@@ -33,46 +33,109 @@
    "On Apple Silicon macOS we use MAP_JIT with pthread_jit_write_protect_np …,
    while on iOS we use MAP_JIT with be_memory_inline_jit_restrict_*"。
 
-4. **当前 Vulpra entitlements 现状**（`App/Entitlements/`）：
-   `Vulpra.private.entitlements` 已有 `get-task-allow`、`com.apple.private.security.no-sandbox`、
-   `com.apple.developer.web-browser`、`extended-virtual-addressing`（TrollStore/开发签名路径）；
-   **没有** `com.apple.security.cs.allow-jit`，**没有** `com.apple.developer.web-browser-engine.host`。
-   EngineProcess Appex 的对外 entitlements 为空（App Store 重签场景）。
+4. **vulpra 树不是从零移植，而是主动回退了上游的 BrowserEngineKit 集成**（见 Route B）。
 
 5. **禁用链**：`DisableJitBackend() → JitOptions.disableJitBackend → HasJitBackend()==false →
    wasm::HasPlatformSupport()==false`。Baseline Interpreter / Wasm 同样依赖 JIT backend，
    无法在 `disableJitBackend` 下单独保留。
 
+## 治理约束（最重要的前置门槛）
+
+任何真机 JIT 路线首先是一个**信任边界变更**，不是纯代码问题：
+
+- **ADR-0004**（2026-07-27，`docs/aegis/adr/ADR-0004-independent-engine-runtime-and-distribution.md`）
+  决策原文："No runtime fallback or JIT path is retained."
+- **R0 Trustworthy Engine 计划**（2026-07-29）把"无 JIT 就绪协议 token + `ChildProcessInitImpl`
+  调 `JS::DisableJitBackend()` + `strings XUL` 不含禁止 token"列为验收项。
+- 强制机制（字节级）：
+  - `Tools/GeckoProducer/verify-producer.py`：`forbiddenRuntimeTokens`（合约）+ patch 内容
+    禁止 `jit-ready-fd` / `ReportJITStatusForChild` / `WaitForJITReadySignal` /
+    `RuntimeJITCoordinator` / `ptrace` / `task_for_pid`。
+  - `Tools/Engine/validate-ipa.py`：`FORBIDDEN_RUNTIME_TOKENS` 扫描最终包内二进制，
+    `FORBIDDEN_PATH_TOKENS` 含 `ptrace_jit`、`/jit/`、`geckoview.framework` 等。
+
+结论：**开启真机 JIT 必须新立 ADR 变更信任边界**（撤销 ADR-0004 的 "no JIT" 条款），并同步修改
+verify-producer.py / validate-ipa.py / test-package-validator.py 及 baseline 文档。
+这是 Route A/B 共用的第一个 gate，代码工作量在其次。
+
+## 进程架构（Route A/B 的落地对象）
+
+Gecko JS 不在主 App 进程跑，而在 **`Vulpra Engine Process.appex`**（NSExtension host，
+`Info.plist` 用 `com.apple.ar.viewer` 扩展点 + `_MultipleInstances`）以及其派生的
+NSExtension 子进程（WebContent/Rendering/Networking，`GeckoChildProcessHost.cpp` 的
+`NSExtensionProcess::StartProcess`）。`IOSBootstrap.mm` 的 `ChildProcessInitImpl` 在每个
+子进程里调用 `JS::DisableJitBackend()`。
+
+这决定了：Route A 的 debugserver 附加目标是 **appex/子进程**，不是主 App 进程。
+
 ## 路线对比
 
 ### A. debugserver 动态签名（开发/测试用，真机 benchmark gate 可行）
 
-- 机制：用开发证书签 App（带 `get-task-allow`）→ 附加 `debugserver` 给进程置 `CS_DEBUGGED`
+- 机制：App 用开发证书签（带 `get-task-allow`）→ 附加 `debugserver` 给进程置 `CS_DEBUGGED`
   → 内核允许该进程 mprotect 在 RW/RX 间切换（APRR 下不能同时 RWX）→ MAP_JIT 可成功。
   原理详见 Saagar Jha《Jailed Just-In-Time Compilation on iOS》。
-- 现成工具：SideJITServer、AltStore JIT、Jitterbug。
+- 现成工具：SideJITServer、AltStore JIT、Jitterbug；SideJITServer 支持 iOS 17+，需
+  Windows/macOS/Linux + pymobiledevice3，无线/USB 均可。
 - **支持范围**：SideStore 文档标注 iOS 17.4–18.x，**排除 18.4 beta 1**。
 - **iOS 18.4b1 起 Apple 已修补**：osy 逆向分析确认 TXM 新增 `com.apple.private.cs.debugger`
-  检查（仅 debugserver 进程可做 debug mapping），gist 全文为证据。
-- 限制：**不可 App Store 分发**，仅限开发/侧载场景；但 Vulpra 的 TIPA 分发路径
-  （TrollStore + `get-task-allow` 已具备）天然满足前置条件。
-- 结论：**真机 JIT benchmark gate 走这条**，成本最低、不动 Gecko 源码。
+  检查（仅 debugserver 进程可做 debug mapping）。
+- 限制：**不可 App Store 分发**，仅限开发/侧载场景；Vulpra 的 TIPA 分发路径
+  （TrollStore + `get-task-allow` 已具备）满足前置条件。
+
+**Vulpra 落地步骤（草稿）**：
+
+1. 改 `IOSBootstrap.mm`：把真机上无条件的 `JS::DisableJitBackend()` 改为按环境变量/启动参数
+   决定（默认关，benchmark 时开）。JIT backend 本来就编译进 iphoneos 二进制，只是运行时禁用。
+2. 重新产出 iphoneos 引擎 → 打包 TIPA。
+3. 真机用 SideJITServer 对 JS 宿主进程附加 debugserver（先附加后启动/先启动后附加需验证，
+   MAP_JIT 必须在 CS_DEBUGGED 已置位后才分配）。
+4. 带开 JIT 的启动参数跑 Speedometer 3.0 同子集，与 5.267 / 11.24 对齐。
+
+**开放问题**：SideJITServer 的交互是"选择要开 JIT 的 App"，面向主进程；Vulpra 的 JS 在
+appex/子进程。附加到 NSExtension 子进程（多个实例、动态 PID）的可行性是 Route A 的
+**关键未知项**，需要一次真机冒烟验证。
 
 ### B. BrowserEngineCore / BrowserEngineKit witness API（发行，仅 EU）
 
-- 上游 Firefox 已经在铺路：
-  - Bug 1887759 "Link to BrowserEngineCore on iOS"（elm 分支 D205740，
-    `199096b2e93e6ccda6cb1e467bb2ad5201cb6e0f`）——引入 `be_memory_*_with_witness`。
-  - Bug 1883457 Part 2 "Use be_memory_inline_jit_restrict_* APIs for JIT on iOS"
-    （cedar 分支，autoland `1080811a9d3dc3193ddf4b5a36575cfe2e455cc4`）——为 iOS 启用
-    `JS_USE_APPLE_FAST_WX`。
-- Apple 侧要求（官方页面 + Apple Developer 文档《Protecting Code Compiled Just-In-Time》）：
-  - 需 entitlement：`com.apple.developer.web-browser-engine.host`、extension entitlement、
-    `allow-jit`、`extended-virtual-addressing`；仅 EU 分发，且需满足 90% WPT、80% Test262、
-    安全承诺等条件（iOS 17.4+ / iPadOS 18+）。
-- 现状差距：vulpra 树只 patch 了 entitlement 文件，**没有链接 BrowserEngineCore framework**；
-  需要移植上游 cedar 分支的 patch 集并接入 BrowserEngineKit 的 extension 体系。
-- 结论：**EU 发行路线的正解**，工作量最大；在 Vulpra 目标市场不在 EU 时不做。
+**重要更正：这不是"从零移植"，而是"撤销 v5 补丁系列里对上游集成的回退"。**
+
+vulpra 的固定上游（mozilla-firefox/firefox `27b462b2`，2026-07-13）**已经包含**上游
+Firefox 的 iOS JIT/进程集成：
+
+- `js/src/jit/ProcessExecutableMemory.h` 的 `XP_IOS` witness 分支（base 自带，`0b9bdf7`
+  只是为 Simulator 放宽了条件）
+- `ipc/glue/ExtensionKitUtils.h/.mm`（ExtensionKit 进程）
+- `ipc/glue/GeckoChildProcessHost.cpp` 的 `ExtensionKitProcess`（WebContent/Rendering/Networking）
+- `ipc/chromium/src/base/message_pump_kqueue.cc` 的 `be_kevent64`（BrowserEngineCore）
+- `ipc/glue/moz.build` 的 `OS_LIBS += ["-framework BrowserEngineKit"]`
+
+vulpra v5 补丁系列（`Engine/GeckoPatches/v5/`）**主动回退**了上述集成，改用 reynard-browser
+风格的 NSExtension 进程（不依赖 EU entitlement，iOS 13+ 可用）：
+
+| patch | 回退内容 |
+| --- | --- |
+| `platform/ipc/chromium/src/base/message_pump_kqueue.cc.patch` | `be_kevent64` → `kevent64` |
+| `platform/ipc/glue/moz.build.patch` | `ExtensionKitUtils` → `NSExtensionUtils`；删 `-framework BrowserEngineKit` |
+| `platform/ipc/glue/NSExtensionUtils.h/.mm.patch` | 新增 `NSExtensionProcess` |
+| `platform/ipc/glue/ExtensionKitUtils.h/.mm.patch` | 标记 "now unused" |
+| `platform/ipc/glue/GeckoChildProcessHost.cpp/.h.patch` | `ExtensionKitProcess` → `NSExtensionProcess` |
+
+**Route B = 撤销这些回退 + EU entitlement + 治理变更**：
+
+1. 恢复 `-framework BrowserEngineKit`、ExtensionKitUtils、`ExtensionKitProcess`、
+   `be_kevent64`（BrowserEngineCore witness 路径 base 已就绪）。
+2. App 侧补 entitlement：`com.apple.developer.web-browser-engine.host` + extension
+   entitlement（`allow-jit`、`extended-virtual-addressing`）；仅 EU 分发，需满足 90% WPT、
+   80% Test262、安全承诺等（Apple 官方要求，iOS 17.4+ / iPadOS 18+）。
+3. **治理**：ADR-0004 "no JIT" 条款撤销 + verify-producer/validate-ipa 的 forbidden token
+   放行或重定义（BrowserEngineKit 内容进程很可能引入 `jit-ready-fd`/`ReportJITStatusForChild`
+   之类 token，需先确认再改合约）。
+4. 移植口径参考：Bug 1887759（elm D205740，`199096b2e93e6ccda6cb1e467bb2ad5201cb6e0f`）
+   + Bug 1883457 Part 2（cedar，autoland `1080811a9d3dc3193ddf4b5a36575cfe2e455cc4`）。
+
+结论：**EU 发行路线的正解，工作量 = 撤销回退 + entitlement + 治理变更**；在目标市场不在 EU
+时不做。
 
 ### C. allow-jit entitlement（不可行）
 
@@ -89,13 +152,14 @@
 
 ## 推荐
 
-1. **真机 benchmark gate（近期）**：路线 A。Vulpra TIPA 已带 `get-task-allow`，用开发证书 +
-   debugserver（SideJITServer）附加后重跑 Speedometer 3.0 同子集，对齐 Safari 11.24 基线，
-   把"JIT 落后 2.1 倍"细化为"同机 JIT 差距"与"引擎自身差距"。
-2. **发行（默认）**：维持解释器模式（5.267 基线）。JIT 发行需要路线 B（EU）或 Apple 政策变化，
-   两者都不受我们控制。
-3. **目标 EU 时**：重估路线 B，跟踪 Firefox cedar 分支 JIT-on-iOS 补丁集，评估移植到 vulpra
-   v5 patch 体系（`Engine/GeckoPatches/v5/`）。
+1. **先立治理变更评估（两个路线共用）**：新 ADR 撤销 ADR-0004 "no JIT" 条款，明确新的信任
+   边界与 token 策略。这是第一步，决定后续所有代码工作是否值得做。
+2. **真机 benchmark gate（近期）**：路线 A。前置 `get-task-allow` 已具备；先做一次真机
+   冒烟验证 NSExtension 子进程能否被 debugserver 附加（关键未知项），通过后再改
+   `IOSBootstrap.mm` 的 JIT 开关 + 重打 TIPA。
+3. **发行（默认）**：维持解释器模式（5.267 基线）。JIT 发行需要路线 B（EU）+ 治理变更，
+   都不受我们单方面控制。
+4. **目标 EU 时**：重估路线 B，按上表撤销回退，跟踪 Firefox cedar JIT-on-iOS 补丁集。
 
 ## 核心引用
 
@@ -111,6 +175,7 @@
 ## 下一步
 
 - [ ] 编译 run `31374470622`（Simulator JIT 实验）结果出来后，把 Simulator JIT 开/关分数差归档
-- [ ] 评估 SideJITServer 对 Vulpra TIPA 的附加流程（前置条件 `get-task-allow` 已具备）
-- [ ] 路线 A 生效后重跑真机 Speedometer 3.0，与 5.267 / 11.24 对齐
-- [ ] 若走 EU：跟踪 Firefox cedar JIT-on-iOS patch 集，评估 cherry-pick 到 v5 patch 体系
+- [ ] 治理评估：新 ADR 草案（撤销 ADR-0004 "no JIT" 的边界与 token 策略）
+- [ ] Route A 真机冒烟：SideJITServer 能否附加到 Vulpra Engine Process.appex / NSExtension 子进程
+- [ ] Route A 通过后：`IOSBootstrap.mm` JIT 开关改为启动参数控制 + 重打 TIPA + 重跑 Speedometer
+- [ ] 若走 EU：按 Route B 表格撤销 v5 回退，跟踪 Firefox cedar JIT-on-iOS patch 集
