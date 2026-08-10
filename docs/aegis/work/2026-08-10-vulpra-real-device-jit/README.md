@@ -343,6 +343,41 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
 - 分配失败路径对 Ion/Baseline 编译确实只回退不崩（release 构建）。
 - 先解释器后 JIT 的混合态对 benchmark 无影响（benchmark 页面加载在附加之后，首次编译即 JIT）。
 
+### 真机冒烟 harness 设计（Route A'，可执行草案，2026-08-11 归档）
+
+前置：
+- **TIPA 构建**：v5 系列 + Route A' 懒重试补丁（3 文件已复验可干净应用）+
+  `IOSBootstrap.mm` 的 `VULPRA_ENABLE_JIT=1` 门控（A' 草稿内已含）。
+- **真机 iOS 版本**：按 SideStore/StikDebug 兼容表确认（17.4–18.x 稳定；18.4b1+ / iOS 26+
+  修补状态需按真机复核；TXM 设备走 StikDebug JS 脚本路径）。
+- **工具**：StikDebug（pairing + LocalDevVPN + PID 外部动作/JS 脚本），或 macOS 侧
+  pymobiledevice3 + DDI debugserver 手动 vAttach。
+
+流程（TIPA 安装与首次配对外全程可脚本化）：
+1. 安装 TIPA（`get-task-allow` 已具备：`EngineProcess.private.entitlements`）。
+2. 启动 Vulpra（JIT 实验构建）。
+3. **PID 发现**：流式读 syslog（StikDebug Console 或 `idevicesyslog`），过滤 Vulpra
+   子进程日志——`VulpraEngineRuntime.swift:376` 的 `childLogger.notice` 每阶段输出
+   `launch=<launchID> child=<childID> type=<processType> pid=<pid> stage=<stage> ...`，
+   `pid` 为 `privacy: .public`（不脱敏）→ content 进程 PID 可直接提取。
+4. **附加**：对每个 content PID 触发 StikDebug 外部动作（`JITEnableConfiguration.pid`，
+   源码级支持）或脚本 `vAttach;<hex-pid>`（`JITEnableContext.swift:580`）；
+   CS_DEBUGGED 置位后 detach。
+5. 打开 Speedometer 3 同子集页 → Route A' 首次 JIT 分配重试 `mmap(MAP_JIT)` 成功 →
+   Ion/Baseline 生效。
+6. 跑分，与 5.267 / 11.24 对齐。
+
+关键时序：A' 把附加窗口从"spawn 瞬间（JS_Init 前）"放宽到"首次 JIT 分配前"——harness
+在 attach 完成前不加载 benchmark 页即可，人工可控；prelaunch 进程 attach 前以解释器运行、
+attach 后首次编译即 JIT，无需额外处理（解决原 Route A 开放问题 #2）。
+
+待真机确认：
+- DDI debugserver vAttach 对 appex PID 的实际接受性（本机 iOS 版本，开放问题 #1 收尾）。
+- StikDebug 进程列表是否展示 appex；外部动作/脚本喂 PID 的可用性。
+- release 构建上分配失败路径只回退不崩。
+- `_MultipleInstances` 多实例下 attach 对象与 benchmark content 进程的对应关系
+  （syslog 里 `type=` 区分 WebContent/Rendering/Networking）。
+
 ### B. BrowserEngineCore / BrowserEngineKit witness API（发行，仅 EU）
 
 **重要更正：这不是"从零移植"，而是"撤销 v5 补丁系列里对上游集成的回退"。**
