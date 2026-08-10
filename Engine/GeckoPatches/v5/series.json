@@ -1344,7 +1344,7 @@
     {
       "order": 135,
       "path": "platform/js/src/jit/ProcessExecutableMemory.h.patch",
-      "sha256": "b11a726afa2c7b76ca398e0fd0aca40d83977e1f58928a81394b14d4b8983c5d",
+      "sha256": "bcb811cc1f0cb6cddb305eb3e087af40b22b87fd755210338e8a87c3b8d11cb7",
       "owner": "engine-platform",
       "purpose": "Define the iOS-compatible runtime contract in js/src/jit/ProcessExecutableMemory.h.",
       "upstreamPaths": [

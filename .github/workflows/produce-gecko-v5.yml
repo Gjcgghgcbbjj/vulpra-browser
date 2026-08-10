@@ -164,11 +164,15 @@ jobs:
         # Save sccache even when the build above fails. The combined
         # actions/cache@v4 action only saves in a post-step gated on success(),
         # so a failed Gecko rebuild would otherwise lose all compile state and
-        # the next retry would start from scratch. A separate save step with
-        # always() keeps the partial compiled units for the retry.
+        # the next retry would start from scratch. A separate save step keeps
+        # the partial compiled units for the retry. Use !cancelled() instead of
+        # always(): combining always() with && does NOT override the default
+        # success() gate (proven by run 31384820854 where the save step was
+        # skipped after the iphoneos link failure), while !cancelled() stays
+        # true on failure and only gates on cancellation.
         # cache-hit != 'true' avoids re-saving a key that already exists.
-        if: ${{ env.REUSE_BUILD_RUN_ID == '' }} &&
-            always() && steps.gecko-cache.outputs.cache-hit != 'true'
+        if: ${{ !cancelled() && env.REUSE_BUILD_RUN_ID == '' &&
+            steps.gecko-cache.outputs.cache-hit != 'true' }}
         continue-on-error: true
         uses: actions/cache/save@v4
         with:

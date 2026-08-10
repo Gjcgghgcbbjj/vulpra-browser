@@ -88,13 +88,39 @@
 - 教训：**模拟器构建的编译期平台差异不等于真机**——`TARGET_OS_SIMULATOR` 下 SDK 仍是 iOS
   SDK，macOS-only API 必须 dlsym 或条件排除；这已在 ADR-0005 草案的验证清单里。
 
-## 编译后执行清单（run 31384820854 绿后）
+## 实验编译状态（run 31384820854，2026-08-10 11:49Z 启动）
+
+- **iphonesimulator job ✅ 全绿**（14:35Z，`Build native runtime` 通过，产物已上传）。
+- **iphoneos job ❌ 失败**（`Build native runtime` 197min 处 XUL 最终链接失败，
+  `clang++: error: linker command failed`；15:11Z run conclusion=failure）。
+- **根因（h/cpp 守卫不一致）**：`4973e48` 把 cpp **定义**守卫改为
+  `fast-WX && (!XP_IOS || TARGET_OS_SIMULATOR)`，但 `ProcessExecutableMemory.h.patch`
+  （`0b9bdf7` 实验）仍是无条件 `fast-WX`——真机（`TARGET_OS_SIMULATOR==0`）上
+  `markExecutable` **声明在、定义被编译掉**，ctor/dtor 内联调用产生 undefined symbol，
+  最终在 XUL 链接（链接 `libjs_static.a`）暴露。模拟器能过是因为 `TARGET_OS_SIMULATOR==1`
+  定义仍在。
+- **修复（h.patch 对齐）**：声明 + ctor + dtor 三处守卫统一改为
+  `fast-WX && (!XP_IOS || TARGET_OS_SIMULATOR)`，并补 `#include <TargetConditionals.h>`
+  （XP_IOS 下）。真机三处全编译掉 → 链接恢复；真机运行时由 `ChildProcessInitImpl` 的
+  `JS::DisableJitBackend()` 保证解释器（无 JIT 代码 → 无 W^X 转换需求）。本地已用固定上游
+  27b462b2 原始文件验证 patch 干净应用 + `verify-producer.py` PASS。
+- **sccache 保留 step 实际失效（已修）**：该 run 的 iphoneos step 9
+  `Preserve partial Gecko build cache` 在编译失败后是 **skipped**——`always() && cond`
+  组合**不会覆盖默认 success() 门控**（GitHub Actions 语义，实证）；且 iphoneos 前缀
+  `gecko-sccache-iphoneos-` 在 restore 时 **Cache not found**（历史从未存过 iphoneos 缓存），
+  整次是冷编译。修复：条件改为 `!cancelled() && ...`（失败时仍 true、仅取消时 false），
+  否则用户担心的"一次失败全部重来"会真实发生。
+- **代价**：失败 run 的 197min iphoneos 编译状态未入库（save 被 skip），重跑仍是 iphoneos
+  冷编译 ~3.3h；修复后若再失败，partial 成果会保住。
+
+## 编译后执行清单（修复后 run 绿后）
 
 前置事实：promote 是 **repeat 门控**（`promote-engine-artifacts.py promote` 需要
 `--producer-run-id` 与 `--repeat-producer-run-id` 两个不同 run 的成对产物，哈希一致才写
 lock），因此 JIT 实验引擎要进 benchmark-ci 需要**两次全量编译**。
 
-1. run 31384820854 两 job 全绿（iphoneos + iphonesimulator，patch = dlsym 修复版）。
+1. 修复后 run（h.patch 对齐 + sccache `!cancelled()` 修复版）两 job 全绿
+   （iphoneos + iphonesimulator；iphoneos 需等约 3.3h 冷编译，simulator 走 sccache 较快）。
 2. **再触发一次同 commit 的 producer run**（workflow_dispatch，无代码改动）作为 repeat：
    `gh workflow run produce-gecko-v5.yml --ref fix/browser-performance-20260729`。
    两次 run 产物须哈希一致（repeat-verified gate）。
