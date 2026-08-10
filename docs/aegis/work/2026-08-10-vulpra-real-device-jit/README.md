@@ -410,6 +410,11 @@ vulpra v5 补丁系列（`Engine/GeckoPatches/v5/`）**主动回退**了上述�
 2. App 侧补 entitlement：`com.apple.developer.web-browser-engine.host` + extension
    entitlement（`allow-jit`、`extended-virtual-addressing`）；仅 EU 分发，需满足 90% WPT、
    80% Test262、安全承诺等（Apple 官方要求，iOS 17.4+ / iPadOS 18+）。
+   > **entitlement 澄清（勿混淆）**：`com.apple.developer.web-browser`（iOS 14+ 默认浏览器
+   > 资格，vulpra 现有分发即用）≠ 本 Route 所需；Route B 用的是
+   > `com.apple.developer.web-browser-engine.host`（BrowserEngineKit 引擎宿主资格，Apple 仅向
+   > EU 市场浏览器发行）。App 已带前者不代表后者可用：两者独立申请/核验，validate-ipa 的
+   > entitlement 断言需按后者（而非前者）收紧。
 3. **治理**：ADR-0004 "no JIT" 条款撤销 + verify-producer/validate-ipa 的 forbidden token
    放行或重定义（BrowserEngineKit 内容进程很可能引入 `jit-ready-fd`/`ReportJITStatusForChild`
    之类 token，需先确认再改合约）。
