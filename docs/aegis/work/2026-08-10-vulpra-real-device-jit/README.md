@@ -271,17 +271,26 @@ Route A 可做 **PID 感知附加**（harness 监听子进程生命周期拿到 
 prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**失败可重试**后，窗口变成
 "首次 JIT 编译前"（benchmark 加载前，秒级且用户可控）。
 
-改动（3 处小 patch，建议直接并入 `0b9bdf7` 实验系列）：
+改动（3 处小 patch，草稿已就绪：
+`route-a-prime-lazy-jit-draft.patch`，2026-08-10 验证干净应用到 v5 系列之上）：
 1. `js/src/jit/JitContext.cpp` `InitializeJit()`：把
    `if (HasJitBackend()) { if (!InitProcessExecutableMemory()) return false; }` 改为
-   `if (HasJitBackend()) { (void)InitProcessExecutableMemory(); }`（失败 soft-fail + 日志）
+   `if (HasJitBackend()) { (void)InitProcessExecutableMemory(); }`（失败 soft-fail）
    → `JS::Init()` 不再因 MAP_JIT 失败而失败，进程以解释器正常启动。
 2. `js/src/jit/ProcessExecutableMemory.cpp` `ProcessExecutableMemory::allocate()`：入口加
-   `if (!initialized()) { if (HasJitBackend() && !init()) return nullptr; }`
-   （懒初始化 + 重试）。注意并发：`init()` 内含 `MOZ_RELEASE_ASSERT(!initialized())`，需要
-   once/锁语义防双跑（`allocate()` 已持 `lock_`，`init()` 不上锁 → 无死锁，但要防 double-init）。
-3. 确认 `ExecutableAllocator::systemAlloc` 的 nullptr 既有回退路径：`createPool` 已有失败检查，
-   Ion/Baseline 单次编译失败应回退解释器（release 下 `MOZ_ASSERT` 不生效，需真机冒烟确认不崩）。
+   懒初始化 + 重试：`if (!initialized()) { LockGuard<Mutex> guard(lock_);
+   if (!initialized() && !init()) return nullptr; }`——双重检查锁防 `init()` 的
+   `MOZ_RELEASE_ASSERT(!initialized())` 双跑（`init()` 不上锁，`allocate()` 后段再取
+   `lock_` 在 guard 作用域外，无死锁）。已源码级确认：`ReserveProcessExecutableMemory`
+   MAP_JIT 失败返回 `MAP_FAILED → nullptr`（干净失败），`systemAlloc` → `createPool`
+   的 `if (!a.pages) return nullptr` → `ExecutableAllocator::alloc` 返回 nullptr 给
+   JIT 编译方（Ion/Baseline 编译失败回退解释器，release 下 `MOZ_ASSERT` 不生效，仍需真机
+   冒烟确认不崩）。
+3. `ProcessExecutableMemory::release()` 加空守卫：未 init 时直接 return（否则
+   `munmap(nullptr, MaxCodeBytes)`，release 下仅 EINVAL 无害、debug 下断言）。
+4. `toolkit/xre/IOSBootstrap.mm` `ChildProcessInitImpl`：真机 `JS::DisableJitBackend()`
+   改为默认关、`VULPRA_ENABLE_JIT=1` 才开（env 为草稿通道；NSExtension 子进程环境受限，
+   app 侧 harness 可能改用启动参数，默认关策略不变）。
 
 效果：
 - 无 debugserver：进程启动不崩；每次 JIT 分配返回 nullptr → 单次编译回退，页面仍解释器运行。
