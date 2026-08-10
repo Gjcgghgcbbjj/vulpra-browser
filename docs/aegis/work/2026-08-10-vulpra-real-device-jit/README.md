@@ -392,6 +392,12 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
 4. **附加**：对每个 content PID 触发 StikDebug 外部动作（`JITEnableConfiguration.pid`，
    源码级支持）或脚本 `vAttach;<hex-pid>`（`JITEnableContext.swift:580`）；
    CS_DEBUGGED 置位后 detach。
+
+   可执行草案（2026-08-11 归档，**未真机验证**）：
+   `smoke-harness/find_content_pids.py` —— 正则按 Swift 源码 376 行字段解析 syslog
+   流，按 `--type`（默认 WebContent）输出 PID 或 `--attach-commands` 生成
+   `vAttach;<hex-pid>`；用法见脚本 docstring。真机首验时若 os_log 实际渲染
+   与源码字段有出入（引号/前缀），按脚本内注释调整正则即可。
 5. 打开 Speedometer 3 同子集页 → Route A' 首次 JIT 分配重试 `mmap(MAP_JIT)` 成功 →
    Ion/Baseline 生效。
 6. 跑分，与 5.267 / 11.24 对齐。
