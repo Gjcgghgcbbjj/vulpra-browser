@@ -42,6 +42,12 @@ def parse_args():
     p.add_argument("--file", help="Read from file instead of stdin")
     p.add_argument("--attach-commands", action="store_true",
                    help="Emit StikDebug-style vAttach;hexpid lines")
+    p.add_argument("--stikdebug-url", action="store_true",
+                   help="Emit stikdebug://enable-jit URL per PID (StikDebug "
+                        "HomeView.handleExternalURL host=enable-jit)")
+    p.add_argument("--bundle-id", default="com.vulpra.browser.engine-process",
+                   help="Engine Process appex bundle id for the URL (default "
+                        "com.vulpra.browser.engine-process)")
     p.add_argument("--stage-max", type=int, default=3,
                    help="Ignore lines with stage > N (debug trace noise)")
     return p.parse_args()
@@ -80,6 +86,9 @@ def main():
         if args.attach_commands:
             # StikDebug JITEnableContext vAttach takes a hex PID.
             print(f"vAttach;{pid:x}  # launch={launch} child={child} type={ptype}")
+        elif args.stikdebug_url:
+            print(f"stikdebug://enable-jit?pid={pid}&bundle-id={args.bundle_id}"
+                  f"  # launch={launch} child={child} type={ptype}")
         else:
             print(pid)
     return 0

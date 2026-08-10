@@ -398,6 +398,11 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
    流，按 `--type`（默认 WebContent）输出 PID 或 `--attach-commands` 生成
    `vAttach;<hex-pid>`；用法见脚本 docstring。真机首验时若 os_log 实际渲染
    与源码字段有出入（引号/前缀），按脚本内注释调整正则即可。
+   StikDebug 触发入口已源码级确认（`HomeView.swift` `handleExternalURL`，host=`enable-jit`）：
+   `stikdebug://enable-jit?pid=<十进制 PID>&bundle-id=com.vulpra.browser.engine-process`
+   （`JITEnableConfiguration.pid` 非空即按 PID attach，`debugApp(withPID:)` 支持任意
+   PID；`vAttach;<hex-pid>` 是 JITEnableContext 内部命令，hex 无前缀小写）。脚本
+   `--stikdebug-url` 模式直接生成该 URL。
 5. 打开 Speedometer 3 同子集页 → Route A' 首次 JIT 分配重试 `mmap(MAP_JIT)` 成功 →
    Ion/Baseline 生效。
 6. 跑分，与 5.267 / 11.24 对齐。
