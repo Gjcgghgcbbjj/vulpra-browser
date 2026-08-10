@@ -75,9 +75,14 @@ NSExtension 子进程（WebContent/Rendering/Networking，`GeckoChildProcessHost
 - 机制：App 用开发证书签（带 `get-task-allow`）→ 附加 `debugserver` 给进程置 `CS_DEBUGGED`
   → 内核允许该进程 mprotect 在 RW/RX 间切换（APRR 下不能同时 RWX）→ MAP_JIT 可成功。
   原理详见 Saagar Jha《Jailed Just-In-Time Compilation on iOS》。
-- 现成工具：SideJITServer、AltStore JIT、Jitterbug；SideJITServer 支持 iOS 17+，需
-  Windows/macOS/Linux + pymobiledevice3，无线/USB 均可。
-- **支持范围**：SideStore 文档标注 iOS 17.4–18.x，**排除 18.4 beta 1**。
+- 现成工具（2026-06 SideStore 文档口径，时效性以该页为准）：
+  - **StikDebug**（原 StikJIT，当前推荐）：iOS 17.4–18.x（**排除 18.4b1**）；本地 VPN +
+    pairing file + 挂载 DDI 后"select an app（须 get-task-allow）→ attach a debugger"。
+  - **SideJITServer**：iOS 17.0–17.3 的替代方案；Windows/macOS/Linux 同网段 +
+    pymobiledevice3。
+  - **iOS 26 又封堵**：SideStore 文档标注 iOS 26 起 JIT 再次失效，支持列表仅限
+    UTM/Amethyst/MeloNX/maciOS/DolphiniOS/Geode/Manic EMU/Flycast/MeloCafe/ARMSX2/DukeX
+    等（截至 2026-06-17，**无浏览器**），26.6/27 仅少量 App 可用。
 - **iOS 18.4b1 起 Apple 已修补**：osy 逆向分析确认 TXM 新增 `com.apple.private.cs.debugger`
   检查（仅 debugserver 进程可做 debug mapping）。
 - 限制：**不可 App Store 分发**，仅限开发/侧载场景；Vulpra 的 TIPA 分发路径
@@ -88,14 +93,13 @@ NSExtension 子进程（WebContent/Rendering/Networking，`GeckoChildProcessHost
 1. 改 `IOSBootstrap.mm`：把真机上无条件的 `JS::DisableJitBackend()` 改为按环境变量/启动参数
    决定（默认关，benchmark 时开）。JIT backend 本来就编译进 iphoneos 二进制，只是运行时禁用。
 2. 重新产出 iphoneos 引擎 → 打包 TIPA。
-3. 真机用 SideJITServer 对 JS 宿主进程附加 debugserver（先附加后启动/先启动后附加需验证，
-   MAP_JIT 必须在 CS_DEBUGGED 已置位后才分配）。
+3. 真机用 StikDebug/SideJITServer 对 JS 宿主进程附加 debugserver（先附加后启动/先启动后附加
+   需验证，MAP_JIT 必须在 CS_DEBUGGED 已置位后才分配）。
 4. 带开 JIT 的启动参数跑 Speedometer 3.0 同子集，与 5.267 / 11.24 对齐。
 
-**开放问题**：SideJITServer 的交互是"选择要开 JIT 的 App"，面向主进程；Vulpra 的 JS 在
-appex/子进程。附加到 NSExtension 子进程（多个实例、动态 PID）的可行性是 Route A 的
-**关键未知项**，需要一次真机冒烟验证。
-
+**开放问题**：StikDebug/SideJITServer 的交互是"选择 App（主进程）附加调试器"；Vulpra 的 JS
+在 appex/子进程（NSExtension 多实例、动态 PID）。**官方支持列表（截至 2026-06）没有浏览器**，
+附加到 NSExtension 子进程的可行性是 Route A 的**关键未知项**，需要一次真机冒烟验证。
 ### B. BrowserEngineCore / BrowserEngineKit witness API（发行，仅 EU）
 
 **重要更正：这不是"从零移植"，而是"撤销 v5 补丁系列里对上游集成的回退"。**
@@ -168,14 +172,6 @@ vulpra v5 补丁系列（`Engine/GeckoPatches/v5/`）**主动回退**了上述�
 - https://developer.apple.com/documentation/browserenginekit/protecting-code-compiled-just-in-time （witness API）
 - https://hg.mozilla.org/integration/autoland/rev/1080811a9d3dc3193ddf4b5a36575cfe2e455cc4 （Bug 1883457 Part 2，iOS JIT）
 - https://hg.mozilla.org/projects/elm/rev/199096b2e93e6ccda6cb1e467bb2ad5201cb6e0f （Bug 1887759，链接 BrowserEngineCore）
-- https://github.com/nythepegasus/SideJITServer （debugserver 动态签名工具）
+- https://github.com/nythepegasus/SideJITServer （debugserver 动态签名工具，iOS 17.0-17.3）
 - https://gist.githubusercontent.com/osy/8940e5ae5f24646b808f58d197883ca5/raw （iOS 18.4b1 修补逆向分析）
-- https://docs.sidestore.io/docs/advanced/jit （JIT 附加支持范围）
-
-## 下一步
-
-- [ ] 编译 run `31374470622`（Simulator JIT 实验）结果出来后，把 Simulator JIT 开/关分数差归档
-- [ ] 治理评估：新 ADR 草案（撤销 ADR-0004 "no JIT" 的边界与 token 策略）
-- [ ] Route A 真机冒烟：SideJITServer 能否附加到 Vulpra Engine Process.appex / NSExtension 子进程
-- [ ] Route A 通过后：`IOSBootstrap.mm` JIT 开关改为启动参数控制 + 重打 TIPA + 重跑 Speedometer
-- [ ] 若走 EU：按 Route B 表格撤销 v5 回退，跟踪 Firefox cedar JIT-on-iOS patch 集
+- https://docs.sidestore.io/docs/advanced/jit （StikDebug/SideJITServer 支持范围与 iOS 26 现状，2026-06-17 口径）
