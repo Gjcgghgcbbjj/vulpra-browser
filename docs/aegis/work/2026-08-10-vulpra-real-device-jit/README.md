@@ -363,6 +363,11 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
    （构造 `mChildArgs.mArgs` 处，~1250-1300 行）按标志 `push_back("-enable-jit")` →
    XPC `"argv"` → 子进程 argv 版补丁扫描命中。即：**主进程读 env（可靠）+ 子进程读 argv
    （可靠）**，两端都避开 appex 的环境隔离；实施位置都在 Gecko patch 系列（IOSBootstrap.mm +
+   **合约兼容（2026-08-11 复验）**：argv 版补丁文本及应用后 3 文件均不含 forbidden token
+   （`jit-ready-fd`/`ReportJITStatusForChild`/`WaitForJITReadySignal`/
+   `RuntimeJITCoordinator`/`ptrace`/`task_for_pid` 等）；`getenv`/`strcmp`/
+   `-enable-jit` 不在 verify-producer 的 `PATCH_FORBIDDEN_TOKENS` 内 → 与 Simulator
+   JIT 实验（run 31374470622 Verify producer inputs PASS）同口径，合约层无新障碍。
    GeckoChildProcessHost.cpp），默认关策略不变。getenv 版草稿保留为 fallback 但不可依赖。
 
 效果：
