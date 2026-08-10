@@ -60,13 +60,32 @@ verify-producer.py / validate-ipa.py / test-package-validator.py 及 baseline �
 
 ## 进程架构（Route A/B 的落地对象）
 
-Gecko JS 不在主 App 进程跑，而在 **`Vulpra Engine Process.appex`**（NSExtension host，
-`Info.plist` 用 `com.apple.ar.viewer` 扩展点 + `_MultipleInstances`）以及其派生的
-NSExtension 子进程（WebContent/Rendering/Networking，`GeckoChildProcessHost.cpp` 的
-`NSExtensionProcess::StartProcess`）。`IOSBootstrap.mm` 的 `ChildProcessInitImpl` 在每个
-子进程里调用 `JS::DisableJitBackend()`。
+**Gecko 主进程 = Vulpra.app 自身**，不是 appex：
 
-这决定了：Route A 的 debugserver 附加目标是 **appex/子进程**，不是主 App 进程。
+- `App/main.swift` → `VulpraEngineApplicationMain` → `VulpraEngine.runtime.runMain` →
+  `VEKRuntimeMain` → `MainProcessInit`（主进程路径，跑在 Vulpra.app 进程里）。
+- `Vulpra Engine Process.appex`（NSExtension，`com.apple.ar.viewer` 扩展点 +
+  `_MultipleInstances`）→ `EngineProcessExtension` → `VulpraEngineProcessHost.start` →
+  `engineABIChildProcessStart` → `ChildProcessInit`（**Gecko 子进程**路径）。
+- Fission 开：`applyProcessPoolPolicy()` 设 `dom.ipc.processPrelaunch.fission.number=2`、
+  `dom.ipc.processCount=4` → **网页 JS（含 benchmark）跑在 content 子进程 = appex 实例**，
+  主进程只跑 Gecko chrome JS。
+
+**`JS::DisableJitBackend()` 只在子进程**：`IOSBootstrap.mm` 的 `ChildProcessInitImpl` 里
+（真机 `#if !TARGET_OS_SIMULATOR`）；**`MainProcessInit` 从不调用**。
+
+**实证：真机主进程 JIT 未禁用但 App 正常工作**（5.267 benchmark 跑通）→
+MAP_JIT 失败（`ReserveProcessExecutableMemory` 返回 nullptr → `ProcessExecutableMemory::init()`
+返回 false）是**优雅降级，不崩溃**。这给 Route A 一个关键结论：附加 debugserver 只要发生在
+页面 JS 首次 JIT 编译**之前**，后续 mmap(MAP_JIT) 在 `CS_DEBUGGED` 置位后就能成功。
+
+**子进程 PID 已在 Swift 层暴露**：`GeckoChildProcessDidChange`（`GeckoChildProcessHost.cpp.patch`）
+→ `EngineChildProcessEvent.processIdentifier: Int32?`（`EngineChildProcessLifecycle.swift`）→
+Route A 可做 **PID 感知附加**（harness 监听子进程生命周期拿到 PID，逐个 attach debugserver）。
+
+**iOS 内容进程 JIT 代码 W^X 已开**：`StaticPrefList.yaml.patch` 把
+`javascript.options.content_process_write_protect_code` 在 `XP_IOS` 下置 `true`（与 OpenBSD 同
+口径）→ Route A/B 下 JIT 代码走 W^X（MAP_JIT + witness / CS_DEBUGGED mprotect 兼容）。
 
 ## 路线对比
 
@@ -90,16 +109,26 @@ NSExtension 子进程（WebContent/Rendering/Networking，`GeckoChildProcessHost
 
 **Vulpra 落地步骤（草稿）**：
 
-1. 改 `IOSBootstrap.mm`：把真机上无条件的 `JS::DisableJitBackend()` 改为按环境变量/启动参数
-   决定（默认关，benchmark 时开）。JIT backend 本来就编译进 iphoneos 二进制，只是运行时禁用。
+1. 改 `IOSBootstrap.mm`：把真机上 `ChildProcessInitImpl` 里无条件的 `JS::DisableJitBackend()`
+   改为按环境变量/启动参数决定（默认关，benchmark 时开）。**这步是必须的**——当前真机构建在
+   子进程硬禁 JIT，而 benchmark JS 跑在 content 子进程，不改代码则附加 debugserver 也没用。
 2. 重新产出 iphoneos 引擎 → 打包 TIPA。
-3. 真机用 StikDebug/SideJITServer 对 JS 宿主进程附加 debugserver（先附加后启动/先启动后附加
-   需验证，MAP_JIT 必须在 CS_DEBUGGED 已置位后才分配）。
+3. 附加 debugserver：对 JS 宿主进程（Vulpra.app 主进程 + content 子进程 appex 实例）在
+   **页面 JS 首次编译前**附加（最稳是"启动即附加"，即 StikDebug/SideJITServer 的标准流程；
+   MAP_JIT 在 `CS_DEBUGGED` 置位后成功）。
 4. 带开 JIT 的启动参数跑 Speedometer 3.0 同子集，与 5.267 / 11.24 对齐。
 
-**开放问题**：StikDebug/SideJITServer 的交互是"选择 App（主进程）附加调试器"；Vulpra 的 JS
-在 appex/子进程（NSExtension 多实例、动态 PID）。**官方支持列表（截至 2026-06）没有浏览器**，
-附加到 NSExtension 子进程的可行性是 Route A 的**关键未知项**，需要一次真机冒烟验证。
+**开放问题**：
+
+1. **工具对 appex 子进程的支持**：StikDebug/SideJITServer 的交互是"选择 App（主进程）附加
+   调试器"；官方支持列表（截至 2026-06）没有浏览器。Vulpra 的 JS 在 content 子进程
+   （NSExtension 多实例、动态 PID）——需要验证工具能否按 PID 附加 appex，或改用
+   `debugserver --attach <pid>` 手动流程（PID 已由 `EngineChildProcessEvent` 提供）。
+2. **Fission 下每新增 content 进程都要在首帧 JS 前附加**：进程池预启动（prelaunch=2）缓解了
+   时序压力，但 benchmark 页面加载即编译，附加窗口可能只有秒级；必要时可先 `fission.autostart=false`
+   减小进程数（内容仍 OOP，现代 Gecko 无单进程内容模式）。
+3. **iOS 版本**：iOS 18.4b1+ / iOS 26+ 的修补状态需按用户真机版本重新确认。
+
 ### B. BrowserEngineCore / BrowserEngineKit witness API（发行，仅 EU）
 
 **重要更正：这不是"从零移植"，而是"撤销 v5 补丁系列里对上游集成的回退"。**
