@@ -134,9 +134,11 @@ lock），因此 JIT 实验引擎要进 benchmark-ci 需要**两次全量编译*
 4. 从 promote 的 artifact（`engine-v5-promotion-<run>`，内含 `engine-artifact-lock.json`）取
    新 lock 替换 `Configuration/engine-artifact-lock.json`（releaseTag/compiledBy* 随新 run），
    commit + push。
-5. **跑 benchmark-ci 必须用 workflow_dispatch 传新 tag**：push 触发版默认
-   `engine_release_tag=vulpra-engine-v5-r0.3-candidate`，与新 lock tag 不匹配会直接 fail
-   （`workflow release tag does not match engine-artifact-lock.json`）：
+5. **跑 benchmark-ci 用 workflow_dispatch 传新 tag（通道已验证）**：2026-08-11 实测
+   `gh workflow run benchmark-ci.yml --ref fix/browser-performance-20260729` 在 workflow
+   未合入 default branch 时也可 dispatch（测试 run 31409263300，按预期在 patchSet 门控
+   快速失败）；benchmark-ci.yml 已改为 **dispatch-only**（移除 push 触发，见 commit
+   a7d99e9），本分支实验期间不再有 push 触发红噪。命令：
    `gh workflow run benchmark-ci.yml --ref fix/browser-performance-20260729 -f engine_release_tag=<新tag> -f benchmarks=speedometer3 -f attempts=1`
    拿 Simulator **JIT 开** 分数对比 JIT 关中位数 **1.959**，把差值归档到
    `docs/aegis/work/2026-08-09-vulpra-standard-benchmark/README.md`（修正后的"JIT 开关差"
@@ -314,7 +316,11 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
    懒初始化 + 重试：`if (!initialized()) { LockGuard<Mutex> guard(lock_);
    if (!initialized() && !init()) return nullptr; }`——双重检查锁防 `init()` 的
    `MOZ_RELEASE_ASSERT(!initialized())` 双跑（`init()` 不上锁，`allocate()` 后段再取
-   `lock_` 在 guard 作用域外，无死锁）。已源码级确认：`ReserveProcessExecutableMemory`
+   `lock_` 在 guard 作用域外，无死锁）。已复验（2026-08-11）：快路径未加锁的
+   `initialized()` 读只决定是否尝试 init，进入后段任何对 `base_`/`pages_`/`rng_` 的
+   使用都在 `lock_` 内；`base_` 写入发生在持锁期间，随后取锁的 acquire 保证可见性——
+   arm64 上无撕裂读，属标准 DCL 模式，无功能问题（若要严格消除理论 data race，可把
+   `base_` 改为 `Atomic<uint8_t*>`，非必须）。已源码级确认：`ReserveProcessExecutableMemory`
    MAP_JIT 失败返回 `MAP_FAILED → nullptr`（干净失败），`systemAlloc` → `createPool`
    的 `if (!a.pages) return nullptr` → `ExecutableAllocator::alloc` 返回 nullptr 给
    JIT 编译方（Ion/Baseline 编译失败回退解释器，release 下 `MOZ_ASSERT` 不生效，仍需真机
