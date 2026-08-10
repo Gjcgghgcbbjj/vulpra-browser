@@ -121,6 +121,27 @@ jobs:
             rustc --version
             cargo --version
           } 2>&1 | tee gecko-${{ matrix.platform }}-bootstrap.log
+          if ! command -v sccache >/dev/null 2>&1; then
+            brew install sccache 2>&1 | tee -a gecko-${{ matrix.platform }}-bootstrap.log
+          fi
+          command -v sccache
+          sccache --version
+
+      - name: Cache Gecko build artifacts (sccache)
+        # Persist sccache across producer runs so a failed/partial build is
+        # never fully lost: the post-step saves this cache even on failure and
+        # the next run restores it via restore-keys, letting sccache reuse the
+        # unchanged compile units (the JIT experiment touches only 3 files).
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
+        continue-on-error: true
+        uses: actions/cache@v4
+        with:
+          path: ${{ github.workspace }}/.build/sccache
+          key: gecko-sccache-${{ matrix.platform }}-${{
+            hashFiles('Engine/GeckoPatches/v5/**', 'Tools/GeckoProducer/**',
+                      'Configuration/gecko-producer-v5.json') }}
+          restore-keys: |
+            gecko-sccache-${{ matrix.platform }}-
 
       - name: Build native runtime
         if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
