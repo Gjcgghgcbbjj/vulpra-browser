@@ -210,6 +210,19 @@ content 子进程走到 `JS::Init()` 时 `HasJitBackend()==false` → `Initializ
 → `EngineChildProcessEvent.processIdentifier: Int32?`（`EngineChildProcessLifecycle.swift`）→
 Route A 可做 **PID 感知附加**（harness 监听子进程生命周期拿到 PID，逐个 attach debugserver）。
 
+**主进程 JS::Init 问题已实证（2026-08-11，源码级）**：主进程**确实**会创建 JS
+runtime——所有 Gecko 进程共用 `nsXPConnect::InitJSContext()` → `InitJSEngine()` →
+`JS_InitWithFailureDiagnostic()`（`js/xpconnect/src/nsXPConnect.cpp:120`，
+失败即 `MOZ_CRASH_UNSAFE(jsInitFailureReason)`）。但 iOS 主进程**不会**尝试 MAP_JIT：上游
+`27b462b2` 自带 `javascript.options.main_process_disable_jit` pref，
+`#ifdef XP_IOS value: true`（`modules/libpref/init/StaticPrefList.yaml`，**非 vulpra patch**）
+→ `InitJSEngine()` 里 `XRE_IsParentProcess() && pref` → `JS::DisableJitBackend()` 整个后端跳过 →
+`JS_InitWithFailureDiagnostic` 正常返回。"5.267 能跑通"机制由此闭环：**主进程建了 runtime、
+但 JIT 被上游 iOS pref 软禁**（不是"不建 runtime"，也不是"MAP_JIT 成功"）。
+含义（Route A 附加对象清单）：Speedometer 目标 = content 子进程（appex），不受影响；若要让
+主进程 chrome JS 也走 JIT，需把该 pref 翻 false——且注意 `DisableJitBackend()` 会让 A' 懒重试
+在主进程永不触发（backend 未开），必须先关 pref 再谈附加。
+
 **iOS 内容进程 JIT 代码 W^X 已开**：`StaticPrefList.yaml.patch` 把
 `javascript.options.content_process_write_protect_code` 在 `XP_IOS` 下置 `true`（与 OpenBSD 同
 口径）→ Route A/B 下 JIT 代码走 W^X（MAP_JIT + witness / CS_DEBUGGED mprotect 兼容）。
@@ -254,19 +267,33 @@ Route A 可做 **PID 感知附加**（harness 监听子进程生命周期拿到 
 
 **开放问题**：
 
-1. **工具对 appex 子进程的支持**：StikDebug/SideJITServer 的交互是"选择 App（主进程）附加
-   调试器"；官方支持列表（截至 2026-06）没有浏览器。Vulpra 的 JS 在 content 子进程
-   （NSExtension 多实例、动态 PID）——需要验证工具能否按 PID 附加 appex，或改用
-   `debugserver --attach <pid>` 手动流程（PID 已由 `EngineChildProcessEvent` 提供）。
+1. **工具对 appex 子进程的支持（2026-08-11 已补源码级证据，结论=可行、待真机确认）**：
+   - **授权链成立**：`App/Entitlements/Vulpra.private.entitlements` 与
+     `Engine/VulpraEngineProcess/EngineProcess.private.entitlements` 均带
+     `get-task-allow=true` → on-device debugserver 对 appex 进程 attach 的内核前置条件满足
+     （debugserver 判据就是目标进程的 get-task-allow）。
+   - **StikDebug 核心 attach 是 PID 级 vAttach**（源码已核，
+     `github.com/StikDebug/StikDebug` @2026-08-11）：`JITEnableContext.swift:580`
+     `vAttach;<hex-pid>`（lldb RSP），`debugApp(withPID:)`（:616）可附加任意 PID；
+     外部动作（`HomeExternalAction`/`JITEnableConfiguration`）支持 `pid` 字段；
+     App Intents 支持 bundleID 启动+附加；iOS 26/TXM 的 JS 自动化脚本可下发任意
+     debugserver 命令（`JSDebugSupport.swift`）。
+   - **NSExtension 进程可被调试器附加**：Xcode 对扩展的官方调试方式就是
+     "Debug → Attach to Process by PID or Name"（扩展由系统拉起、启动后附加），
+     appex 是普通带码签进程，attach 不区分主 App/扩展。
+   - **Vulpra 侧 PID 来源**：`EngineChildProcessEvent.processIdentifier: Int32?` 每阶段携带
+     （`Engine/VulpraEngineKit/Internal/Process/EngineChildProcessLifecycle.swift`）。
+   - **待真机确认**：DDI debugserver vAttach 对 appex PID 在本机 iOS 版本
+     （18.4b1+/26+ 修补状态）的实际行为；StikDebug 进程列表是否展示 appex
+     （否则走外部动作/脚本路径）。
 2. **Fission 下每新增 content 进程都要在 JS_Init 前附加**：prelaunch=2 的预启动进程在
    prelaunch 阶段就会跑 `JS::Init()`——若那时未附加，预启动进程直接启动失败，不是"留到页面加载
    再补"。需要 `fission.autostart=false` / 减小 prelaunch 数来留出附加窗口，或直接用 A' 懒重试
    补丁绕开该问题（推荐）。
 3. **iOS 版本**：iOS 18.4b1+ / iOS 26+ 的修补状态需按用户真机版本重新确认。
-4. **主进程是否调用 `JS::Init`**：`MainProcessInit` 对 JIT 从不禁用，但 Vulpra.app 主进程
-   是否实际创建 JS runtime（`GeckoViewOpenWindow` 在 main 侧有调用）未实证。5.267 能跑通说明
-   主进程要么不建 runtime、要么 MAP_JIT 在该路径成功——需要真机确认，影响 Route A 的附加对象清单
-   （若主进程也走 `JS::Init`，同样要在 JS_Init 前附加或走 A'）。
+4. **主进程是否调用 `JS::Init`（已实证，见上方"进程架构"）**：调用，但 iOS 主进程被上游
+   pref `javascript.options.main_process_disable_jit=true` 软禁（`DisableJitBackend`），从不尝试
+   MAP_JIT；对 Speedometer（content 子进程）无影响；主进程 chrome JS 若要 JIT 需先关 pref。
 
 
 ### A'（推荐变体）：懒初始化 + 可重试 MAP_JIT（代码改动最小）
@@ -372,6 +399,11 @@ vulpra v5 补丁系列（`Engine/GeckoPatches/v5/`）**主动回退**了上述�
   Runtime 概念，**iOS 上不存在**（osy 分析确认 iOS 无此 entitlement）。
 - 解释器/无 JIT 模式（现状）不构成"JIT 实现方案"。
 - 结论：**无证据支持，不投入**。
+- **Vulpra TIPA 已带 `com.apple.private.security.no-sandbox` + `platform-application`，
+  5.267 仍是解释器**：实证这些私有 entitlement 不授予 MAP_JIT——AMFI 对 MAP_JIT 的判据是
+  `com.apple.security.cs.allow-jit`（第三方不可得）或进程 CS_DEBUGGED（debugserver 附加置位）。
+  "权限更大所以 JIT 可用"不成立。
+
 
 ## 推荐
 

@@ -24,6 +24,16 @@ ADR-0004（2026-07-27）退役了 v3 GeckoView/Helper/RuntimeJITCoordinator 基�
   `ChildProcessInitImpl` 于 `XRE_InitChildProcess` 前调 `JS::DisableJitBackend()` 时，
   content 进程 `HasJitBackend()==false` → 跳过 MAP_JIT → 解释器模式。
 
+- **主进程路径实证（2026-08-11）**：主进程也创建 JS runtime
+  （`nsXPConnect::InitJSContext → InitJSEngine → JS_InitWithFailureDiagnostic`，
+  `js/xpconnect/src/nsXPConnect.cpp:120`），但上游 `javascript.options.main_process_disable_jit`
+  pref 在 `XP_IOS` 下为 true → 主进程同样 `DisableJitBackend()`，从不尝试 MAP_JIT；5.267 能跑通
+  的机制由此闭环（与 content 子进程的 `ChildProcessInitImpl` 禁用互为独立）。
+- **appex 可附加性（2026-08-11，源码级）**：App 与 Engine Process 的 entitlements 均含
+  `get-task-allow=true`；StikDebug 核心 attach 为 PID 级 `vAttach`（`debugApp(withPID:)`），
+  外部动作/JS 脚本可对任意 PID 附加 → Route A/A' 的"附加对象 = content appex 子进程"成立，
+  待真机 iOS 版本冒烟确认。
+
 真机 JIT 可选路线（详见 work README）：A debugserver 动态签名（开发/测试）、
 A' 懒初始化 + 可重试 MAP_JIT（开发/测试，推荐）、B BrowserEngineKit witness API
 （仅 EU 发行）、C allow-jit（Apple 拒绝，platform-tilt #3）、D 非 MAP_JIT（无证据）。
@@ -85,6 +95,8 @@ TabManager/BrowserTab 归属、固定引擎产物 pin。
 - docs/aegis/work/2026-08-09-vulpra-standard-benchmark/README.md
 - docs/aegis/adr/ADR-0004-independent-engine-runtime-and-distribution.md
 - https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31374470622 （Simulator JIT 实验，Verify producer inputs 通过）
+- https://github.com/StikDebug/StikDebug （PID 级 vAttach / debugApp(withPID:)，2026-08-11 源码核验）
+- 本地源码：`App/Entitlements/Vulpra.private.entitlements`、`Engine/VulpraEngineProcess/EngineProcess.private.entitlements`（get-task-allow=true）、`js/xpconnect/src/nsXPConnect.cpp`、`modules/libpref/init/StaticPrefList.yaml`（main_process_disable_jit）
 - https://github.com/mozilla/platform-tilt/issues/3 （iOS allow-jit 申请被拒）
 - SideStore JIT 文档 / osy iOS 18.4b1 逆向分析（工具时效，work README 引用）
 
