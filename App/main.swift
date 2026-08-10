@@ -38,7 +38,7 @@ func vulpraMain() -> Int32 {
 #if !targetEnvironment(simulator)
     vulpraEnableJitIfEligible()
 #endif
-    MainActor.assumeIsolated {
+    return MainActor.assumeIsolated {
         VulpraEngineApplicationMain(argc: CommandLine.argc, argv: CommandLine.unsafeArgv)
     }
 }
