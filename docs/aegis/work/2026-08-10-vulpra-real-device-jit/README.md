@@ -58,6 +58,16 @@
 verify-producer.py / validate-ipa.py / test-package-validator.py 及 baseline 文档。
 这是 Route A/B 共用的第一个 gate，代码工作量在其次。
 
+**重要边界（实证）**：Simulator JIT 实验（run 31374470622，`0b9bdf7`）的
+"Verify producer inputs" 已通过——即**启用 JIT backend 本身不违反 patch 合约**。
+forbidden tokens（`jit-ready-fd` / `ReportJITStatusForChild` / `WaitForJITReadySignal`）
+针对的是 Gecko 层的 **JIT-ready 进程编排符号**（R0 已从 patch 系列移除），不是
+SpiderMonkey Ion/Baseline/Wasm 后端。含义：
+- 真机 Route A（去掉 `DisableJitBackend`，不恢复 JIT-ready 编排）在 patch 层合约兼容；
+- 真正的治理障碍是 ADR-0004 的语义（"no JIT path retained"）与 validate-ipa 对新二进制的
+  token 扫描结果——需要新 ADR 明确边界，而非技术不可行。
+
+
 ## 进程架构（Route A/B 的落地对象）
 
 **Gecko 主进程 = Vulpra.app 自身**，不是 appex：
