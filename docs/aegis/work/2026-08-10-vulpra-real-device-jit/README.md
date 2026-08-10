@@ -241,9 +241,15 @@ runtime——所有 Gecko 进程共用 `nsXPConnect::InitJSContext()` → `InitJ
     pairing file + 挂载 DDI 后"select an app（须 get-task-allow）→ attach a debugger"。
   - **SideJITServer**：iOS 17.0–17.3 的替代方案；Windows/macOS/Linux 同网段 +
     pymobiledevice3。
-  - **iOS 26 又封堵**：SideStore 文档标注 iOS 26 起 JIT 再次失效，支持列表仅限
-    UTM/Amethyst/MeloNX/maciOS/DolphiniOS/Geode/Manic EMU/Flycast/MeloCafe/ARMSX2/DukeX
-    等（截至 2026-06-17，**无浏览器**），26.6/27 仅少量 App 可用。
+  - **iOS 26 状态（2026-08-04 StikDebug 官方 README 口径，比 2026-06-17 更新）**：
+    **26.0+ Supported，但 Limited App Availability（"Developers need to update
+    their apps to work"）**；SideStore 旧口径（2026-06-17）标注 iOS 26 起 JIT 再次失效、
+    支持列表仅限模拟器类 app（UTM/Amethyst/DolphiniOS/…，无浏览器）。第三方整理
+    （silisko.com 2026-05-21）：**26.0–26.3 JIT 可用，26.4 起 broken（StikDebug
+    lockdownd issues）**；dolphin-ios release 要求 StikDebug 2.3.0+ 用于 iOS 26，
+    修复 A12/A13/A14/M1 的 iOS 26 JIT 崩溃。真机冒烟按用户设备版本分档：17.4–18.x
+    完全支持（首选）；26.0–26.3 可用但 app 需适配、优先 StikDebug 2.3.0+；
+    26.4+ 避开。
   - **SideStore 0.6.2 内置 JIT**（minimuxer，iOS ≤16 或非 TXM 的 4+ 年老设备）：LocalDevVPN
     连上后"我的 App → 长按 → enable JIT"，无需 StikDebug。Vulpra 部署目标 iOS 15.0+，若
     用户真机是 iOS 15/16 老设备，这是比 StikDebug 更简单的候选路径（但 benchmark 需跑
