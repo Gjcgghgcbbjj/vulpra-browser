@@ -355,9 +355,15 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
    `route-a-prime-lazy-jit-argv-trigger.patch` —— 子进程侧 `ChildProcessInitImpl` 扫
    `aArgv` 找 `-enable-jit`（argv 由主进程 `AsyncLaunch` 注入 `mChildArgs.mArgs` →
    XPC `"argv"` → `HandleBootstrapMessage` 重建；与 getenv 版对比仅触发段不同，其余 4 文件
-   逐字节一致；已从 v5-only 基线 `git apply --check` PASS + APPLY OK）。主进程侧注入开关
-   （`EngineRuntimeConfiguration` → `AsyncLaunch` push_back）留给真机冒烟实施时接；
-   默认关策略不变。getenv 版草稿保留为 fallback 但不可依赖。
+   逐字节一致；已从 v5-only 基线 `git apply --check` PASS + APPLY OK）。
+   **主进程侧注入设计（闭环，2026-08-11）**：主进程能读 scheme env（`SceneDelegate` 已有
+   `VULPRA_SMOKE_URL` 先例）→ 链路为 `VULPRA_ENABLE_JIT=1`（scheme env，主进程侧可靠）
+   → `MainProcessInit`（`EngineABIBridge.mm:VEKRuntimeMain → MainProcessInit`）读
+   `getenv("VULPRA_ENABLE_JIT")` 置全局标志 → `GeckoChildProcessHost::AsyncLaunch`
+   （构造 `mChildArgs.mArgs` 处，~1250-1300 行）按标志 `push_back("-enable-jit")` →
+   XPC `"argv"` → 子进程 argv 版补丁扫描命中。即：**主进程读 env（可靠）+ 子进程读 argv
+   （可靠）**，两端都避开 appex 的环境隔离；实施位置都在 Gecko patch 系列（IOSBootstrap.mm +
+   GeckoChildProcessHost.cpp），默认关策略不变。getenv 版草稿保留为 fallback 但不可依赖。
 
 效果：
 - 无 debugserver：进程启动不崩；每次 JIT 分配返回 nullptr → 单次编译回退，页面仍解释器运行。
