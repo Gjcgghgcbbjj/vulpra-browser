@@ -1,13 +1,12 @@
 name: Vulpra Standard Benchmarks
 
 on:
-  # workflow_dispatch requires the workflow file on the default branch, which
-  # benchmark-ci.yml is not yet merged into. The push trigger below is scoped
-  # to this feature branch so the first real Simulator run can start now;
-  # remove it once the workflow exists on the default branch.
-  push:
-    branches:
-      - fix/browser-performance-20260729
+  # Dispatch-only (verified 2026-08-11: gh workflow run with --ref works even
+  # though benchmark-ci.yml is not on the default branch). A push trigger is
+  # intentionally absent: during the JIT experiment the lock file temporarily
+  # points at the JIT candidate tag and the branch patch series diverges from
+  # r0.3-candidate, so push-triggered runs would fail the tag/patchSet gates on
+  # every docs commit. Dispatch with -f engine_release_tag=<lock releaseTag>.
   workflow_dispatch:
     inputs:
       xcode_version:
