@@ -119,9 +119,13 @@
 `--producer-run-id` 与 `--repeat-producer-run-id` 两个不同 run 的成对产物，哈希一致才写
 lock），因此 JIT 实验引擎要进 benchmark-ci 需要**两次全量编译**。
 
-1. 修复后 run（h.patch 对齐 + sccache `!cancelled()` 修复版）两 job 全绿
+1. 修复后 run（h.patch 对齐 + sccache `!cancelled()` 修复版，commit e65d34b）两 job 全绿
    （iphoneos + iphonesimulator；iphoneos 需等约 3.3h 冷编译，simulator 走 sccache 较快）。
-2. **再触发一次同 commit 的 producer run**（workflow_dispatch，无代码改动）作为 repeat：
+   当前两个 run 已并行启动（2026-08-10 ~23:25Z）：
+   - **主 run 31405541112**（workflow_dispatch，"Produce Native Gecko v5 Runtimes"）
+   - **repeat 候选 31405533793**（push 触发，同 commit e65d34b；promote job 被
+     workflow_dispatch 门控，只产 build 产物，天然满足"不同 run 独立构建"）
+2. 若两 run 均绿，直接作为 primary + repeat 走 promote；否则按需再 dispatch 一次补 repeat：
    `gh workflow run produce-gecko-v5.yml --ref fix/browser-performance-20260729`。
    两次 run 产物须哈希一致（repeat-verified gate）。
 3. 两个 run 都绿后 dispatch promote：
