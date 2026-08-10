@@ -135,16 +135,15 @@ jobs:
           printf 'CCACHE=%s\nRUSTC_WRAPPER=%s\n' \
             "$(command -v sccache)" "$(command -v sccache)" >> "$GITHUB_ENV"
 
-      - name: Cache Gecko build artifacts (sccache)
-        # Persist sccache across producer runs so a failed/partial build is
-        # never fully lost: the post-step saves this cache even on failure and
-        # the next run restores it via restore-keys, letting sccache reuse the
-        # unchanged compile units (the JIT experiment touches only 3 files).
-        # The Bootstrap step exports CCACHE/RUSTC_WRAPPER so the build actually
-        # uses sccache; SCCACHE_CACHE_SIZE keeps the save under GitHub limits.
+      - name: Restore Gecko build cache (sccache)
+        # Restore sccache from a previous run so a retry reuses the compiled
+        # units of an earlier failed/partial build (the JIT experiment touches
+        # only 3 files). restore-keys keeps the unchanged units reusable even
+        # when the patch series changed the exact cache key.
+        id: gecko-cache
         if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
         continue-on-error: true
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ${{ github.workspace }}/.build/sccache
           key: gecko-sccache-${{ matrix.platform }}-${{
@@ -160,6 +159,21 @@ jobs:
           set -euo pipefail
           ./Tools/GeckoProducer/build-runtime.sh '${{ matrix.platform }}' \
             .build/gecko-source 2>&1 | tee gecko-${{ matrix.platform }}-build.log
+
+      - name: Preserve partial Gecko build cache (sccache)
+        # Save sccache even when the build above fails. The combined
+        # actions/cache@v4 action only saves in a post-step gated on success(),
+        # so a failed Gecko rebuild would otherwise lose all compile state and
+        # the next retry would start from scratch. A separate save step with
+        # always() keeps the partial compiled units for the retry.
+        # cache-hit != 'true' avoids re-saving a key that already exists.
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }} &&
+            always() && steps.gecko-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.build/sccache
+          key: ${{ steps.gecko-cache.outputs.cache-primary-key }}
 
       - name: Capture verified build snapshot
         if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
