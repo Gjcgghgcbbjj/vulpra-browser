@@ -322,14 +322,29 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
    arm64 上无撕裂读，属标准 DCL 模式，无功能问题（若要严格消除理论 data race，可把
    `base_` 改为 `Atomic<uint8_t*>`，非必须）。已源码级确认：`ReserveProcessExecutableMemory`
    MAP_JIT 失败返回 `MAP_FAILED → nullptr`（干净失败），`systemAlloc` → `createPool`
-   的 `if (!a.pages) return nullptr` → `ExecutableAllocator::alloc` 返回 nullptr 给
-   JIT 编译方（Ion/Baseline 编译失败回退解释器，release 下 `MOZ_ASSERT` 不生效，仍需真机
-   冒烟确认不崩）。
+   `if (!a.pages) return nullptr` → `ExecutableAllocator::alloc` 返回 nullptr 给 JIT 编译方。
+   **精确语义（2026-08-11 源码级，非"静默回退"）**：`Linker::newCode`（`js/src/jit/Linker.cpp`）
+   收到 nullptr 走 `fail(cx)` = **`ReportOutOfMemory(cx)`** + 返回 nullptr → Baseline/Ion 编译失败、
+   script 仍回解释器，但**每次分配尝试都会向 cx 报 OOM**（`BaselineJIT.cpp` 失败路径同样
+   密集调用 `ReportOutOfMemory`）。因此真机验证项不只是"不崩"，还要观察：反复 OOM 报告是否
+   会以异常形式传播给页面 JS、或触发其他副作用；若确认有碍，备选是在 `allocate()` 返回
+   nullptr 的 A' 路径上改为**一次性关闭 JIT backend**（`JS::DisableJitBackend`，编译器入口
+   通常先查 `HasJitBackend()`）而不是每分配必 OOM。
 3. `ProcessExecutableMemory::release()` 加空守卫：未 init 时直接 return（否则
    `munmap(nullptr, MaxCodeBytes)`，release 下仅 EINVAL 无害、debug 下断言）。
 4. `toolkit/xre/IOSBootstrap.mm` `ChildProcessInitImpl`：真机 `JS::DisableJitBackend()`
-   改为默认关、`VULPRA_ENABLE_JIT=1` 才开（env 为草稿通道；NSExtension 子进程环境受限，
-   app 侧 harness 可能改用启动参数，默认关策略不变）。
+   `VULPRA_ENABLE_JIT=1` 才开（getenv 为草稿通道）。
+   **通道缺陷（2026-08-11 源码级确认）：getenv 在 appex 不可靠，必须换 argv**。证据链：
+   - appex 由系统 launchd 启动，app 侧 setenv / Xcode scheme 环境传不到 appex；
+   - XPC 启动消息只有 `argv`/`fds`/`stdout`/`stderr`/sendRights（`IosProcessLauncher::DoLaunch`），
+     没有 env 通道；
+   - argv 链路完整可用：主进程 `GeckoChildProcessHost::AsyncLaunch`（~1250-1300 行）构造
+     `mChildArgs.mArgs` → `DoLaunch` 写入 XPC `"argv"` array → appex
+     `HandleBootstrapMessage` 重建 `aArgc/aArgv` → `ChildProcessInitImpl`。
+   **修订方案（真机冒烟前必做）**：子进程侧扫 `aArgv`（如 `-enable-jit`），主进程侧在
+   `AsyncLaunch` 里按 `EngineRuntimeConfiguration` 开关向 `mChildArgs.mArgs` 注入该参数
+   （geckoargs 定义或直接 push_back）；默认关策略不变。草稿第 4 hunk 的 getenv 保留为
+   fallback 但不可依赖。
 
 效果：
 - 无 debugserver：进程启动不崩；每次 JIT 分配返回 nullptr → 单次编译回退，页面仍解释器运行。
@@ -340,7 +355,11 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
 待真机验证：
 - CS_DEBUGGED 置位后 `mmap(MAP_JIT)` 在本真机 iOS 版本上确实成功（iOS 18.4b1+ / iOS 26+
   修补状态按真机确认）。
-- 分配失败路径对 Ion/Baseline 编译确实只回退不崩（release 构建）。
+- 分配失败路径对 Ion/Baseline 编译确实只回退不崩（release 构建）；重点观察
+  `Linker::newCode → ReportOutOfMemory(cx)` 的反复 OOM 报告是否以异常形式传播到页面 JS
+  （若传播，A' 需在 `allocate()` 失败时一次性 `JS::DisableJitBackend()` 而不是每分配报 OOM）。
+- 触发通道改 argv（geckoargs）后，`ChildProcessInitImpl` 在 appex 中能读到主进程注入的
+  `-enable-jit` 参数（并确认 getenv 通道在真机 appex 上实测为空）。
 - 先解释器后 JIT 的混合态对 benchmark 无影响（benchmark 页面加载在附加之后，首次编译即 JIT）。
 
 ### 真机冒烟 harness 设计（Route A'，可执行草案，2026-08-11 归档）
