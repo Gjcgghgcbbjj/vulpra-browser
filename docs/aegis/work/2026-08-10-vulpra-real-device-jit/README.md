@@ -121,7 +121,7 @@ lock），因此 JIT 实验引擎要进 benchmark-ci 需要**两次全量编译*
 
 1. 修复后 run（h.patch 对齐 + sccache `!cancelled()` 修复版，commit e65d34b）两 job 全绿
    （iphoneos + iphonesimulator；iphoneos 需等约 3.3h 冷编译，simulator 走 sccache 较快）。
-   当前两个 run 已并行启动（2026-08-10 ~23:25Z）：
+   当前两个 run 已并行启动（2026-08-10 ~15:47Z / 北京时间 23:47）：
    - **主 run 31405541112**（workflow_dispatch，"Produce Native Gecko v5 Runtimes"）
    - **repeat 候选 31405533793**（push 触发，同 commit e65d34b；promote job 被
      workflow_dispatch 门控，只产 build 产物，天然满足"不同 run 独立构建"）
