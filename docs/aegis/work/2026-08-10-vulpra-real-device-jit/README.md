@@ -351,10 +351,13 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
    - argv 链路完整可用：主进程 `GeckoChildProcessHost::AsyncLaunch`（~1250-1300 行）构造
      `mChildArgs.mArgs` → `DoLaunch` 写入 XPC `"argv"` array → appex
      `HandleBootstrapMessage` 重建 `aArgc/aArgv` → `ChildProcessInitImpl`。
-   **修订方案（真机冒烟前必做）**：子进程侧扫 `aArgv`（如 `-enable-jit`），主进程侧在
-   `AsyncLaunch` 里按 `EngineRuntimeConfiguration` 开关向 `mChildArgs.mArgs` 注入该参数
-   （geckoargs 定义或直接 push_back）；默认关策略不变。草稿第 4 hunk 的 getenv 保留为
-   fallback 但不可依赖。
+   **修订方案（补丁已就绪并复验，2026-08-11）**：
+   `route-a-prime-lazy-jit-argv-trigger.patch` —— 子进程侧 `ChildProcessInitImpl` 扫
+   `aArgv` 找 `-enable-jit`（argv 由主进程 `AsyncLaunch` 注入 `mChildArgs.mArgs` →
+   XPC `"argv"` → `HandleBootstrapMessage` 重建；与 getenv 版对比仅触发段不同，其余 4 文件
+   逐字节一致；已从 v5-only 基线 `git apply --check` PASS + APPLY OK）。主进程侧注入开关
+   （`EngineRuntimeConfiguration` → `AsyncLaunch` push_back）留给真机冒烟实施时接；
+   默认关策略不变。getenv 版草稿保留为 fallback 但不可依赖。
 
 效果：
 - 无 debugserver：进程启动不崩；每次 JIT 分配返回 nullptr → 单次编译回退，页面仍解释器运行。
@@ -368,8 +371,9 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
 - 分配失败路径对 Ion/Baseline 编译确实只回退不崩（release 构建）；重点观察
   `Linker::newCode → ReportOutOfMemory(cx)` 的反复 OOM 报告是否以异常形式传播到页面 JS
   （若传播，A' 需在 `allocate()` 失败时一次性 `JS::DisableJitBackend()` 而不是每分配报 OOM）。
-- 触发通道改 argv（geckoargs）后，`ChildProcessInitImpl` 在 appex 中能读到主进程注入的
-  `-enable-jit` 参数（并确认 getenv 通道在真机 appex 上实测为空）。
+- 触发通道用 argv 版补丁（`route-a-prime-lazy-jit-argv-trigger.patch`，子进程侧已就绪）后，
+  主进程侧注入接通，`ChildProcessInitImpl` 在 appex 中能读到 `-enable-jit` 参数
+  （并确认 getenv 通道在真机 appex 上实测为空）。
 - 先解释器后 JIT 的混合态对 benchmark 无影响（benchmark 页面加载在附加之后，首次编译即 JIT）。
 
 ### 真机冒烟 harness 设计（Route A'，可执行草案，2026-08-11 归档）
