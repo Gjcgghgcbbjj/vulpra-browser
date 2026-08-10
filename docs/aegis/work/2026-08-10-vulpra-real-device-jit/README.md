@@ -77,6 +77,30 @@
 - 教训：**模拟器构建的编译期平台差异不等于真机**——`TARGET_OS_SIMULATOR` 下 SDK 仍是 iOS
   SDK，macOS-only API 必须 dlsym 或条件排除；这已在 ADR-0005 草案的验证清单里。
 
+## 编译后执行清单（run 31384820854 绿后）
+
+前置事实：promote 是 **repeat 门控**（`promote-engine-artifacts.py promote` 需要
+`--producer-run-id` 与 `--repeat-producer-run-id` 两个不同 run 的成对产物，哈希一致才写
+lock），因此 JIT 实验引擎要进 benchmark-ci 需要**两次全量编译**。
+
+1. run 31384820854 两 job 全绿（iphoneos + iphonesimulator，patch = dlsym 修复版）。
+2. **再触发一次同 commit 的 producer run**（workflow_dispatch，无代码改动）作为 repeat：
+   `gh workflow run produce-gecko-v5.yml --ref fix/browser-performance-20260729`。
+   两次 run 产物须哈希一致（repeat-verified gate）。
+3. 两个 run 都绿后 dispatch promote：
+   `gh workflow run produce-gecko-v5.yml --ref fix/browser-performance-20260729 -f promote_run_id=<主> -f repeat_producer_run_id=<repeat> -f release_tag=vulpra-engine-v5-jit-sim-candidate`
+   （tag 用**新 candidate**，不动 r0.3-candidate 现役基线）。
+4. 把 promote 产出的 `engine-v5-promotion-<run>.json` 换成 `Configuration/engine-artifact-lock.json`
+   （releaseTag/compiledBy* 随新 run），commit + push。
+5. push 触发的 benchmark-ci 会按新 lock 消费 **Simulator JIT 开** 引擎跑 Speedometer 3.0
+   子集；拿分数对比 Simulator JIT 关中位数 **1.959**，把差值归档到
+   `docs/aegis/work/2026-08-09-vulpra-standard-benchmark/README.md`（修正后的"JIT 开关差"
+   口径：5.267 是解释器分数，不作为 JIT 开证据）。
+6. 归档后评估：差值显著 → 真机 Route A/A' 冒烟（需真机 + StikDebug/debugserver）；ADR-0005
+   草案按证据转 recorded（token 策略拆分 + opt-in gate）。
+7. 若 repeat 门控两次产物不一致：先查 `REPRODUCIBLE_BUILD`（mozBuildDate/sourceDateEpoch）
+   与 sccache 缓存扰动，再决定是否跳过 repeat（需治理放行，勿默认）。
+
 ## 治理约束（最重要的前置门槛）
 
 任何真机 JIT 路线首先是一个**信任边界变更**，不是纯代码问题：
