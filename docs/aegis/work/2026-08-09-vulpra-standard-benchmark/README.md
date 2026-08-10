@@ -148,20 +148,23 @@ v4→v5 收尾项仍按既有清单另行处理。
 ## 首次真实 Simulator gate 结果（2026-08-09/10，已通过）
 
 修复 harness 404 根因后（fixture 原本从不伺服基准源码树 → iframe 一直加载 404 错误页，
-0 分 0 progress），两次真实 CI speedometer3 单次 gate 全绿：
+0 分 0 progress），三次真实 CI speedometer3 单次 gate 全绿：
 
 | run | commit | 子集 | score | elapsedMedianMs | 崩溃 | 结论 |
 | --- | --- | --- | --- | --- | --- | --- |
 | 31342121225 | 2620deb | TodoMVC-ES5/CodeMirror/chartjs/Perf-Dashboard（11 subtests） | 2.435 | 68 455 | 0 | PASS |
 | 31345381395 | 9123e44 | 同上 | 1.809 | 114 335 | 0 | PASS |
+| 31366323000 | 1347b9e | 同上 | 0.97 | 205 402 | 0 | PASS |
 
 进度 title 全程可见（`bar=0/11 → … → 9/11 → score=`），分数来自引擎 title 通道
 `Engine title: VulpraBenchmark speedometer3 score=…`。证据已下载
-`/tmp/bench-gate-31345381395/`。
+`/tmp/bench-gate-31345381395/`（run 31345381395）与
+`/tmp/bench-gate-31366323000-new/benchmark-gate/`（run 31366323000）。
 
-**噪声结论**：两次代码实质相同（差异仅为 MotionMark 排除），score 相差 26%（2.435→1.809）、
-耗时翻倍。Simulator + 解释器模式的单次 gate 噪声大，1 次不足以作为稳定基线；
-后续取 3 次中位数再进 baseline。该分数不可与市面完整跑分直接比较（子集 + 无 JIT + 模拟器）。
+**噪声结论**：三次运行代码实质相同（差异仅为 MotionMark 排除与 harness 演进），score = **2.435 / 1.809 / 0.97**
+（中位数 **1.809**，极差 2.5 倍），耗时 68s→114s→205s 逐次上升。Simulator + 解释器模式的单次 gate 噪声大：
+1 次不足以作为稳定基线，3 次取中位数（1.809）作为**当前模拟器基线**，但仍属同一 engine 快照的相对回归代理，
+不可与市面完整跑分直接比较（子集 + 无 JIT + 模拟器），也不可据此推断真机量级。
 
 **MotionMark 从默认集排除（9123e44）**：JIT 关闭的引擎上 canvas FPS 检测永不完成
 （`frameRateDetectionComplete` 不置位），固定烧 1 小时。已标 `requiresJitBackend: true` +
@@ -177,3 +180,29 @@ v4→v5 收尾项仍按既有清单另行处理。
 2. 用 **Vulpra（最新 IPA，v5 r0.3 引擎）** 打开同一 URL，记录分数。
 3. 记录机型 + iOS 版本；分数 + 机型发回，与 Simulator 中位数一起归档到本 README。
 4. 至少各跑 3 次取中位数，避免单次噪声（与 Simulator 侧口径一致）。
+
+## 首次真机 Safari 对照结果（2026-08-10）
+
+按上面 SOP 第 1 步，用户在 iPhone 上用 Safari 打开官方 Speedometer 3.0（与 CI 同一
+4-suite 子集、单次迭代），结果页分数：**11.24**（截图证据：微信收到的 Speedometer 结果页，
+`6f82cd965528fb669d1176f8d84e2660.jpg`；机型 + iOS 版本待补）。
+
+### 初步对照（不能当最终结论）
+
+| 环境 | 分数 | 说明 |
+| --- | --- | --- |
+| Safari 真机（JIT 开） | **11.24** | 同 4-suite 子集、单次迭代，iPhone |
+| Simulator 中位数（JIT 关） | **1.809** | 2.435 / 1.809 / 0.97 三次中位数 |
+| 比值 | ≈ **6.2×**（对 Simulator 最大值 2.435 ≈ 4.6×） | 环境差 + 引擎差混合 |
+
+**解读（诚实版）**：这个 6.2× 是"无 JIT 模拟器 vs 真机 Safari"的**环境差距与引擎差距混合**，
+不能直接说引擎落后 6 倍。Simulator 侧是解释执行 + 虚拟化 + iPad Pro 12.9 模拟器，Safari 侧是
+真机 JIT；单从方向看，11.24 与真机体感"卡、发热、滑动慢半拍"一致——引擎在 JIT 关闭的解释
+路径上确实弱，但具体落后几倍必须等 **Vulpra 真机（JIT 开）跑同一 URL**（SOP 第 2 步）才有
+可比的答案。
+
+### 待办（需要用户物理操作）
+
+1. Vulpra 真机跑同一 URL（最新 IPA，v5 r0.3 引擎）→ 分数
+2. 补：iPhone 型号 + iOS 版本
+3. 各至少 3 次取中位数后，更新本表为正式基线报告
