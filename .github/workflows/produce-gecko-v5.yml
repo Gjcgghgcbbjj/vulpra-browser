@@ -56,6 +56,9 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       MOZ_FETCHES_DIR: ${{ github.workspace }}/.build/fetches
       SCCACHE_DIR: ${{ github.workspace }}/.build/sccache
+      # Cap sccache below GitHub's 10 GB per-entry cache limit so the post-step
+      # save of a failed/partial build can never silently fail on size.
+      SCCACHE_CACHE_SIZE: 8G
       REUSE_BUILD_RUN_ID: ${{ inputs.reuse_build_run_id || '' }}
 
     steps:
@@ -126,12 +129,19 @@ jobs:
           fi
           command -v sccache
           sccache --version
+          # mach does not auto-detect sccache at this Firefox version; wire it
+          # in explicitly so C/C++ and Rust compiles populate the persisted
+          # cache. Absolute paths survive configure's PATH search.
+          printf 'CCACHE=%s\nRUSTC_WRAPPER=%s\n' \
+            "$(command -v sccache)" "$(command -v sccache)" >> "$GITHUB_ENV"
 
       - name: Cache Gecko build artifacts (sccache)
         # Persist sccache across producer runs so a failed/partial build is
         # never fully lost: the post-step saves this cache even on failure and
         # the next run restores it via restore-keys, letting sccache reuse the
         # unchanged compile units (the JIT experiment touches only 3 files).
+        # The Bootstrap step exports CCACHE/RUSTC_WRAPPER so the build actually
+        # uses sccache; SCCACHE_CACHE_SIZE keeps the save under GitHub limits.
         if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
         continue-on-error: true
         uses: actions/cache@v4
