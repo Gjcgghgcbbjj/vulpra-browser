@@ -16,8 +16,18 @@ ADR-0004（2026-07-27）退役了 v3 GeckoView/Helper/RuntimeJITCoordinator 基�
   → 启用 SM JIT backend 本身不违反 patch 合约（forbidden token 是编排符号，不是后端）。
 - **性能证据（口径已更正）**：真机 Speedometer 3.0 同子集 Vulpra **5.267**（内容进程解释器模式，
   自 `b749de8` 起真机 `JS::DisableJitBackend()`）vs Safari **11.24**（≈2.1× 落后）；Simulator
-  JIT 关中位数 **1.959**。5.267/1.959 ≈2.7 倍是**真机/模拟器硬件差**，不是 JIT 开关差；
-  JIT 开关差由 run 31374470622（Simulator JIT 开）对比 1.959 量化。
+  JIT 关中位数 **1.959**。5.267/1.959 ≈2.7 倍是**真机/模拟器硬件差**，不是 JIT 开关差。
+- **JIT 开关差已实测归档（2026-08-11）**：Simulator 同引擎同子集，JIT 开
+  `scoreMedian=3.451`（run 31425316658，`vulpra-engine-v5-jit-sim-candidate`）vs 关
+  `1.959` → **≈1.76×（+76%）**，纯编译后端差距（Ion/Baseline vs 解释器），已归档到
+  `docs/aegis/work/2026-08-09-vulpra-standard-benchmark/README.md`。
+- **越狱 JIT 路线落地（2026-08-11）**：opt-in 门控补丁（order 249，
+  `Engine/GeckoPatches/v5/platform/real-device-jit/route-jailbreak-jit.patch`，
+  `-enable-jit` argv 触发，默认关）已提交；双 run 编译绿（31427742238/31427779392）、
+  promote 为 `vulpra-engine-v5-jit-jailbreak-candidate`、TIPA 打包验证通过
+  （engine `vulpra-gecko-ios-arm64-v5-a0d6128a…`，`vulpra-package-ok` 48 files，
+  sha256 `f067caa9…`）；真机冒烟清单见
+  `docs/aegis/work/2026-08-11-vulpra-jailbreak-jit-verification/README.md`。
 - **源码时序（固定上游 `27b462b2`）**：MAP_JIT 每进程只在 `JS::Init()` 尝试一次
   （`Initialization.cpp:167 → JitContext.cpp InitializeJit → InitProcessExecutableMemory →
   ProcessExecutableMemory::init()`，单例、断言 `!initialized()`、失败无重试）；在
@@ -44,7 +54,7 @@ ADR-0004（2026-07-27）退役了 v3 GeckoView/Helper/RuntimeJITCoordinator 基�
 A' 懒初始化 + 可重试 MAP_JIT（开发/测试，推荐）、B BrowserEngineKit witness API
 （仅 EU 发行）、C allow-jit（Apple 拒绝，platform-tilt #3）、D 非 MAP_JIT（无证据）。
 
-## Decision（草案，待 benchmark 差值归档 + 真机冒烟后转 recorded）
+## Decision（草案，差值归档已完成；待真机冒烟后转 recorded）
 
 把 ADR-0004 的笼统 "no JIT path is retained" 重界定为 **JIT 编排边界（orchestration
 boundary）**，后端与编排分开治理：
@@ -94,8 +104,8 @@ TabManager/BrowserTab 归属、固定引擎产物 pin。
 
 ## Baseline Sync
 
-- Needed: pending（Simulator JIT 开/关差值归档 + 真机 appex 附加冒烟之后）
-- Target: TBD
+- Needed: pending（真机 appex 附加冒烟之后；Simulator JIT 开关差值已于 2026-08-11 归档）
+- Target: 2026-08-12（真机冒烟完成后）
 
 ## Evidence References
 
