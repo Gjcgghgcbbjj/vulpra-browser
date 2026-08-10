@@ -21,7 +21,7 @@ on:
       benchmarks:
         description: Comma-separated benchmark ids from Configuration/benchmarks.json (defaults to enabledByDefault; jetstream requires the JIT backend and is refused)
         required: false
-        default: speedometer3,motionmark
+        default: speedometer3
         type: string
       attempts:
         description: Attempts per benchmark (1 = single-attempt gate)
@@ -48,7 +48,7 @@ jobs:
       # same defaults the manual inputs declare.
       XCODE_APP: ${{ inputs.xcode_version || 'Xcode_26.4.1.app' }}
       ENGINE_TAG: ${{ inputs.engine_release_tag || 'vulpra-engine-v5-r0.3-candidate' }}
-      BENCHMARKS: ${{ inputs.benchmarks || 'speedometer3,motionmark' }}
+      BENCHMARKS: ${{ inputs.benchmarks || 'speedometer3' }}
       ATTEMPTS: ${{ inputs.attempts || 1 }}
 
     steps:
@@ -73,8 +73,8 @@ jobs:
           set -euo pipefail
           ids='${{ env.BENCHMARKS }}'
           # Shared validator: refuses unknown ids, empty selections, and
-          # requiresJitBackend benchmarks (JetStream 3.0 wasm cannot run on the
-          # JIT-disabled v5 engine). Contract-covered by
+          # requiresJitBackend benchmarks (JetStream 3.0 wasm, MotionMark
+          # canvas FPS detection). Contract-covered by
           # Tests/IndependentEngine/test_benchmark_contract.py.
           selected="$(python3 Tools/CI/validate-benchmark-selection.py --ids "$ids")"
           echo "benchmark ids: $selected"

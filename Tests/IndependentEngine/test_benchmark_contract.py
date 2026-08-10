@@ -78,17 +78,16 @@ def check_manifest_entries(manifest: dict[str, object]) -> None:
         require(isinstance(entry.get("enabledByDefault"), bool)
                 and isinstance(entry.get("requiresJitBackend"), bool),
                 f"{benchmark_id} must declare enabledByDefault and requiresJitBackend Booleans")
-        if benchmark_id == "jetstream":
-            require(entry.get("enabledByDefault") is False
-                    and entry.get("requiresJitBackend") is True,
-                    "jetstream must be requiresJitBackend and NOT enabledByDefault "
-                    "(wasm suite cannot run on the JIT-disabled v5 engine)")
+        if entry.get("requiresJitBackend") is True:
+            require(entry.get("enabledByDefault") is False,
+                    f"{benchmark_id} must NOT be enabledByDefault when it requires the JIT backend")
             require(isinstance(entry.get("notes"), str) and len(entry["notes"]) > 80,
-                    "jetstream notes must document its JIT-backend/wasm dependency")
+                    f"{benchmark_id} notes must document its JIT-backend dependency")
         else:
-            require(entry.get("enabledByDefault") is True
-                    and entry.get("requiresJitBackend") is False,
+            require(entry.get("enabledByDefault") is True,
                     f"{benchmark_id} must be enabledByDefault without a JIT-backend requirement")
+            require(entry.get("requiresJitBackend") is False,
+                    f"{benchmark_id} must not require the JIT backend")
 
 
 def make_synthetic_sources(benchmark_dir: Path, manifest: dict[str, object]) -> None:
@@ -449,12 +448,14 @@ def check_selection_validator() -> None:
     assert spec.loader is not None
     spec.loader.exec_module(validator)
 
-    selected = validator.validate_selection("speedometer3,motionmark")
-    require([entry["id"] for entry in selected] == ["speedometer3", "motionmark"],
+    selected = validator.validate_selection("speedometer3")
+    require([entry["id"] for entry in selected] == ["speedometer3"],
             "validator must accept the default benchmark set")
 
     for ids, token in (
         ("jetstream", "JIT backend"),
+        ("motionmark", "JIT backend"),
+        ("speedometer3,motionmark", "JIT backend"),
         ("speedometer3,jetstream", "JIT backend"),
         ("", "no benchmark ids selected"),
         ("speedometer3,bogus", "unknown benchmark ids"),

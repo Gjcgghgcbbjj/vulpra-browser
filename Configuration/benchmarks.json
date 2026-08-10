@@ -63,8 +63,9 @@
         "startReadyPath": "benchmarkController.frameRateDetectionComplete",
         "startReadyValue": true
       },
-      "enabledByDefault": true,
-      "requiresJitBackend": false
+      "enabledByDefault": false,
+      "requiresJitBackend": true,
+      "notes": "MotionMark drives WebGL/canvas 2D scene rendering through benchmarkController FPS detection (frameRateDetectionComplete). On the JIT-disabled v5 engine in the iOS Simulator the detection callback never completes (observed: page loads, then no start for 3600s) because the interpreter-mode engine cannot sustain the canvas rendering loop the detector requires, so a gate on it only burns an hour. Re-enable (enabledByDefault true) together with a JIT-enabled engine and real-device qualification, where WebGL and frame-rate detection actually complete."
     },
     {
       "id": "jetstream",

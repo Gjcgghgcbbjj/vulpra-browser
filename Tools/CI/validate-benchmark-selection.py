@@ -7,12 +7,13 @@ by Tests/IndependentEngine/test_benchmark_contract.py as a portable contract.
 Refuses:
   - an empty selection,
   - unknown benchmark ids,
-  - benchmarks flagged `requiresJitBackend: true` (JetStream 3.0): the current
-    v5 engine disables the JIT backend in every Gecko child process
-    (toolkit/xre/IOSBootstrap.mm -> JS::DisableJitBackend ->
-    JitOptions.disableJitBackend -> wasm::HasSupport() == false), and those
-    suites contain WebAssembly workloads whose failure aborts the whole run,
-    so selecting them only burns a guaranteed-failing CI gate.
+  - benchmarks flagged `requiresJitBackend: true` (JetStream 3.0 wasm suites,
+    MotionMark canvas FPS detection): the current v5 engine disables the JIT
+    backend in every Gecko child process (toolkit/xre/IOSBootstrap.mm ->
+    JS::DisableJitBackend -> JitOptions.disableJitBackend), and those suites
+    either contain WebAssembly workloads or need the canvas rendering loop
+    whose detection never completes without it (see each entry's notes), so
+    selecting them only burns a guaranteed-failing CI gate.
 
 Pure stdlib; loads the manifest parser shared with benchmark-fixture.py via
 importlib (the filename's hyphen prevents a plain module import).
@@ -44,9 +45,9 @@ def validate_selection(ids: str) -> list[dict[str, object]]:
         if entry.get("requiresJitBackend") is True:
             notes = entry.get("notes") or ""
             benchmark_fixture.fail(
-                f"benchmark {benchmark_id} requires the JIT backend (WebAssembly) "
-                f"and cannot pass on the current JIT-disabled engine; refusing to "
-                f"run a guaranteed-failing gate. {notes}"
+                f"benchmark {benchmark_id} requires the JIT backend and cannot pass on "
+                f"the current JIT-disabled engine; refusing to run a "
+                f"guaranteed-failing gate. {notes}"
             )
     return entries
 
