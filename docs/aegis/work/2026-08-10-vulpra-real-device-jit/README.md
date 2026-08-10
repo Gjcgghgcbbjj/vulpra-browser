@@ -101,14 +101,19 @@ lock），因此 JIT 实验引擎要进 benchmark-ci 需要**两次全量编译*
 3. 两个 run 都绿后 dispatch promote：
    `gh workflow run produce-gecko-v5.yml --ref fix/browser-performance-20260729 -f promote_run_id=<主> -f repeat_producer_run_id=<repeat> -f release_tag=vulpra-engine-v5-jit-sim-candidate`
    （tag 用**新 candidate**，不动 r0.3-candidate 现役基线）。
-4. 把 promote 产出的 `engine-v5-promotion-<run>.json` 换成 `Configuration/engine-artifact-lock.json`
-   （releaseTag/compiledBy* 随新 run），commit + push。
-5. push 触发的 benchmark-ci 会按新 lock 消费 **Simulator JIT 开** 引擎跑 Speedometer 3.0
-   子集；拿分数对比 Simulator JIT 关中位数 **1.959**，把差值归档到
+4. 从 promote 的 artifact（`engine-v5-promotion-<run>`，内含 `engine-artifact-lock.json`）取
+   新 lock 替换 `Configuration/engine-artifact-lock.json`（releaseTag/compiledBy* 随新 run），
+   commit + push。
+5. **跑 benchmark-ci 必须用 workflow_dispatch 传新 tag**：push 触发版默认
+   `engine_release_tag=vulpra-engine-v5-r0.3-candidate`，与新 lock tag 不匹配会直接 fail
+   （`workflow release tag does not match engine-artifact-lock.json`）：
+   `gh workflow run benchmark-ci.yml --ref fix/browser-performance-20260729 -f engine_release_tag=<新tag> -f benchmarks=speedometer3 -f attempts=1`
+   拿 Simulator **JIT 开** 分数对比 JIT 关中位数 **1.959**，把差值归档到
    `docs/aegis/work/2026-08-09-vulpra-standard-benchmark/README.md`（修正后的"JIT 开关差"
    口径：5.267 是解释器分数，不作为 JIT 开证据）。
-6. 归档后评估：差值显著 → 真机 Route A/A' 冒烟（需真机 + StikDebug/debugserver）；ADR-0005
-   草案按证据转 recorded（token 策略拆分 + opt-in gate）。
+6. 实验归档后**把 lock 恢复回 r0.3-candidate 现役对**（防 push 触发 benchmark 持续红；
+   生产构建按现役 lock 消费），再评估：差值显著 → 真机 Route A/A' 冒烟（需真机 +
+   StikDebug/debugserver）；ADR-0005 草案按证据转 recorded（token 策略拆分 + opt-in gate）。
 7. 若 repeat 门控两次产物不一致：先查 `REPRODUCIBLE_BUILD`（mozBuildDate/sourceDateEpoch）
    与 sccache 缓存扰动，再决定是否跳过 repeat（需治理放行，勿默认）。
 
