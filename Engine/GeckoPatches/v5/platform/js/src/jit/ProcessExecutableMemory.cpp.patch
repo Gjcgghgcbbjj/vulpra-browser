@@ -1,0 +1,13 @@
+diff --git a/js/src/jit/ProcessExecutableMemory.cpp b/js/src/jit/ProcessExecutableMemory.cpp
+index cea7d764..d131d572 100644
+--- a/js/src/jit/ProcessExecutableMemory.cpp
++++ b/js/src/jit/ProcessExecutableMemory.cpp
+@@ -992,7 +992,7 @@ bool js::jit::ReprotectRegion(void* start, size_t size,
+   return true;
+ }
+ 
+-#if defined(JS_USE_APPLE_FAST_WX) && !defined(XP_IOS)
++#if defined(JS_USE_APPLE_FAST_WX)
+ void js::jit::AutoMarkJitCodeWritableForThread::markExecutable(
+     bool executable) {
+   if (__builtin_available(macOS 11.0, *)) {

@@ -1,8 +1,8 @@
 diff --git a/toolkit/xre/IOSBootstrap.mm b/toolkit/xre/IOSBootstrap.mm
-index 264320aed775724391b3f1ed6487da7e1cc0539f..308cb60b7fb2609be88b0216736ef77370953135 100644
+index 264320ae..a13caf08 100644
 --- a/toolkit/xre/IOSBootstrap.mm
 +++ b/toolkit/xre/IOSBootstrap.mm
-@@ -9,9 +9,13 @@
+@@ -9,9 +9,14 @@
  #include "mozilla/DarwinObjectPtr.h"
  #include "mozilla/GeckoArgs.h"
  #include "mozilla/widget/GeckoViewSupport.h"
@@ -13,10 +13,11 @@ index 264320aed775724391b3f1ed6487da7e1cc0539f..308cb60b7fb2609be88b0216736ef773
  #include "XREChildData.h"
 +#include <pthread.h>
 +#include <time.h>
++#include <TargetConditionals.h>
  
  #include "application.ini.h"
  
-@@ -27,6 +31,32 @@ id<GeckoProcessExtension> mozilla::widget::GetCurrentProcessExtension() {
+@@ -27,6 +32,32 @@ id<GeckoProcessExtension> mozilla::widget::GetCurrentProcessExtension() {
    return gCurrentProcessExtension;
  }
  
@@ -49,16 +50,22 @@ index 264320aed775724391b3f1ed6487da7e1cc0539f..308cb60b7fb2609be88b0216736ef773
  int MainProcessInit(int aArgc, char** aArgv,
                      id<SwiftGeckoViewRuntime> aRuntime) {
    auto bootstrap = mozilla::GetBootstrap();
-@@ -106,6 +136,8 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+@@ -106,6 +137,14 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
  
    mozilla::SetGeckoChildID(aArgv[aArgc - 2]);
  
++#if !TARGET_OS_SIMULATOR
++  // Real devices cannot allocate executable JIT memory without the
++  // allow-jit entitlement (MAP_JIT), so stay interpreter-only there.
++  // The Simulator runs on macOS where executable memory is available:
++  // keep the full JIT backend enabled for benchmark/regression gates.
 +  JS::DisableJitBackend();
++#endif
 +
  #if defined(MOZ_MEMORY)
    jemalloc_reset_small_alloc_randomization(
        /* aRandomizeSmall */ !XRE_IsContentProcess());
-@@ -117,6 +149,45 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+@@ -117,6 +156,45 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
    return NS_FAILED(rv);
  }
  
@@ -104,7 +111,7 @@ index 264320aed775724391b3f1ed6487da7e1cc0539f..308cb60b7fb2609be88b0216736ef773
  void HandleBootstrapMessage(xpc_object_t aEvent) {
    // Set up stdout and stderr if they were provided.
    int fd = xpc_dictionary_dup_fd(aEvent, "stdout");
-@@ -198,6 +269,7 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
+@@ -198,6 +276,7 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
    }
    argv[argc] = nullptr;
  
