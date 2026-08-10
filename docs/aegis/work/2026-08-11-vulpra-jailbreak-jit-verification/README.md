@@ -120,3 +120,18 @@ launchctl unsetenv VULPRA_ENABLE_JIT
   `log stream --predicate 'subsystem == "com.vulpra.browser"'` 看
   `Real-device JIT:` 日志分支。
 - 闪退 → appex 未继承 CS_DEBUGGED（MAP_JIT 失败）→ 换越狱直装/StikDebug/引擎侧方案。
+
+## 更新（2026-08-11 第三轮）：真机判据落地
+
+- 用户装 auto 版（run 31435973444，sha256 `32502362…`）后跑分 **5.584**（≈基线），
+  起始页自检显示 **`JIT: not-debugged`** → 主 App 进程没有 CS_DEBUGGED。
+- 依据 Dopamine 源码（`BaseBin/launchdhook/src/jbserver/jbdomain_systemwide.c`）：
+  check-in 时 `fullyDebugged = markAppsAsDebugged` 只对路径前缀
+  `/private/var/containers/Bundle/Application` 或 `${JBROOT}/Applications` 的进程生效，
+  且 **依赖 dyldhook/systemhook 注入链（即 tweak 注入）**——官方 release note 明确
+  "Allow JIT in Apps" 对 Choicy 禁用注入的 App 无效。
+- 结论：用户设备 tweak 注入被禁（Choicy 或 Dopamine 每 App 注入开关）→ check-in 未发生
+  → 无 CS_DEBUGGED → 引擎子进程无 `-enable-jit` → 解释器 5.584。
+- 下一步：用户开启 Vulpra 的 tweak 注入 → Restart SpringBoard → 重开 Vulpra，
+  起始页应为 `JIT: CS_DEBUGGED` → 跑分预期 ~9+。
+- 若开启注入后仍 not-debugged：查 Dopamine 版本（≥2.1）、safe mode、每 App 注入列表。
