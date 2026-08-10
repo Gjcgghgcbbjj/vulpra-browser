@@ -135,3 +135,20 @@ launchctl unsetenv VULPRA_ENABLE_JIT
 - 下一步：用户开启 Vulpra 的 tweak 注入 → Restart SpringBoard → 重开 Vulpra，
   起始页应为 `JIT: CS_DEBUGGED` → 跑分预期 ~9+。
 - 若开启注入后仍 not-debugged：查 Dopamine 版本（≥2.1）、safe mode、每 App 注入列表。
+
+## 更新（2026-08-11 第四轮）：not-debugged 实为探针位错误，已修复
+
+- 上述第三轮结论（tweak 注入被禁）**作废**。真机 iOS 上 `csops(CS_OPS_STATUS)`
+  的 `CS_DEBUGGED` 位于 **第 28 位 `0x10000000`**（证据：Dopamine 源码
+  `/tmp/dopamine-src/BaseBin/libjailbreak/src/codesign.h`；PPSSPP PR #12421；
+  Delta 模拟器 `ProcessInfo+JIT.swift`）。旧探针只查第 11 位 `0x800` → 误报
+  `not-debugged`。
+- 修复 `App/main.swift`（提交 `e754582`）：`debuggedMask = 0x10000000 | 0x00000800`，
+  并把原始 `flags=0x%08X` 显示到起始页，避免再次误判。
+- 新构建 run 31438094897（TIPA sha256 `aa0f38c6…`，build 5）已放 Win 桌面
+  `Vulpra-TrollStore-jailbreak-jit-auto.tipa`；XUL 含 `-enable-jit` 门控，
+  主二进制含 `CS_DEBUGGED (flags=0x%08X)` 标记。起始页预期显示
+  `JIT: CS_DEBUGGED (flags=0x10000000…)`。
+- 待真机确认：显示 CS_DEBUGGED + 跑分 ~9+ → 收尾清单推进；
+  若仍 not-debugged 再回到第三轮的注入/版本排查；
+  若启动崩溃 → appex MAP_JIT 未继承（见上方替代方案）。
