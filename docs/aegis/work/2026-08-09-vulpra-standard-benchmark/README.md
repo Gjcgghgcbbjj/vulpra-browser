@@ -144,3 +144,36 @@ iOS 26.4 runtime 兼容，CoreSimulator 403 消失，App 正常启动（PID 9299
 本工作不动 20 次稳定性 gate、不重编 Gecko、不重打包 IPA/TIPA；engine-artifact-lock 保持
 `vulpra-engine-v5-r0.3-candidate`。engine-cutover-gates.json / ADR-0004 / baseline 等
 v4→v5 收尾项仍按既有清单另行处理。
+
+## 首次真实 Simulator gate 结果（2026-08-09/10，已通过）
+
+修复 harness 404 根因后（fixture 原本从不伺服基准源码树 → iframe 一直加载 404 错误页，
+0 分 0 progress），两次真实 CI speedometer3 单次 gate 全绿：
+
+| run | commit | 子集 | score | elapsedMedianMs | 崩溃 | 结论 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 31342121225 | 2620deb | TodoMVC-ES5/CodeMirror/chartjs/Perf-Dashboard（11 subtests） | 2.435 | 68 455 | 0 | PASS |
+| 31345381395 | 9123e44 | 同上 | 1.809 | 114 335 | 0 | PASS |
+
+进度 title 全程可见（`bar=0/11 → … → 9/11 → score=`），分数来自引擎 title 通道
+`Engine title: VulpraBenchmark speedometer3 score=…`。证据已下载
+`/tmp/bench-gate-31345381395/`。
+
+**噪声结论**：两次代码实质相同（差异仅为 MotionMark 排除），score 相差 26%（2.435→1.809）、
+耗时翻倍。Simulator + 解释器模式的单次 gate 噪声大，1 次不足以作为稳定基线；
+后续取 3 次中位数再进 baseline。该分数不可与市面完整跑分直接比较（子集 + 无 JIT + 模拟器）。
+
+**MotionMark 从默认集排除（9123e44）**：JIT 关闭的引擎上 canvas FPS 检测永不完成
+（`frameRateDetectionComplete` 不置位），固定烧 1 小时。已标 `requiresJitBackend: true` +
+`enabledByDefault: false`，validator 拒绝显式选择；真机 JIT 路线恢复。
+
+## 真机对照 SOP（路线 B 前置，需人工物理操作）
+
+目的：拿到同一子集在真机 JIT 浏览器上的分数，为"落后几倍"提供直接证据。
+
+1. iPhone 上用 **Safari** 打开官方 Speedometer 3.0（与 CI 同子集、单次迭代）：
+   `https://browserbench.org/Speedometer3.0/?startAutomatically=true&iterationCount=1&suites=TodoMVC-JavaScript-ES5,Editor-CodeMirror,Charts-chartjs,Perf-Dashboard`
+   跑完记录结果页分数（Safari 官方支持 `suites`/`startAutomatically` URL 参数）。
+2. 用 **Vulpra（最新 IPA，v5 r0.3 引擎）** 打开同一 URL，记录分数。
+3. 记录机型 + iOS 版本；分数 + 机型发回，与 Simulator 中位数一起归档到本 README。
+4. 至少各跑 3 次取中位数，避免单次噪声（与 Simulator 侧口径一致）。
