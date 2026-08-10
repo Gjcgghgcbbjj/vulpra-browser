@@ -229,6 +229,10 @@ Route A 可做 **PID 感知附加**（harness 监听子进程生命周期拿到 
   - **iOS 26 又封堵**：SideStore 文档标注 iOS 26 起 JIT 再次失效，支持列表仅限
     UTM/Amethyst/MeloNX/maciOS/DolphiniOS/Geode/Manic EMU/Flycast/MeloCafe/ARMSX2/DukeX
     等（截至 2026-06-17，**无浏览器**），26.6/27 仅少量 App 可用。
+  - **SideStore 0.6.2 内置 JIT**（minimuxer，iOS ≤16 或非 TXM 的 4+ 年老设备）：LocalDevVPN
+    连上后"我的 App → 长按 → enable JIT"，无需 StikDebug。Vulpra 部署目标 iOS 15.0+，若
+    用户真机是 iOS 15/16 老设备，这是比 StikDebug 更简单的候选路径（但 benchmark 需跑
+    Speedometer 3，老设备性能本身受限，只作可行性补充）。
 - **iOS 18.4b1 起 Apple 已修补**：osy 逆向分析确认 TXM 新增 `com.apple.private.cs.debugger`
   检查（仅 debugserver 进程可做 debug mapping）。
 - 限制：**不可 App Store 分发**，仅限开发/侧载场景；Vulpra 的 TIPA 分发路径
