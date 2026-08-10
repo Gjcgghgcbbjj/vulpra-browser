@@ -330,6 +330,16 @@ prelaunch 池也危险。把 MAP_JIT 尝试**延迟到首次 JIT 分配**并**�
    会以异常形式传播给页面 JS、或触发其他副作用；若确认有碍，备选是在 `allocate()` 返回
    nullptr 的 A' 路径上改为**一次性关闭 JIT backend**（`JS::DisableJitBackend`，编译器入口
    通常先查 `HasJitBackend()`）而不是每分配必 OOM。
+   **重试机制成立（2026-08-11 源码级）**：`BaselineCompiler::compile`
+   （`BaselineCodeGen.cpp`）对 `finishCompile`/`compileImpl` 失败返回 `Method_Error`
+   （`return Method_Error`，非 `Method_CantCompile`），而 `BaselineJIT.cpp` 的
+   `BaselineCompile` 只在 `Method_CantCompile` 时 `script->disableBaselineCompile()`
+   → **编译失败不会永久禁用 script** → attach 后 warm-up 阈值再次触发编译即成功，
+   "无需重启进程"成立。另已核实 `CanLikelyAllocateMoreExecutableMemory()`
+   （`ProcessExecutableMemory.cpp`）只比较 `bytesAllocated()` 与 `MaxCodeBytesPerProcess`
+   上限（未 init 时返回 true），**不会**在 MAP_JIT 不可用时提前拦截编译入口
+   （`BaselineJIT.cpp` 的 `Method_Skipped` 分支拦不住）→ "每次编译尝试必走
+   allocate() 失败 + OOM 报告"路径确定，OOM 传播观察项必须真机做。
 3. `ProcessExecutableMemory::release()` 加空守卫：未 init 时直接 return（否则
    `munmap(nullptr, MaxCodeBytes)`，release 下仅 EINVAL 无害、debug 下断言）。
 4. `toolkit/xre/IOSBootstrap.mm` `ChildProcessInitImpl`：真机 `JS::DisableJitBackend()`
