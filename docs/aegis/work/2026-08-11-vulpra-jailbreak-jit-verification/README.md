@@ -88,3 +88,35 @@ launchctl unsetenv VULPRA_ENABLE_JIT
 
 - 真机冒烟通过 → ADR-0005 转 recorded 前置之一（差值已归档 2026-08-11）
 - 数值归档到 `docs/aegis/work/2026-08-09-vulpra-standard-benchmark/README.md`
+
+## 更新（2026-08-11 第二轮）
+
+### 真机 5.363 = JIT 未生效（记录为证据）
+
+- 用户装 jailbreak-jit TIPA 后跑出 **5.363**（基线 5.267，仅 +1.8%）→ JIT 未生效。
+- 结论：`launchctl setenv VULPRA_ENABLE_JIT` 的 SSH 前置在用户侧不可行（"跑不了"），
+  真机侧无法执行 → env 从未注入 → 子进程无 `-enable-jit` → 解释器模式。**不能据此判定
+  appex CS_DEBUGGED 缺失**，该未知项仍未解。
+- 工程产物侧复核通过：release 引擎 manifest `patchSet.sha256` =
+  `b7f11022…`（order 249 门控），XUL 二进制含 `-enable-jit`；桌面
+  `Vulpra-TrollStore-jailbreak-jit.tipa` sha256 `f067caa9…` 即新包；
+  旧包（e46c607）XUL 无门控字符串。
+
+### 新方案：App 内自动探测 CS_DEBUGGED 并自启 JIT（无 SSH 依赖）
+
+- commit `b143b54` / `2d97b00`：`App/main.swift` 启动时 `csops(CS_OPS_STATUS)` 读自身
+  CS flags；命中 `CS_DEBUGGED (0x800)`（Dopamine "Allow JIT in Apps" 置位）→
+  `setenv("VULPRA_ENABLE_JIT","1")` → 引擎父进程照常注入 `-enable-jit` 子进程 argv。
+- 非越狱/未置位 → 不设 env → 保持解释器（默认不破坏）；模拟器分支跳过。
+- 打包 run `31433697877`（3m38s）：`Vulpra-TrollStore-jailbreak-jit-auto.tipa`
+  sha256 `7b14385b0361be5ef73d77c47151ee0bbd135f28815dc9097c9044271b82cf63`，
+  App build 0.2.0 (5)，uiFingerprint `porcelain-zh-v4-jit-auto-20260811`；
+  XUL 门控字符串在场，App 二进制含 `Real-device JIT` 日志与 `VULPRA_ENABLE_JIT`。
+
+### 判定分支（用户装 auto 版后）
+
+- 分数 ~9+ → JIT 生效，appex CS_DEBUGGED 判据成立 → 走收尾清单。
+- 仍 ~5.3 → 主 App 未置 CS_DEBUGGED（Choicy 禁注入/开关未生效）→ 查
+  `log stream --predicate 'subsystem == "com.vulpra.browser"'` 看
+  `Real-device JIT:` 日志分支。
+- 闪退 → appex 未继承 CS_DEBUGGED（MAP_JIT 失败）→ 换越狱直装/StikDebug/引擎侧方案。
