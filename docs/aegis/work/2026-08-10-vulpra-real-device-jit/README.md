@@ -59,6 +59,17 @@
      /`allocate()` 断言 `initialized()` → **MAP_JIT 失败后没有任何重试路径**（release 下
      后续 JIT 分配直接崩，不是回退）。
 
+## 模拟器运行时风险排查（已排除）
+
+- **`writeProtectCode` 不会在 fast-WX 下 MOZ_CRASH**：`StaticPrefList.yaml.patch` 把
+  `javascript.options.content_process_write_protect_code` 在 `XP_IOS`（含模拟器）置 true，
+  但 `JitOptions.cpp` 在 `JS_USE_APPLE_FAST_WX` 下**强制** `writeProtectCode=false`
+  （`SET_DEFAULT` 与 `maybeSetWriteProtectCode` 均为 no-op）→ `ReprotectRegion` 提前返回，
+  `MOZ_CRASH("writeProtectCode should always be false on Apple Silicon")` 不可达。
+  模拟器 W^X 由 `pthread_jit_write_protect_np`（dlsym 分支）负责，与 macOS 口径一致。
+- 模拟器 `MAP_JIT` 在 macOS 运行时对任意进程可用（JIT entitlement 只在 iOS 设备强制）→
+  `InitProcessExecutableMemory` 成功，JIT 可启用。真机才需要 Route A/A'/B。
+
 ## 实验编译状态（run 31374470622）
 
 - **iphonesimulator job 失败**（2026-08-10 11:30 UTC，`Build native runtime` 阶段 1h47m 处）：
