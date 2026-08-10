@@ -145,4 +145,6 @@
 | 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/evidence-bundle-draft-task1-producer-contract.json | 2026-07-29-vulpra-r0-trustworthy-engine-execution evidence task1-producer-contract |
 | 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/resume-state-hint.json | 2026-07-29-vulpra-r0-trustworthy-engine-execution resume state hint |
 | 2026-07-31 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/evidence-bundle-draft-task9-native-pair-305983.json | 2026-07-29-vulpra-r0-trustworthy-engine-execution evidence task9-native-pair-305983 |
+| 2026-08-09 | work | docs/aegis/work/2026-08-09-vulpra-standard-benchmark/README.md | 2026-08-09-vulpra-standard-benchmark standard benchmark |
 | 2026-08-10 | work | docs/aegis/work/2026-08-10-vulpra-real-device-jit/README.md | 2026-08-10-vulpra-real-device-jit real-device JIT options |
+| 2026-08-10 | adr | docs/aegis/adr/ADR-0005-real-device-jit-trust-boundary.md | ADR-0005 - Real-Device JIT Trust Boundary (draft) |

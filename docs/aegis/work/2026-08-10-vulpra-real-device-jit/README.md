@@ -7,7 +7,9 @@
 背景数据（详见 `docs/aegis/work/2026-08-09-vulpra-standard-benchmark/README.md`）：
 
 - Vulpra 真机 Speedometer 3.0 同子集单次 **5.267** vs Safari 真机 **11.24**（≈2.1× 落后）
-- Vulpra 真机（JIT 开）是 Simulator 中位数（JIT 关）的 ≈2.7 倍 → JIT 是性能大头，已被实测证实
+- Vulpra 真机（内容进程解释器，JIT 关）5.267 vs Simulator 中位数（JIT 关）1.959 的 ≈2.7 倍是
+  **真机/模拟器硬件差**，不是 JIT 开关差（5.267 IPA 自 `b749de8` 起内容进程真机
+  `JS::DisableJitBackend()`）；**JIT 开关差**待 run 31374470622（Simulator JIT 开）归档
 - 实验提交 `0b9bdf7`：Simulator 保留完整 JIT backend（Ion/Baseline/Wasm），真机维持
   `JS::DisableJitBackend()`（解释器模式）——用于量化 JIT 开关差距，不代表真机方案落地
 
