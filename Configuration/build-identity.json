@@ -1,7 +1,7 @@
 {
     "schemaVersion": 1,
     "marketingVersion": "0.2.0",
-    "buildVersion": "10",
+    "buildVersion": "11",
     "developmentLanguage": "zh-Hans",
-    "uiFingerprint": "porcelain-zh-v4-jit-probe-v10-20260811"
+    "uiFingerprint": "porcelain-zh-v4-jit-appex-v11-20260811"
 }

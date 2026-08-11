@@ -11,56 +11,70 @@ import Darwin
 enum VulpraJitProbe {
     static var detail = "unknown"
 
-    /// True when the App runs web JS in the main process (v9: e10s forced
-    /// off under CS_DEBUGGED). In that mode the appex is not a web content
-    /// host, so the footer's second line describes the mode instead of the
-    /// (dormant) appex probe.
+    /// True when the App runs web JS in the main process (v9 experiment:
+    /// e10s forced off under CS_DEBUGGED). v11 reverted the main-process
+    /// route (it crashed on-device); the flag is kept so the footer can still
+    /// render the main-process note if a future build re-enables it.
     static var mainProcessMode = false
 
-    /// Adaptive mode decision (read once at launch): JIT is enabled only when
-    /// a recent appex self-probe positively proves this device can allocate
-    /// executable JIT memory (mmap(MAP_JIT) AND the RX reprotect both "ok").
-    /// With no probe yet (first launch after install/upgrade, or the file was
-    /// wiped) the App stays in interpreter mode, so a JIT-enabled content
-    /// process can never crash-loop the browser into "unusable" lag. The probe
-    /// file is rewritten by every appex launch, so once the appex proves
-    /// capable the next App launch re-enables JIT automatically.
+    /// Startup-path JIT gate: reads ONLY the shared probe paths, exactly like
+    /// v8. The launch path never touches container scanning or self-test
+    /// writes - those run only from the start-page footer (cached), so a
+    /// filesystem/entitlement surprise there can never crash the App at boot.
     static func appexJITAvailable() -> Bool {
-        let (object, _) = VulpraAppexProbe.readProbe()
-        guard let object else { return false }
-        let mapjit = object["mapjit"] as? String ?? ""
-        let mprotect = object["mprotect"] as? String ?? ""
-        return mapjit == "ok" && mprotect == "ok"
+        for path in VulpraAppexProbe.paths {
+            guard let data = FileManager.default.contents(atPath: path),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else { continue }
+            let mapjit = object["mapjit"] as? String ?? ""
+            let mprotect = object["mprotect"] as? String ?? ""
+            if mapjit == "ok" && mprotect == "ok" {
+                return true
+            }
+        }
+        return false
     }
 
     /// Human-readable reason for staying interpreter-only while the main
     /// process itself is CS_DEBUGGED (rendered in the start-page footer).
     static var interpreterReason: String {
-        let (object, _) = VulpraAppexProbe.readProbe()
-        guard let object else {
-            return "appex探针未就绪(首启解释器,重启后自动评估JIT)"
+        for path in VulpraAppexProbe.paths {
+            guard let data = FileManager.default.contents(atPath: path),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else { continue }
+            let mapjit = object["mapjit"] as? String ?? ""
+            let mprotect = object["mprotect"] as? String ?? ""
+            if mapjit != "ok" || mprotect != "ok" {
+                return "appex无法JIT(mapjit=\(mapjit) mprotect=\(mprotect))"
+            }
         }
-        let mapjit = object["mapjit"] as? String ?? ""
-        let mprotect = object["mprotect"] as? String ?? ""
-        return "appex无法JIT(mapjit=\(mapjit) mprotect=\(mprotect))"
+        return "appex探针未就绪(首启解释器,重启后自动评估JIT)"
     }
 
     /// Two-line footer: main-app CS_DEBUGGED status plus either the appex
-    /// (Gecko child process) self-probe or the main-process mode note.
+    /// (Gecko child process) self-probe or the main-process mode note, plus
+    /// cached App-side self-test and any crash breadcrumb.
     static var footerText: String {
         let selftest = " 自检:" + VulpraAppexProbe.selfTest()
+        var text: String
         if mainProcessMode {
-            return "JIT: " + detail + selftest
+            text = "JIT: " + detail + selftest
                 + "\n主进程模式：网页JS跑在主App进程(CS_DEBUGGED已确认)，appex不参与"
+        } else {
+            text = "JIT: " + detail + selftest + "\n" + VulpraAppexProbe.summary()
         }
-        return "JIT: " + detail + selftest + "\n" + VulpraAppexProbe.summary()
+        if let crash = VulpraCrashReporter.lastCrashSummary() {
+            text += "\n⚠上次崩溃: " + crash
+        }
+        return text
     }
 }
 
 /// Reads the latest appex self-probe. The Vulpra Engine Process extension
 /// (a Gecko child process instance - this is where web JS and the benchmark
 /// actually run) writes this file at every launch:
-///   {pid, processType, csops, flags, debugged, mapjit, mprotect, launches}
+///   {pid, processType, csops, flags, debugged, mapjit, mprotect, launches,
+///    writePrimary, writeFallback, writeOwnContainer, ownContainerPath}
 /// The App is no-sandbox in the TrollStore TIPA, so it can read the file the
 /// appex published; sandboxed builds simply report "not-yet".
 enum VulpraAppexProbe {
@@ -71,7 +85,8 @@ enum VulpraAppexProbe {
     static let appexBundleID = "com.vulpra.browser.engine-process"
 
     /// All read channels, in priority order: shared /var paths, then the
-    /// appex's own container Documents (found via container metadata scan).
+    /// appex's own container Documents (found via container metadata scan,
+    /// which is cached after the first call).
     static func allChannels() -> [(path: String, label: String)] {
         var channels = paths.map { ($0, $0) }
         if let container = findAppexContainer() {
@@ -80,10 +95,21 @@ enum VulpraAppexProbe {
         return channels
     }
 
+    private static var cachedContainer: String?
+    private static var containerScanned = false
+
     /// Locate the appex data container by scanning container metadata. Both
     /// the App and the appex are no-sandbox in the TrollStore TIPA, so the
     /// App can enumerate /var/mobile/Containers and match the bundle id.
+    /// Result is cached: footer refresh must never re-scan the whole tree.
     static func findAppexContainer() -> String? {
+        if containerScanned { return cachedContainer }
+        cachedContainer = scanAppexContainer()
+        containerScanned = true
+        return cachedContainer
+    }
+
+    private static func scanAppexContainer() -> String? {
         let root = "/var/mobile/Containers/Data/Application"
         guard let entries = try? FileManager.default.contentsOfDirectory(atPath: root) else {
             return nil
@@ -147,10 +173,25 @@ enum VulpraAppexProbe {
         return parts.joined(separator: " ")
     }
 
-    /// App-side write/read self-test on the shared /var paths. Proves whether
-    /// the shared-file channel works at all from the App process (both the
-    /// App and the appex are no-sandbox in the TrollStore TIPA).
+    private static var cachedSelfTest = "pending"
+    private static var selfTestScheduled = false
+
+    /// App-side write/read self-test on the shared /var paths, computed once
+    /// and refreshed in the background. Proves whether the shared-file
+    /// channel works at all from the App process (both the App and the appex
+    /// are no-sandbox in the TrollStore TIPA). Never runs on the footer's
+    /// main-thread refresh after the first render.
     static func selfTest() -> String {
+        if selfTestScheduled { return cachedSelfTest }
+        selfTestScheduled = true
+        cachedSelfTest = runSelfTest()
+        DispatchQueue.global().asyncAfter(deadline: .now() + 3) {
+            cachedSelfTest = runSelfTest()
+        }
+        return cachedSelfTest
+    }
+
+    private static func runSelfTest() -> String {
         let stamp = "vulpra-self-\(getpid())-\(Int(Date().timeIntervalSince1970))"
         var parts: [String] = []
         for dir in ["/var/mobile/Documents", "/tmp"] {
@@ -164,5 +205,69 @@ enum VulpraAppexProbe {
             }
         }
         return parts.joined(separator: " ")
+    }
+}
+
+/// Minimal crash breadcrumbs so a future on-device crash can be diagnosed
+/// without any shell access. The signal path uses a pre-opened file
+/// descriptor and POSIX write()/snprintf() only (async-signal-safe enough
+/// for diagnostics); the uncaught-exception path may use Foundation because
+/// it does not run inside a signal handler.
+enum VulpraCrashReporter {
+    static let sharedPath = "/var/mobile/Documents/vulpra-crash.json"
+    private static var signalFD: Int32 = -1
+    private static let lock = NSLock()
+
+    static func install() {
+        lock.lock()
+        defer { lock.unlock() }
+        guard signalFD < 0 else { return }
+        signalFD = sharedPath.withCString {
+            open($0, O_WRONLY | O_CREAT | O_APPEND, 0o644)
+        }
+        NSSetUncaughtExceptionHandler { exception in
+            let text = "{\"type\":\"exception\",\"name\":\"\(exception.name.rawValue)\","
+                + "\"reason\":\"\(exception.reason ?? "")\"}"
+            try? text.write(toFile: sharedPath, atomically: true, encoding: .utf8)
+        }
+        signal(SIGABRT, crashHandler)
+        signal(SIGBUS, crashHandler)
+        signal(SIGFPE, crashHandler)
+        signal(SIGILL, crashHandler)
+        signal(SIGSEGV, crashHandler)
+        signal(SIGTRAP, crashHandler)
+    }
+
+    private static let crashHandler: @convention(c) (Int32) -> Void = { sig in
+        // Inline and POSIX-only: signal context must not allocate or call
+        // Foundation. buf is heap-allocated by Swift before the handler runs
+        // (the closure body is compiled normally); snprintf/write are used
+        // because they are the safest available primitives here.
+        var buf = [CChar](repeating: 0, count: 128)
+        let n = buf.withUnsafeMutableBufferPointer { bp -> Int32 in
+            snprintf(bp.baseAddress, bp.count, "{\"type\":\"signal\",\"signal\":%d}\n", sig)
+        }
+        if signalFD >= 0 {
+            _ = write(signalFD, buf, Int(n))
+        }
+        _ = write(2, buf, Int(n))
+        signal(sig, SIG_DFL)
+        raise(sig)
+    }
+
+    /// One-line summary of the last crash recorded on this device, or nil.
+    static func lastCrashSummary() -> String? {
+        guard let data = FileManager.default.contents(atPath: sharedPath),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+        if (object["type"] as? String) == "signal", let sig = object["signal"] as? Int {
+            return "signal(\(sig))"
+        }
+        if (object["type"] as? String) == "exception" {
+            let name = object["name"] as? String ?? "?"
+            let reason = object["reason"] as? String ?? ""
+            return "exception \(name): \(reason)"
+        }
+        return nil
     }
 }

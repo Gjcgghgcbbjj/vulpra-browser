@@ -30,19 +30,22 @@ private func vulpraEnableJitIfEligible() {
     // surface the raw flags so the effective bit is visible on the start page.
     let debuggedMask: UInt32 = 0x10000000 | 0x00000800
     if flags & debuggedMask != 0 {
-        // v9 main-process JIT route: force e10s off so web JS runs in THIS
-        // process, which Dopamine marked CS_DEBUGGED (verified on-device).
-        // The packaged engine default pref (defaults/pref/vulpra-main-jit.js)
-        // already flipped javascript.options.main_process_disable_jit=false,
-        // so the main process's JS::Init keeps the JIT backend and MAP_JIT
-        // succeeds in-process. No -enable-jit reaches children: with e10s off
-        // there are no web content children, and auxiliary processes stay
-        // interpreter-safe.
-        setenv("MOZ_FORCE_DISABLE_E10S", "1", 1)
-        VulpraJitProbe.mainProcessMode = true
-        VulpraJitProbe.detail = String(
-            format: "CS_DEBUGGED(主进程) 主进程JIT模式(e10s关) flags=0x%08X", flags)
-        vulpraJitLogger.notice("Real-device JIT: main-process mode; e10s off, web JS in CS_DEBUGGED main process")
+        if VulpraJitProbe.appexJITAvailable() {
+            setenv("VULPRA_ENABLE_JIT", "1", 1)
+            VulpraJitProbe.detail = String(format: "CS_DEBUGGED (flags=0x%08X) JIT开启", flags)
+            vulpraJitLogger.notice("Real-device JIT: process is CS_DEBUGGED; JIT enabled for engine children")
+        } else {
+            // The main app is debugged, but a JIT-enabled engine content
+            // process (appex) is only safe when its own probe positively
+            // proves mmap(MAP_JIT)+RX reprotect work: otherwise JS::Init
+            // fails at every appex launch and the browser crash-loops into
+            // "unusable" lag. Stay interpreter-only (smooth) until the appex
+            // proves it can JIT; the probe is rewritten every appex launch,
+            // so the next App launch re-enables JIT automatically.
+            VulpraJitProbe.detail = "CS_DEBUGGED(主进程) "
+                + VulpraJitProbe.interpreterReason + " -> 解释器模式(流畅)"
+            vulpraJitLogger.notice("Real-device JIT: appex JIT not proven; interpreter-only for stability")
+        }
     } else {
         VulpraJitProbe.detail = String(format: "not-debugged (flags=0x%08X)", flags)
         vulpraJitLogger.notice("Real-device JIT: not CS_DEBUGGED; interpreter-only")
@@ -53,6 +56,7 @@ private func vulpraEnableJitIfEligible() {
 @discardableResult
 func vulpraMain() -> Int32 {
 #if !targetEnvironment(simulator)
+    VulpraCrashReporter.install()
     vulpraEnableJitIfEligible()
 #endif
     return MainActor.assumeIsolated {
