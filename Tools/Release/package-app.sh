@@ -73,6 +73,20 @@ if stage.exists():
 (stage / "Payload").mkdir(parents=True)
 PY
 cp -R "$APP" "$STAGE/Payload/Vulpra.app"
+
+# Real-device main-process JIT (v9): when the App forces e10s off under
+# CS_DEBUGGED, web JS runs in the main process; without this default pref the
+# iOS main process disables the JIT backend at JS::Init
+# (javascript.options.main_process_disable_jit defaults true on XP_IOS).
+# Gecko loads $gre/defaults/pref/*.js (NS_APP_PREF_DEFAULTS_50_DIR) during
+# startup before the main thread's JSContext is initialized, so the file is
+# enough - no engine rebuild is needed.
+mkdir -p "$STAGE/Payload/Vulpra.app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref"
+cat > "$STAGE/Payload/Vulpra.app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/vulpra-main-jit.js" <<'PREF'
+// Real-device main-process JIT (v9 experiment).
+pref("javascript.options.main_process_disable_jit", false);
+PREF
+
 mkdir -p "$(dirname "$OUTPUT")"
 
 python3 - "$STAGE" "$OUTPUT" <<'PY'

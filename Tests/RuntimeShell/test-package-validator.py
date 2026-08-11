@@ -81,6 +81,8 @@ def write_package(path: Path, kernel: bytes, resource: bytes) -> None:
         f"{app}/Frameworks/XUL": kernel,
         f"{app}/Frameworks/libfixture.dylib": plain_macho(),
         f"{app}/Frameworks/VulpraEngineRuntime/Frameworks/application.ini": resource,
+        f"{app}/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/vulpra-main-jit.js":
+            b'pref("javascript.options.main_process_disable_jit", false);\n',
         f"{app}/Frameworks/VulpraEngineRuntime/Licenses/LICENSE.txt": b"license\n",
     }
     with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as archive:

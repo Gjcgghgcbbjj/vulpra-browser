@@ -10,6 +10,12 @@ import Foundation
 enum VulpraJitProbe {
     static var detail = "unknown"
 
+    /// True when the App runs web JS in the main process (v9: e10s forced
+    /// off under CS_DEBUGGED). In that mode the appex is not a web content
+    /// host, so the footer's second line describes the mode instead of the
+    /// (dormant) appex probe.
+    static var mainProcessMode = false
+
     /// Adaptive mode decision (read once at launch): JIT is enabled only when
     /// a recent appex self-probe positively proves this device can allocate
     /// executable JIT memory (mmap(MAP_JIT) AND the RX reprotect both "ok").
@@ -48,10 +54,14 @@ enum VulpraJitProbe {
         return "appex探针未就绪(首启解释器,重启后自动评估JIT)"
     }
 
-    /// Two-line footer: main-app CS_DEBUGGED status plus the appex
-    /// (Gecko child process) self-probe where JIT actually runs.
+    /// Two-line footer: main-app CS_DEBUGGED status plus either the appex
+    /// (Gecko child process) self-probe or the main-process mode note.
     static var footerText: String {
-        "JIT: " + detail + "\n" + VulpraAppexProbe.summary()
+        if mainProcessMode {
+            return "JIT: " + detail
+                + "\n主进程模式：网页JS跑在主App进程(CS_DEBUGGED已确认)，appex不参与"
+        }
+        return "JIT: " + detail + "\n" + VulpraAppexProbe.summary()
     }
 }
 

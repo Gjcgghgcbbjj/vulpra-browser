@@ -110,6 +110,10 @@ after=$(tree_hash "$archive")
 [ "$before" = "$after" ] || fail "packager modified the archive"
 python3 "$ROOT/Tools/Engine/validate-ipa.py" --manifest "$manifest" --lock "$lock" \
   "$fixture/out/Vulpra.ipa"
+unzip -p "$fixture/out/Vulpra.ipa" \
+  "Payload/Vulpra.app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/vulpra-main-jit.js" \
+  | grep -Fq 'pref("javascript.options.main_process_disable_jit", false);' \
+  || fail "packaged IPA is missing the main-process JIT default pref"
 
 first=$(sha256sum "$fixture/out/Vulpra.ipa" | awk '{print $1}')
 "$ROOT/Tools/Release/package-app.sh" "$archive" Products/Applications/Vulpra.app \

@@ -49,6 +49,15 @@ FORBIDDEN_RUNTIME_TOKENS = (
     b"WaitForJITReadySignal",
 )
 
+# Real-device main-process JIT (v9): package-app.sh stages this default pref
+# into the GRE defaults dir so the iOS main process keeps the JIT backend when
+# the App runs web JS in-process under CS_DEBUGGED.
+MAIN_PROCESS_JIT_PREF = (
+    "Payload/Vulpra.app/Frameworks/VulpraEngineRuntime/Frameworks/"
+    "defaults/pref/vulpra-main-jit.js"
+)
+MAIN_PROCESS_JIT_PREF_MARKER = b'pref("javascript.options.main_process_disable_jit", false);'
+
 
 class PackageError(ValueError):
     pass
@@ -285,6 +294,11 @@ def validate(
         }
         if plugin_roots != expected_plugins:
             fail(f"unexpected app extension set: {sorted(plugin_roots)}")
+
+        if MAIN_PROCESS_JIT_PREF not in name_set:
+            fail("missing main-process JIT default pref")
+        if MAIN_PROCESS_JIT_PREF_MARKER not in archive.read(MAIN_PROCESS_JIT_PREF):
+            fail("main-process JIT default pref lacks the disable_jit override")
 
         for packaged, (relative, digest) in expected.items():
             if packaged not in name_set:
