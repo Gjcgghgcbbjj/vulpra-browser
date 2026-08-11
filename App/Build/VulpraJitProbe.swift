@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 /// Real-device JIT eligibility captured once at process launch (main.swift)
 /// before the engine boots. The start page renders this so the state is
@@ -25,43 +26,34 @@ enum VulpraJitProbe {
     /// file is rewritten by every appex launch, so once the appex proves
     /// capable the next App launch re-enables JIT automatically.
     static func appexJITAvailable() -> Bool {
-        for path in VulpraAppexProbe.paths {
-            guard let data = FileManager.default.contents(atPath: path),
-                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            else { continue }
-            let mapjit = object["mapjit"] as? String ?? ""
-            let mprotect = object["mprotect"] as? String ?? ""
-            if mapjit == "ok" && mprotect == "ok" {
-                return true
-            }
-        }
-        return false
+        let (object, _) = VulpraAppexProbe.readProbe()
+        guard let object else { return false }
+        let mapjit = object["mapjit"] as? String ?? ""
+        let mprotect = object["mprotect"] as? String ?? ""
+        return mapjit == "ok" && mprotect == "ok"
     }
 
     /// Human-readable reason for staying interpreter-only while the main
     /// process itself is CS_DEBUGGED (rendered in the start-page footer).
     static var interpreterReason: String {
-        for path in VulpraAppexProbe.paths {
-            guard let data = FileManager.default.contents(atPath: path),
-                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            else { continue }
-            let mapjit = object["mapjit"] as? String ?? ""
-            let mprotect = object["mprotect"] as? String ?? ""
-            if mapjit != "ok" || mprotect != "ok" {
-                return "appex无法JIT(mapjit=\(mapjit) mprotect=\(mprotect))"
-            }
+        let (object, _) = VulpraAppexProbe.readProbe()
+        guard let object else {
+            return "appex探针未就绪(首启解释器,重启后自动评估JIT)"
         }
-        return "appex探针未就绪(首启解释器,重启后自动评估JIT)"
+        let mapjit = object["mapjit"] as? String ?? ""
+        let mprotect = object["mprotect"] as? String ?? ""
+        return "appex无法JIT(mapjit=\(mapjit) mprotect=\(mprotect))"
     }
 
     /// Two-line footer: main-app CS_DEBUGGED status plus either the appex
     /// (Gecko child process) self-probe or the main-process mode note.
     static var footerText: String {
+        let selftest = " 自检:" + VulpraAppexProbe.selfTest()
         if mainProcessMode {
-            return "JIT: " + detail
+            return "JIT: " + detail + selftest
                 + "\n主进程模式：网页JS跑在主App进程(CS_DEBUGGED已确认)，appex不参与"
         }
-        return "JIT: " + detail + "\n" + VulpraAppexProbe.summary()
+        return "JIT: " + detail + selftest + "\n" + VulpraAppexProbe.summary()
     }
 }
 
@@ -76,25 +68,101 @@ enum VulpraAppexProbe {
         "/var/mobile/Documents/vulpra-jit-probe.json",
         "/tmp/vulpra-jit-probe.json",
     ]
+    static let appexBundleID = "com.vulpra.browser.engine-process"
 
-    static func summary() -> String {
-        for path in paths {
+    /// All read channels, in priority order: shared /var paths, then the
+    /// appex's own container Documents (found via container metadata scan).
+    static func allChannels() -> [(path: String, label: String)] {
+        var channels = paths.map { ($0, $0) }
+        if let container = findAppexContainer() {
+            channels.append((container + "/Documents/vulpra-jit-probe.json", "容器"))
+        }
+        return channels
+    }
+
+    /// Locate the appex data container by scanning container metadata. Both
+    /// the App and the appex are no-sandbox in the TrollStore TIPA, so the
+    /// App can enumerate /var/mobile/Containers and match the bundle id.
+    static func findAppexContainer() -> String? {
+        let root = "/var/mobile/Containers/Data/Application"
+        guard let entries = try? FileManager.default.contentsOfDirectory(atPath: root) else {
+            return nil
+        }
+        for entry in entries {
+            let dir = root + "/" + entry
+            let metadata = dir + "/.com.apple.mobile_container_manager.metadata.plist"
+            guard let data = FileManager.default.contents(atPath: metadata),
+                  let plist = try? PropertyListSerialization.propertyList(
+                      from: data, options: [], format: nil) as? [String: Any],
+                  (plist["MCMMetadataIdentifier"] as? String) == appexBundleID else {
+                continue
+            }
+            return dir
+        }
+        return nil
+    }
+
+    /// Read the newest probe from every channel; returns the first hit plus
+    /// the channel label that produced it.
+    static func readProbe() -> (object: [String: Any]?, source: String) {
+        for (path, label) in allChannels() {
             guard let data = FileManager.default.contents(atPath: path),
                   let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             else { continue }
+            return (object, label)
+        }
+        return (nil, "")
+    }
+
+    static func summary() -> String {
+        let (object, source) = readProbe()
+        if let object {
             let flags = object["flags"] as? String ?? "?"
             let debugged = (object["debugged"] as? Bool).map { $0 ? "yes" : "NO" } ?? "?"
             let mapjit = object["mapjit"] as? String ?? "?"
             let mprotect = object["mprotect"] as? String ?? "?"
             let launches = object["launches"] as? Int ?? 0
             let pid = object["pid"] as? Int ?? 0
+            let writePrimary = object["writePrimary"] as? String ?? "?"
+            let writeFallback = object["writeFallback"] as? String ?? "?"
+            let writeOwn = object["writeOwnContainer"] as? String ?? "?"
             var text = "appex: flags=\(flags) debugged=\(debugged) mapjit=\(mapjit) "
                 + "mprotect=\(mprotect) launches=\(launches) pid=\(pid)"
+                + " [写:\(writePrimary)/\(writeFallback)/\(writeOwn) 读自:\(source)]"
             if launches >= 8 {
                 text += "  ⚠可能循环重启"
             }
             return text
         }
-        return "appex: 尚未启动（打开任意网页后再回来看）"
+        return "appex: 尚无(通道:" + channelStatus() + ")"
+    }
+
+    /// Per-channel existence status for diagnosis when no probe is readable.
+    static func channelStatus() -> String {
+        var parts: [String] = []
+        for (path, label) in allChannels() {
+            parts.append(FileManager.default.fileExists(atPath: path)
+                         ? label + "=在" : label + "=缺")
+        }
+        return parts.joined(separator: " ")
+    }
+
+    /// App-side write/read self-test on the shared /var paths. Proves whether
+    /// the shared-file channel works at all from the App process (both the
+    /// App and the appex are no-sandbox in the TrollStore TIPA).
+    static func selfTest() -> String {
+        let stamp = "vulpra-self-\(getpid())-\(Int(Date().timeIntervalSince1970))"
+        var parts: [String] = []
+        for dir in ["/var/mobile/Documents", "/tmp"] {
+            let file = dir + "/vulpra-app-self-test.txt"
+            do {
+                try stamp.write(toFile: file, atomically: true, encoding: .utf8)
+                let read = try? String(contentsOfFile: file, encoding: .utf8)
+                parts.append("\(dir)=\(read == stamp ? "ok" : "mismatch")")
+            } catch {
+                parts.append("\(dir)=err\((error as NSError).code)")
+            }
+        }
+        return parts.joined(separator: " ")
     }
 }

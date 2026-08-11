@@ -13,6 +13,8 @@ import VulpraEngineKit
 private enum VulpraAppexJITProbe {
     static let primaryPath = "/var/mobile/Documents/vulpra-jit-probe.json"
     static let fallbackPath = "/tmp/vulpra-jit-probe.json"
+    private static let probeLogger = Logger(
+        subsystem: "com.vulpra.browser.engine-process", category: "jit-probe")
     static func run(processType: String?) {
 #if !targetEnvironment(simulator)
         var flags: UInt32 = 0
@@ -37,6 +39,12 @@ private enum VulpraAppexJITProbe {
         }
         let launches = incrementLaunches()
         let debugged = (flags & (0x10000000 | 0x00000800)) != 0
+        // The appex's own container Documents is always writable by this
+        // process; the App discovers it by scanning container metadata, so
+        // this channel works even if the shared /var paths are restricted.
+        let ownDocuments = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask).first?
+            .appendingPathComponent("vulpra-jit-probe.json").path ?? ""
         let payload: [String: Any] = [
             "pid": getpid(),
             "processType": processType ?? "unknown",
@@ -48,11 +56,39 @@ private enum VulpraAppexJITProbe {
             "launches": launches,
             "timestamp": Date().timeIntervalSince1970,
         ]
-        if let data = try? JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys]) {
-            try? data.write(to: URL(fileURLWithPath: primaryPath))
-            try? data.write(to: URL(fileURLWithPath: fallbackPath))
+        if let data = try? JSONSerialization.data(withJSONObject: payload,
+                                                  options: [.sortedKeys]) {
+            let primary = write(data: data, to: primaryPath)
+            let fallback = write(data: data, to: fallbackPath)
+            let own = write(data: data, to: ownDocuments)
+            // Rewrite once more with per-channel results embedded so the App
+            // can see exactly which channel succeeded without any shell.
+            var enriched = payload
+            enriched["writePrimary"] = primary
+            enriched["writeFallback"] = fallback
+            enriched["writeOwnContainer"] = own
+            enriched["ownContainerPath"] = ownDocuments
+            if let enrichedData = try? JSONSerialization.data(
+                withJSONObject: enriched, options: [.sortedKeys]) {
+                let r1 = write(data: enrichedData, to: primaryPath)
+                let r2 = write(data: enrichedData, to: fallbackPath)
+                let r3 = write(data: enrichedData, to: ownDocuments)
+                probeLogger.notice(
+                    "probe pid=\(getpid(), privacy: .public) mapjit=\(mapJIT, privacy: .public) primary=\(r1, privacy: .public) fallback=\(r2, privacy: .public) own=\(r3, privacy: .public)")
+            }
         }
 #endif
+    }
+    private static func write(data: Data, to path: String) -> String {
+        guard !path.isEmpty else { return "empty-path" }
+        do {
+            try data.write(to: URL(fileURLWithPath: path))
+            return "ok"
+        } catch {
+            let code = (error as NSError).code
+            probeLogger.error("probe write failed path=\(path, privacy: .public) code=\(code)")
+            return "fail(\(code))"
+        }
     }
     private static func incrementLaunches() -> Int {
         guard let data = try? Data(contentsOf: URL(fileURLWithPath: primaryPath)),
