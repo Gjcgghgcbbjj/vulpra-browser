@@ -10,25 +10,42 @@ import Foundation
 enum VulpraJitProbe {
     static var detail = "unknown"
 
-    /// Adaptive mode decision (read once at launch): if the previous appex
-    /// self-probe shows this device cannot allocate executable JIT memory
-    /// (mmap(MAP_JIT) or the RX reprotect failed), the App stays in
-    /// interpreter mode so JIT-enabled content processes do not crash-loop
-    /// into "unusable" lag. The probe file is rewritten by every appex
-    /// launch, so a later fix that makes the appex JIT-capable re-enables
-    /// JIT automatically on the next App launch.
-    static func appexJITUnavailable() -> Bool {
+    /// Adaptive mode decision (read once at launch): JIT is enabled only when
+    /// a recent appex self-probe positively proves this device can allocate
+    /// executable JIT memory (mmap(MAP_JIT) AND the RX reprotect both "ok").
+    /// With no probe yet (first launch after install/upgrade, or the file was
+    /// wiped) the App stays in interpreter mode, so a JIT-enabled content
+    /// process can never crash-loop the browser into "unusable" lag. The probe
+    /// file is rewritten by every appex launch, so once the appex proves
+    /// capable the next App launch re-enables JIT automatically.
+    static func appexJITAvailable() -> Bool {
         for path in VulpraAppexProbe.paths {
             guard let data = FileManager.default.contents(atPath: path),
                   let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             else { continue }
             let mapjit = object["mapjit"] as? String ?? ""
             let mprotect = object["mprotect"] as? String ?? ""
-            if mapjit.contains("fail") || mprotect.contains("fail") {
+            if mapjit == "ok" && mprotect == "ok" {
                 return true
             }
         }
         return false
+    }
+
+    /// Human-readable reason for staying interpreter-only while the main
+    /// process itself is CS_DEBUGGED (rendered in the start-page footer).
+    static var interpreterReason: String {
+        for path in VulpraAppexProbe.paths {
+            guard let data = FileManager.default.contents(atPath: path),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else { continue }
+            let mapjit = object["mapjit"] as? String ?? ""
+            let mprotect = object["mprotect"] as? String ?? ""
+            if mapjit != "ok" || mprotect != "ok" {
+                return "appex无法JIT(mapjit=\(mapjit) mprotect=\(mprotect))"
+            }
+        }
+        return "appex探针未就绪(首启解释器,重启后自动评估JIT)"
     }
 
     /// Two-line footer: main-app CS_DEBUGGED status plus the appex
