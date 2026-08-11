@@ -381,3 +381,14 @@ launchctl unsetenv VULPRA_ENABLE_JIT
   sha 74bfd809…）+ 对应 .ipa + `Vulpra-JIT自动开启版说明.txt`。
 - 历史版本/：v7 备份 TIPA/IPA、旧 jailbreak-jit.tipa、旧 Vulpra/ 交付目录。
 - 桌面根目录保持只有一个 `Vulpra安装包` 文件夹。
+
+## 交付命名约定（2026-08-11，用户要求文件名带版本号）
+
+- 文件名统一带版本号：`<前缀>-<描述>-<marketing>-<build>.tipa|.ipa`
+- 当前根目录（桌面/Vulpra安装包/）：
+  - `Vulpra-TrollStore-jailbreak-jit-auto-0.2.0-8.tipa`（v8 主测，
+    sha bf567ea8…）
+  - `Vulpra-TrollStore-jailbreak-jit-mainproc-0.2.0-9.tipa`（v9 实验，
+    sha 74bfd809…）
+  - 对应 .ipa（-auto-0.2.0-8 / -mainproc-0.2.0-9）+ 说明 txt（内容已同步文件名）
+- 以后每轮打包按同一规则命名（build 号取自 build-identity.json 的 buildVersion）。
