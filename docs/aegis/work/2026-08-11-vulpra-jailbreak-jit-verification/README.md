@@ -321,3 +321,22 @@ launchctl unsetenv VULPRA_ENABLE_JIT
 - 用户侧检查：iOS 16+ 锁定模式（设置→隐私与安全性→锁定模式）须关闭。
 - 桌面布局：v8（auto）保持为主测包；v9（mainproc）作为 appex 无法 JIT 时的
   实验备选包。
+
+## 更新（2026-08-11 第十轮）：v9 已打包交付
+
+- 打包 run 31486220694（head d0d565e，conclusion=success）：
+  - TIPA sha256 `74bfd8096d6efc6962c2f873ec479ad52857118a99c7522853194c3a34a68cbe`
+  - App build 0.2.0 (9)，fingerprint `porcelain-zh-v4-jit-mainproc-20260811`
+  - 验证：CFBundleVersion=9；主二进制含 `主进程JIT模式` @398999、
+    `MOZ_FORCE_DISABLE_E10S` @398944、`主进程模式：网页JS跑在主App进程` @399665；
+    `VulpraEngineRuntime/Frameworks/defaults/pref/vulpra-main-jit.js` 在场且内容
+    为 `pref("javascript.options.main_process_disable_jit", false);`；XUL 门控
+    count=2。
+- 桌面布局：
+  - `Vulpra-TrollStore-jailbreak-jit-auto.tipa` = v8（主测，不变）
+  - `Vulpra-TrollStore-jailbreak-jit-mainproc.tipa` / `.ipa` = v9 实验
+  - `Vulpra-JIT自动开启版说明.txt` 已更新为两包指引（先 v8 后按需 v9；
+    iOS 16+ 锁定模式关闭检查项）
+  - 本地副本：/root/Vulpra-d0d565e-jit-mainproc.tipa / .ipa
+- 用户侧待回报：v8 两行 → 分支；若 appex 无法 JIT → v9 主进程模式结果
+  （网页正常+~9 = 路线成立；空白/闪退 = 回引擎重编 Route A'）。
