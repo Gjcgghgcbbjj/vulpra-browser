@@ -152,3 +152,25 @@ launchctl unsetenv VULPRA_ENABLE_JIT
 - 待真机确认：显示 CS_DEBUGGED + 跑分 ~9+ → 收尾清单推进；
   若仍 not-debugged 再回到第三轮的注入/版本排查；
   若启动崩溃 → appex MAP_JIT 未继承（见上方替代方案）。
+
+## 更新（2026-08-11 第五轮）：真机显示 CS_DEBUGGED 但浏览器卡到基本用不了
+
+- 用户装位修复版（e754582，sha aa0f38c6）后起始页显示 `JIT: CS_DEBUGGED`，
+  但网页"非常卡基本用不了"。JIT 门已开但执行路径可疑。
+- 关键架构事实：网页 JS（含 benchmark）跑在 **Vulpra Engine Process appex
+  实例**（Gecko content 子进程）里，主 App 的 CS_DEBUGGED ≠ 子进程的
+  CS_DEBUGGED。若子进程没有调试标记，MAP_JIT 在 JS::Init 失败，
+  release 下后续 JIT 分配直接崩 → content 进程反复重启 = "基本用不了"。
+- 诊断版 v6（43b6868，TIPA sha c0accca1，build 6）：
+  - appex 每次启动自检：csops 自身 CS 标志 + 真实 mmap(MAP_JIT)+mprotect(RX)
+    测试 + 启动计数器，写 /var/mobile/Documents/vulpra-jit-probe.json
+    （+ /tmp 兜底），主 App 起始页 2 秒轮询显示。
+  - 产物验证：XUL 仍含 -enable-jit 门控；主二进制含 appex 探针读取代码；
+    appex 二进制含探针路径与 csops/mmap/mprotect 符号（短字符串字面量被
+    ARM64 优化为指令立即数，字符串扫描看不到属正常）。
+  - 已放 Win 桌面 Vulpra-TrollStore-jailbreak-jit-auto.tipa。
+- 真机判读：
+  - appex debugged=NO / mapjit=fail → 根因确认：子进程无 CS_DEBUGGED。
+    修复方向：让 appex 获得调试标记（Dopamine 注入范围/每扩展开关）、
+    或把网页 JS 挪回主进程（关 Fission/e10s + 关 main_process_disable_jit pref）。
+  - appex debugged=yes / mapjit=ok 但卡 → 查编译压力/内存/渲染，非 MAP_JIT。
