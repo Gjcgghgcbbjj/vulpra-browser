@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "marketingVersion": "0.2.0",
-  "buildVersion": "6",
+  "buildVersion": "7",
   "developmentLanguage": "zh-Hans",
-  "uiFingerprint": "porcelain-zh-v4-jit-diag-20260811"
+  "uiFingerprint": "porcelain-zh-v4-jit-adaptive-20260811"
 }

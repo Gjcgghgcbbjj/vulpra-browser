@@ -203,22 +203,32 @@ public final class VulpraEngineRuntime: EngineRuntime {
     /// before the first navigation shrinks the pool immediately.
     private func applyProcessPoolPolicy() {
         guard let handle = ensureHandle() else { return }
-        dispatch(runtime: handle, type: "GeckoView:Preferences:SetPref", message: [
-            "prefs": [
-                [
-                    "pref": "dom.ipc.processPrelaunch.fission.number",
-                    "type": 64, // nsIPrefBranch.PREF_INT (v5 PreferenceType cenum)
-                    "value": 2,
-                    "branch": "user",
-                ],
-                [
-                    "pref": "dom.ipc.processCount",
-                    "type": 64, // nsIPrefBranch.PREF_INT (v5 PreferenceType cenum)
-                    "value": 4,
-                    "branch": "user",
-                ],
-            ],
-        ])
+        // JIT mode reserves executable memory in every content process; keep
+        // the pool small (no prelaunch, cap 2) so a memory-constrained real
+        // device does not run half a dozen JIT appex instances at once
+        // (jetsam/restart lag observed on-device). Interpreter mode keeps the
+        // original 2/4 baseline pool.
+        let jitEnabled = getenv("VULPRA_ENABLE_JIT").map { String(cString: $0) } == "1"
+        let prefs: [[String: Any]]
+        if jitEnabled {
+            prefs = [
+                // fission.number is the real prelaunch-pool knob (the pool
+                // bypasses the web cap while Fission autostarts); 0 = no
+                // pre-warmed JIT appex instances on memory-constrained devices.
+                ["pref": "dom.ipc.processPrelaunch.fission.number",
+                 "type": 64, "value": 0, "branch": "user"],
+                ["pref": "dom.ipc.processCount",
+                 "type": 64, "value": 2, "branch": "user"],
+            ]
+        } else {
+            prefs = [
+                ["pref": "dom.ipc.processPrelaunch.fission.number",
+                 "type": 64, "value": 2, "branch": "user"],
+                ["pref": "dom.ipc.processCount",
+                 "type": 64, "value": 4, "branch": "user"],
+            ]
+        }
+        dispatch(runtime: handle, type: "GeckoView:Preferences:SetPref", message: ["prefs": prefs])
     }
 
     private func startMemoryPressureMonitoring() {

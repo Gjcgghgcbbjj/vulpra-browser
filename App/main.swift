@@ -30,9 +30,18 @@ private func vulpraEnableJitIfEligible() {
     // surface the raw flags so the effective bit is visible on the start page.
     let debuggedMask: UInt32 = 0x10000000 | 0x00000800
     if flags & debuggedMask != 0 {
-        setenv("VULPRA_ENABLE_JIT", "1", 1)
-        VulpraJitProbe.detail = String(format: "CS_DEBUGGED (flags=0x%08X)", flags)
-        vulpraJitLogger.notice("Real-device JIT: process is CS_DEBUGGED; JIT enabled for engine children")
+        if VulpraJitProbe.appexJITUnavailable() {
+            // The main app is debugged, but the engine content processes
+            // (appex) cannot allocate executable JIT memory on this device;
+            // enabling JIT there makes the browser unusable (crash-loop).
+            // Stay interpreter-only (smooth) until the appex can JIT.
+            VulpraJitProbe.detail = "CS_DEBUGGED(主进程) appex无法JIT -> 解释器模式(流畅)"
+            vulpraJitLogger.notice("Real-device JIT: appex MAP_JIT unavailable; interpreter-only for stability")
+        } else {
+            setenv("VULPRA_ENABLE_JIT", "1", 1)
+            VulpraJitProbe.detail = String(format: "CS_DEBUGGED (flags=0x%08X) JIT开启", flags)
+            vulpraJitLogger.notice("Real-device JIT: process is CS_DEBUGGED; JIT enabled for engine children")
+        }
     } else {
         VulpraJitProbe.detail = String(format: "not-debugged (flags=0x%08X)", flags)
         vulpraJitLogger.notice("Real-device JIT: not CS_DEBUGGED; interpreter-only")

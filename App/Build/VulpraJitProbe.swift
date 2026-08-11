@@ -10,6 +10,27 @@ import Foundation
 enum VulpraJitProbe {
     static var detail = "unknown"
 
+    /// Adaptive mode decision (read once at launch): if the previous appex
+    /// self-probe shows this device cannot allocate executable JIT memory
+    /// (mmap(MAP_JIT) or the RX reprotect failed), the App stays in
+    /// interpreter mode so JIT-enabled content processes do not crash-loop
+    /// into "unusable" lag. The probe file is rewritten by every appex
+    /// launch, so a later fix that makes the appex JIT-capable re-enables
+    /// JIT automatically on the next App launch.
+    static func appexJITUnavailable() -> Bool {
+        for path in VulpraAppexProbe.paths {
+            guard let data = FileManager.default.contents(atPath: path),
+                  let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else { continue }
+            let mapjit = object["mapjit"] as? String ?? ""
+            let mprotect = object["mprotect"] as? String ?? ""
+            if mapjit.contains("fail") || mprotect.contains("fail") {
+                return true
+            }
+        }
+        return false
+    }
+
     /// Two-line footer: main-app CS_DEBUGGED status plus the appex
     /// (Gecko child process) self-probe where JIT actually runs.
     static var footerText: String {
