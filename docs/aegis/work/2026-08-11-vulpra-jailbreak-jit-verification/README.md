@@ -250,3 +250,24 @@ launchctl unsetenv VULPRA_ENABLE_JIT
 - 因此主 App 显示 CS_DEBUGGED 时 appex **大概率同样 debugged**（v6 探针直接
   验证）。若 appex 显示 NO：先查 Dopamine → Vulpra 的 tweak 注入开关 /
   Choicy 设置 / 重启 SpringBoard 后再测，再考虑主进程路线。
+
+## 更新（2026-08-11 第八轮）：v8 已打包交付
+
+- 打包 run 31483222670（head ba52e6f，conclusion=success）：
+  - TIPA sha256 `bf567ea8e1d20b9e22de23c590b7e861c9a2cd9f7192f0fd9098e7b444a36252`
+    （artifact `vulpra-independent-ios-31483222670`，包内 SHA256SUMS 一致）
+  - App build 0.2.0 (8)，fingerprint `porcelain-zh-v4-jit-probe-required-20260811`
+  - 验证：CFBundleVersion=8；主二进制含 `appex JIT not proven` 日志与全部 v8
+    中文探针串（字节级确认：`appex探针未就绪` @402288、`appex无法JIT` @402352、
+    `首启解释器,重启后自动评估JIT` @402309）；XUL `-enable-jit` 门控 count=2；
+    appex 二进制含探针路径。
+- 桌面布局（Win 桌面）：
+  - `Vulpra-TrollStore-jailbreak-jit-auto.tipa` = **v8**（sha bf567ea8）
+  - `Vulpra-jailbreak-jit-auto.ipa` = v8
+  - `Vulpra-TrollStore-jailbreak-jit-auto-v7备份.tipa` / `...-v7备份.ipa` = v7 备份
+  - `Vulpra-JIT自动开启版说明.txt` 已更新为 v8 测试指引（首启解释器属正常，
+    打开过网页后重启一次自动评估 JIT）
+  - 本地副本：/root/Vulpra-ba52e6f-jit-probe-required.tipa / .ipa
+- 待用户回报：v8 起始页两行（重点 appex 探针）+ 机型/iOS + Speedometer。
+- 分支判读（沿用第六/七轮口径）：mapjit=fail → 主进程路线（需引擎重编，
+  调研结论见第七轮）；mapjit=ok 但卡 → 内存/编译压力分支；mapjit=ok 且 ~9 → 收尾。
