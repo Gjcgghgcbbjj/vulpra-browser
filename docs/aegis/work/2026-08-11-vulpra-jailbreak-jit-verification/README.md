@@ -406,3 +406,32 @@ launchctl unsetenv VULPRA_ENABLE_JIT
   （与 create-ipa.sh 断言一致）→ /var/mobile/Documents 与 /tmp 写入不被沙箱拦截。
 - 待用户回报：回起始页后的第二行 appex 探针。mapjit=ok → 重启 App 自动切 JIT；
   mapjit=fail → 装 v9 mainproc 主进程 JIT。
+
+## 更新（2026-08-11 第十三轮）：用户澄清 + v10 多通道诊断版
+
+- 用户澄清：回报"尚未启动"时**已经打开过网页**（跑过 Speedometer 5.3）才回来看的。
+  这推翻了第十二轮"首启时刻查看"的解释：appex 必然启动过、探针必然写入过
+  （beginRequest → VulpraAppexJITProbe.run 先于 JS::Init），但主 App 仍读不到
+  → 高度怀疑共享 /var 通道被系统侧隔离（get-task-allow 附加调试性或 NSExtension
+  容器隔离），而不是 appex 没写。
+- v10（commit a8dcab0，build 10，fingerprint porcelain-zh-v4-jit-probe-v10）：
+  三通道诊断 + App 侧自检，一次装包定位通道问题：
+  - appex 侧：探针同时写 /var/mobile/Documents、/tmp、**自身容器 Documents**
+    （必然可写），并重写一次嵌入每通道结果
+    （writePrimary/writeFallback/writeOwnContainer/ownContainerPath）；
+    os.Logger subsystem com.vulpra.browser.engine-process / category jit-probe
+    记录每通道写入结果（设备日志可直接看）。
+  - App 侧：多通道读取，共享路径优先 + 扫描
+    /var/mobile/Containers/Data/Application 下
+    .com.apple.mobile_container_manager.metadata.plist 匹配
+    com.vulpra.browser.engine-process 的容器 Documents；
+    footer 第二行显示 `[写:…/…/… 读自:…]`，无探针时显示各通道 =在/=缺。
+  - App 侧自检：对 /var/mobile/Documents 与 /tmp 做写读回环，footer 追加
+    `自检:/var/mobile/Documents=ok /tmp=ok`（任一 =err 即系统隔离实锤）。
+  - 判读矩阵：
+    - mapjit=ok → 重启 App 自动切 JIT，收尾（Speedometer ~9 验证）。
+    - mapjit=fail/debugged=NO → 装 v9 mainproc 主进程 JIT 实验。
+    - 全通道 =缺 + 自检 =ok → 共享通道通，问题在 appex 没写/没启动 →
+      查 appex 崩溃（launches 计数、jit-probe 日志）。
+    - 自检 =err → 系统隔离成立 → 改用 XPC 直传探针
+      （ExtensionBootstrapPing 已有 ping 协议，可扩展为带 probe 字典返回）。
