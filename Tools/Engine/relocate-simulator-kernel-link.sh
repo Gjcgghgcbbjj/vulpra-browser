@@ -2,7 +2,7 @@
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../.." && pwd)
-CONTRACT=${VULPRA_ENGINE_CONTRACT:-$ROOT/Configuration/engine-artifact-v4.json}
+CONTRACT=${VULPRA_ENGINE_CONTRACT:-$ROOT/Configuration/engine-artifact-device-v5.json}
 ENGINE_BINARY=${TARGET_BUILD_DIR:?}/${WRAPPER_NAME:?}/VulpraEngineKit
 
 KERNEL_INSTALL_PATH=$(python3 - "$CONTRACT" <<'PY'

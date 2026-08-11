@@ -1,0 +1,13 @@
+diff --git a/gfx/layers/ipc/CompositorManagerChild.cpp b/gfx/layers/ipc/CompositorManagerChild.cpp
+index 334ad38f3d80ef898f732d0d8e165f098507ecc8..13aad749d36c4bd37e433889642a1b8b32d7c514 100644
+--- a/gfx/layers/ipc/CompositorManagerChild.cpp
++++ b/gfx/layers/ipc/CompositorManagerChild.cpp
+@@ -142,7 +142,7 @@ bool CompositorManagerChild::CreateContentCompositorBridge(
+     return false;
+   }
+ 
+-  bridge->InitForContent(aNamespace);
++  bridge->InitForContent(aNamespace, sInstance->mProcessToken);
+   return true;
+ }
+ 

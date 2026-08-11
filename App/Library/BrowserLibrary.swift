@@ -42,6 +42,20 @@ final class BookmarkStore {
         return items.filter { $0.title.localizedCaseInsensitiveContains(query) || ($0.url?.localizedCaseInsensitiveContains(query) ?? false) }
     }
 
+    func matches(_ query: String, limit: Int) -> [Bookmark] {
+        guard !query.isEmpty, limit > 0 else { return [] }
+        var matches: [Bookmark] = []
+        matches.reserveCapacity(limit)
+        for item in items where !item.isFolder {
+            if item.title.localizedCaseInsensitiveContains(query)
+                || (item.url?.localizedCaseInsensitiveContains(query) ?? false) {
+                matches.append(item)
+                if matches.count == limit { break }
+            }
+        }
+        return matches
+    }
+
     private func persist() { store.save(items) }
 }
 
@@ -69,5 +83,19 @@ final class HistoryStore {
     func search(_ query: String) -> [HistoryVisit] {
         guard !query.isEmpty else { return visits }
         return visits.filter { $0.title.localizedCaseInsensitiveContains(query) || $0.url.localizedCaseInsensitiveContains(query) }
+    }
+
+    func matches(_ query: String, limit: Int) -> [HistoryVisit] {
+        guard !query.isEmpty, limit > 0 else { return [] }
+        var matches: [HistoryVisit] = []
+        matches.reserveCapacity(limit)
+        for visit in visits {
+            if visit.title.localizedCaseInsensitiveContains(query)
+                || visit.url.localizedCaseInsensitiveContains(query) {
+                matches.append(visit)
+                if matches.count == limit { break }
+            }
+        }
+        return matches
     }
 }

@@ -48,7 +48,7 @@ def main() -> None:
     require(extension.get("NSExtensionPrincipalClass") == "VulpraEngineProcessMain",
             "engine process principal class is wrong")
     require(process.get("CFBundlePackageType") == "XPC!", "engine process package type is wrong")
-    require(process.get("VulpraEngineProcessProtocolVersion") == 1, "engine process protocol is wrong")
+    require(process.get("VulpraEngineProcessProtocolVersion") == 2, "engine process protocol is wrong")
 
     open_in = load("Extensions/OpenIn/Info.plist")
     require(open_in.get("CFBundleDisplayName") == "Open in Vulpra",
@@ -64,6 +64,24 @@ def main() -> None:
     private = load("App/Entitlements/Vulpra.private.entitlements")
     require(private.get("application-identifier") == "com.vulpra.browser", "private identity changed")
     require(private.get("platform-application") is True, "private package entitlement is missing")
+    # Engine Process appex hosts the Gecko engine incl. the GPU process.
+    # Real-device Metal needs IOKit user clients + no-sandbox in the TIPA
+    # (4b2dc58 device feedback: in-page lag, scroll half-beat, overheating).
+    process_private = load("Engine/VulpraEngineProcess/EngineProcess.private.entitlements")
+    require(process_private.get("application-identifier") == "com.vulpra.browser.engine-process",
+            "engine process private identity changed")
+    require(process_private.get("platform-application") is True,
+            "engine process private package entitlement is missing")
+    require(process_private.get("com.apple.private.security.no-sandbox") is True,
+            "engine process TIPA must be no-sandbox (GPU/Metal on device)")
+    iokit = process_private.get("com.apple.security.iokit-user-client-class")
+    require(iokit == ["IOSurfaceRootUserClient", "AGXDeviceUserClient",
+                      "AGXSharedUserClient", "AGXCommandQueue", "AGXDevice"],
+            f"engine process TIPA iokit-user-client-class mismatch: {iokit}")
+    process_standard = load("Engine/VulpraEngineProcess/EngineProcess.entitlements")
+    require(process_standard == {},
+            "App Store engine process entitlements must stay empty (Apple re-signs; "
+            "Metal needs no private entitlements there)")
 
     router = (ROOT / "App/RuntimeURLRouter.swift").read_text(encoding="utf-8")
     for token in ('"http"', '"https"', '"vulpra"', '"open"', 'item.name == "url"'):
@@ -74,6 +92,15 @@ def main() -> None:
     scene = (ROOT / "App/SceneDelegate.swift").read_text(encoding="utf-8")
     require("#if DEBUG" in scene and 'environment["VULPRA_SMOKE_URL"]' in scene,
             "simulator navigation evidence input must remain Debug-only")
+    require('VULPRA_GATE_DISPATCH_PORT' in scene and 'GateDispatchServer(' in scene,
+            "simulator gate dispatch hook must be wired in SceneDelegate")
+    require(scene.count("RuntimeURLRouter.resolve") >= 2,
+            "gate dispatch and URL contexts must both normalize through RuntimeURLRouter")
+    gate = (ROOT / "App/GateDispatchServer.swift").read_text(encoding="utf-8")
+    require(gate.lstrip().startswith("#if DEBUG") and "#endif" in gate,
+            "gate dispatch server must remain Debug-only")
+    require("DispatchQueue.main.async" in gate,
+            "gate dispatch must open URLs on the main thread for EngineKit/Gecko")
     print("PASS: preserved Vulpra product contracts")
 
 

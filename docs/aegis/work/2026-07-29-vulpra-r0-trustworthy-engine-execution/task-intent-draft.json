@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Implement every task in the approved R0 trustworthy Gecko v5 plan and report only after completion.",
+  "goal": "Implement every task in the approved R0 trustworthy Gecko v5 plan and report only after completion.",
+  "successEvidence": [
+    "All 11 task implementations, portable suites, repeat native producer runs, 20-of-20 Simulator gate, green package run, retirement scans, ADR and baseline closure."
+  ],
+  "stopCondition": "Done only when all R0 evidence gates pass; otherwise blocked, needs-verification, or scope-exceeded is recorded without a false completion claim.",
+  "nonGoals": [
+    "R1-R3 feature implementation, physical-device runtime claims, App Store release, or persistent user-data deletion."
+  ],
+  "scope": "Execute docs/aegis/plans/2026-07-29-vulpra-r0-trustworthy-engine.md Tasks 1-11.",
+  "changeKinds": [
+    "architecture"
+  ],
+  "riskHints": [
+    "Gecko source/patch provenance, ExtensionKit lifecycle ABI, GitHub macOS builds, and destructive internal retirement."
+  ]
+}

@@ -22,6 +22,7 @@ public struct EngineCapabilities: Codable, Equatable, Sendable {
     public let supportsStorage: Bool
     public let supportsExtensions: Bool
     public let supportsPictureInPicture: Bool
+    public let supportsAutofill: Bool
     public let supportsBackgroundMedia: Bool
     public let distributionProfile: EngineDistributionProfile
     public let sandboxAuthority: EngineSandboxAuthority
@@ -35,6 +36,7 @@ public struct EngineCapabilities: Codable, Equatable, Sendable {
         supportsStorage: Bool,
         supportsExtensions: Bool,
         supportsPictureInPicture: Bool,
+        supportsAutofill: Bool,
         supportsBackgroundMedia: Bool,
         distributionProfile: EngineDistributionProfile,
         sandboxAuthority: EngineSandboxAuthority,
@@ -47,6 +49,7 @@ public struct EngineCapabilities: Codable, Equatable, Sendable {
         self.supportsStorage = supportsStorage
         self.supportsExtensions = supportsExtensions
         self.supportsPictureInPicture = supportsPictureInPicture
+        self.supportsAutofill = supportsAutofill
         self.supportsBackgroundMedia = supportsBackgroundMedia
         self.distributionProfile = distributionProfile
         self.sandboxAuthority = sandboxAuthority

@@ -1,0 +1,13 @@
+diff --git a/netwerk/ipc/SocketProcessHost.cpp b/netwerk/ipc/SocketProcessHost.cpp
+index fb0a509b37ae45d8c5439ef09ddbf9273d2e8e6b..f7f193da07e73770806733fe92c63eb3f39e1988 100644
+--- a/netwerk/ipc/SocketProcessHost.cpp
++++ b/netwerk/ipc/SocketProcessHost.cpp
+@@ -72,7 +72,7 @@ bool SocketProcessHost::Launch() {
+   ProcessChild::AddPlatformBuildID(extraArgs);
+ 
+   SharedPreferenceSerializer prefSerializer;
+-  if (!prefSerializer.SerializeToSharedMemory(GeckoProcessType_VR,
++  if (!prefSerializer.SerializeToSharedMemory(GeckoProcessType_Socket,
+                                               /* remoteType */ ""_ns)) {
+     return false;
+   }

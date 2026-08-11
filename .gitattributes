@@ -1,2 +1,3 @@
 # Preserve imported patch bytes; whitespace inside patch payloads is semantic.
 Patches/** -whitespace
+Engine/GeckoPatches/** -whitespace

@@ -1,6 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
+<!--
+  TrollStore (TIPA) entitlements for the Engine Process appex.
+
+  This appex hosts the Gecko engine including the GPU process (WebRender /
+  Metal compositor). On real devices the GPU process must be able to open
+  IOKit user clients to create a Metal device; without
+  com.apple.security.iokit-user-client-class the engine silently falls back
+  to swgl software rendering, which shows up as in-page lag, scrolling that
+  loads half a beat behind the finger, and severe heating (2026-08-08 device
+  feedback on the 4b2dc58 TIPA). The classes below mirror
+  App/Entitlements/Vulpra.private.entitlements exactly; no-sandbox matches
+  the App so the ExtensionKit host and its child processes are not
+  sandbox-restricted.
+-->
 <dict>
 	<key>application-identifier</key>
 	<string>com.vulpra.browser.engine-process</string>
@@ -12,5 +26,15 @@
 	<true/>
 	<key>platform-application</key>
 	<true/>
+	<key>com.apple.private.security.no-sandbox</key>
+	<true/>
+	<key>com.apple.security.iokit-user-client-class</key>
+	<array>
+		<string>IOSurfaceRootUserClient</string>
+		<string>AGXDeviceUserClient</string>
+		<string>AGXSharedUserClient</string>
+		<string>AGXCommandQueue</string>
+		<string>AGXDevice</string>
+	</array>
 </dict>
 </plist>

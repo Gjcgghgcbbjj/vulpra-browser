@@ -1,0 +1,21 @@
+diff --git a/toolkit/xre/nsAppRunner.cpp b/toolkit/xre/nsAppRunner.cpp
+index 12fed39..0e388d4 100644
+--- a/toolkit/xre/nsAppRunner.cpp
++++ b/toolkit/xre/nsAppRunner.cpp
+@@ -6154,13 +6154,11 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
+     greDir = parent.forget();
+     greDir->AppendNative("Resources"_ns);
+ #elif defined(XP_IOS)
+-    // FIXME: Consider looking up the GeckoView.framework bundle directly,
+-    // rather than deriving it from XRE_GetBinaryPath on iOS. This may be more
+-    // resilient especially once we properly bundle XUL into a separate
+-    // framework or support multiple embedders.
++    // XUL may be installed in a separate framework carrier on Simulator, but
++    // runtime resources have one platform-independent container contract.
+     rv = greDir->AppendNative("Frameworks"_ns);
+     NS_ENSURE_SUCCESS(rv, 2);
+-    rv = greDir->AppendNative("GeckoView.framework"_ns);
++    rv = greDir->AppendNative("VulpraEngineRuntime"_ns);
+     NS_ENSURE_SUCCESS(rv, 2);
+     rv = greDir->AppendNative("Frameworks"_ns);
+     NS_ENSURE_SUCCESS(rv, 2);

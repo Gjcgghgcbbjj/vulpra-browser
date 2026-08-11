@@ -53,7 +53,7 @@
       "from": "staged",
       "to": "atomic-cutover",
       "requirements": [
-        "verified-v4-artifact",
+        "verified-v5-artifact",
         "verified-abi-inventory",
         "independent-runtime-startup",
         "independent-process-host",

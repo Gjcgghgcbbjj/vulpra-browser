@@ -1,0 +1,22 @@
+diff --git a/build/moz.configure/toolchain.configure b/build/moz.configure/toolchain.configure
+index 2f97afdb3615acd25be512edda69af955cfb3823..c7a9411aadef6e98da5b7743ba7b792261ac9f17 100644
+--- a/build/moz.configure/toolchain.configure
++++ b/build/moz.configure/toolchain.configure
+@@ -1795,6 +1795,17 @@ def select_linker_tmpl(host_or_target):
+             if retcode == 1 and "Logging ld64 options" in stderr:
+                 kind = "ld64"
+ 
++            # Xcode 26 ld no longer emits the LD_PRINT_OPTIONS marker above,
++            # but still identifies itself while rejecting GNU --version.
++            elif (
++                linker in (None, "ld64")
++                and target.kernel == "Darwin"
++                and retcode != 0
++                and "--version" in stderr
++                and ("ld:" in stderr or "ld64" in stderr)
++            ):
++                kind = "ld64"
++
+             elif retcode != 0:
+                 return None
+ 

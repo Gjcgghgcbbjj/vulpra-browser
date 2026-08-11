@@ -1,0 +1,24 @@
+diff --git a/toolkit/xre/IOSBootstrap.h b/toolkit/xre/IOSBootstrap.h
+index 2fffb86bd6d7ed2b05acab343a055757603a7a76..7af0918328d73649e6189ae5d674c417dff4d61b 100644
+--- a/toolkit/xre/IOSBootstrap.h
++++ b/toolkit/xre/IOSBootstrap.h
+@@ -14,6 +14,7 @@
+ #  define MOZ_BEGIN_EXTERN_C
+ #  define MOZ_END_EXTERN_C
+ #endif
++#include <stdint.h>
+ #include <xpc/xpc.h>
+ 
+ @protocol SwiftGeckoViewRuntime;
+@@ -28,6 +29,11 @@ MOZ_EXPORT void ChildProcessInit(xpc_connection_t aXpcConnection,
+                                  id<GeckoProcessExtension> aProcess,
+                                  id<SwiftGeckoViewRuntime> aRuntime);
+ 
++MOZ_EXPORT void GeckoChildProcessDidChange(
++    uint64_t aLaunchID, int32_t aChildID, int32_t aPid,
++    const char* aProcessType, int32_t aStage, int32_t aFailureCode,
++    const char* _Nullable aReason);
++
+ MOZ_END_EXTERN_C
+ 
+ #endif /* IOSBootstrap_h */

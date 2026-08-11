@@ -1,0 +1,69 @@
+diff --git a/widget/uikit/GeckoViewSwiftSupport.h b/widget/uikit/GeckoViewSwiftSupport.h
+index e68fca9134c058205d11d9d46d6938f6172fc9c3..550eba052ca3c38dff30ef9f5ae1ec30d63362bb 100644
+--- a/widget/uikit/GeckoViewSwiftSupport.h
++++ b/widget/uikit/GeckoViewSwiftSupport.h
+@@ -18,12 +18,55 @@
+ #endif
+ 
+ #import <Foundation/Foundation.h>
++#import <AVFoundation/AVSampleBufferDisplayLayer.h>
+ #import <UIKit/UIKit.h>
+ #import <xpc/xpc.h>
+ 
+ @protocol SwiftEventDispatcher;
+ 
+-@protocol SwiftGeckoViewRuntime <NSObject>
++typedef NS_ENUM(int32_t, GeckoChildProcessStage) {
++  GeckoChildProcessRequested = 1,
++  GeckoChildProcessExtensionConnected = 2,
++  GeckoChildProcessBootstrapAcknowledged = 3,
++  GeckoChildProcessIPCConnected = 4,
++  GeckoChildProcessFailed = 5,
++  GeckoChildProcessTerminated = 6,
++};
++
++typedef NS_ENUM(int32_t, GeckoChildProcessFailureCode) {
++  GeckoChildProcessFailureNone = 0,
++  GeckoChildProcessFailureExtensionStart = 1,
++  GeckoChildProcessFailureXPCTransport = 2,
++  GeckoChildProcessFailureBootstrapReply = 3,
++  GeckoChildProcessFailureProcessLaunch = 4,
++  GeckoChildProcessFailureIPCBeforeConnection = 5,
++};
++
++@protocol GeckoChildProcessLifecycleObserver <NSObject>
++- (void)childProcessDidChangeWithLaunchID:(uint64_t)launchID
++                                  childID:(int32_t)childID
++                                      pid:(int32_t)pid
++                              processType:(NSString*)processType
++                                    stage:(GeckoChildProcessStage)stage
++             monotonicTimestampNanoseconds:
++                 (uint64_t)monotonicTimestampNanoseconds
++                              failureCode:
++                                  (GeckoChildProcessFailureCode)failureCode
++                                   reason:(NSString* _Nullable)reason;
++@end
++
++@interface GeckoViewPictureInPictureSnapshot : NSObject
++@property(nonatomic, readonly) AVSampleBufferDisplayLayer* displayLayer;
++@property(nonatomic, readonly) uint64_t enqueueCount;
++@property(nonatomic, readonly) BOOL fullscreen;
++@end
++
++@interface GeckoViewPictureInPictureCandidateList : NSObject
++@property(nonatomic, readonly) NSUInteger count;
++- (GeckoViewPictureInPictureSnapshot*)candidateAtIndex:(NSUInteger)index;
++@end
++
++@protocol SwiftGeckoViewRuntime <GeckoChildProcessLifecycleObserver>
+ - (id<SwiftEventDispatcher>)runtimeDispatcher;
+ - (id<SwiftEventDispatcher>)dispatcherByName:(const char*)name;
+ @end
+@@ -56,6 +99,7 @@
+ 
+ @protocol GeckoViewWindow <NSObject>
+ - (UIView*)view;
++- (GeckoViewPictureInPictureCandidateList*)pictureInPictureCandidates;
+ - (void)close;
+ @end
+ 

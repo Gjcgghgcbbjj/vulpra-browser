@@ -130,3 +130,21 @@
 | 2026-07-29 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-final-package-delivery-30398876901.json | 2026-07-26-vulpra-independent-engine-completion evidence final-package-delivery-30398876901 |
 | 2026-07-29 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-loopback-executable-rendering-30389904599.json | 2026-07-26-vulpra-independent-engine-completion evidence loopback-executable-rendering-30389904599 |
 | 2026-07-29 | artifact | docs/aegis/work/2026-07-26-vulpra-independent-engine-completion/evidence-bundle-draft-hosted-simulator-rerun-drift-30393594180-30397230869.json | 2026-07-26-vulpra-independent-engine-completion evidence hosted-simulator-rerun-drift-30393594180-30397230869 |
+| 2026-07-29 | spec | docs/aegis/specs/2026-07-29-vulpra-power-browser-architecture-design.md | Vulpra Power Browser Product and Platform Architecture |
+| 2026-07-29 | plan | docs/aegis/plans/2026-07-29-vulpra-r0-trustworthy-engine.md | Vulpra R0 Trustworthy Engine Implementation Plan |
+| 2026-07-29 | work | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/10-intent.md | Vulpra R0 Trustworthy Engine Execution intent |
+| 2026-07-29 | work | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/20-checkpoint.md | Vulpra R0 Trustworthy Engine Execution checkpoint |
+| 2026-07-29 | work | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/90-evidence.md | Vulpra R0 Trustworthy Engine Execution evidence |
+| 2026-07-29 | work | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/99-reflection.md | Vulpra R0 Trustworthy Engine Execution reflection |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/task-intent-draft.json | Vulpra R0 Trustworthy Engine Execution task intent draft |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/baseline-read-set-hint.json | Vulpra R0 Trustworthy Engine Execution baseline read-set hint |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/baseline-usage-draft.json | Vulpra R0 Trustworthy Engine Execution baseline usage draft |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/impact-statement-draft.json | Vulpra R0 Trustworthy Engine Execution impact statement draft |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/todo-checkpoint-draft.json | Vulpra R0 Trustworthy Engine Execution todo checkpoint draft |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/drift-check-draft.json | Vulpra R0 Trustworthy Engine Execution drift check draft |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/evidence-bundle-draft-task1-producer-contract.json | 2026-07-29-vulpra-r0-trustworthy-engine-execution evidence task1-producer-contract |
+| 2026-07-29 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/resume-state-hint.json | 2026-07-29-vulpra-r0-trustworthy-engine-execution resume state hint |
+| 2026-07-31 | artifact | docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/evidence-bundle-draft-task9-native-pair-305983.json | 2026-07-29-vulpra-r0-trustworthy-engine-execution evidence task9-native-pair-305983 |
+| 2026-08-09 | work | docs/aegis/work/2026-08-09-vulpra-standard-benchmark/README.md | 2026-08-09-vulpra-standard-benchmark standard benchmark |
+| 2026-08-10 | work | docs/aegis/work/2026-08-10-vulpra-real-device-jit/README.md | 2026-08-10-vulpra-real-device-jit real-device JIT options |
+| 2026-08-10 | adr | docs/aegis/adr/ADR-0005-real-device-jit-trust-boundary.md | ADR-0005 - Real-Device JIT Trust Boundary (draft) |

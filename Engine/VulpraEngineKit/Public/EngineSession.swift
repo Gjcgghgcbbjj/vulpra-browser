@@ -5,14 +5,20 @@ public enum EngineUserAgentMode: String, Codable, Sendable {
     case desktop
 }
 
+public enum EngineTrackingProtectionLevel: String, Codable, Sendable {
+    case off
+    case standard
+    case strict
+}
+
 public struct EngineSessionConfiguration: Equatable, Sendable {
     public let isPrivate: Bool
     public let userAgentMode: EngineUserAgentMode
     public let pageZoom: Double
-    public let trackingProtection: Bool
+    public let trackingProtection: EngineTrackingProtectionLevel
 
     public init(isPrivate: Bool, userAgentMode: EngineUserAgentMode, pageZoom: Double,
-                trackingProtection: Bool = true) {
+                trackingProtection: EngineTrackingProtectionLevel = .standard) {
         self.isPrivate = isPrivate
         self.userAgentMode = userAgentMode
         self.pageZoom = pageZoom
@@ -46,8 +52,10 @@ public protocol EngineSession: AnyObject, Sendable {
     var navigationObserver: (any EngineNavigationObserver)? { get set }
     var progressObserver: (any EngineProgressObserver)? { get set }
     var contentObserver: (any EngineContentObserver)? { get set }
+    var fullscreenObserver: (any EngineFullscreenObserver)? { get set }
     var promptHandler: (any EnginePromptHandler)? { get set }
     var permissionHandler: (any EnginePermissionHandler)? { get set }
+    var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)? { get set }
     var downloadHandler: (any EngineDownloadHandler)? { get set }
 
     @MainActor
@@ -62,5 +70,6 @@ public protocol EngineSession: AnyObject, Sendable {
     func stop()
     func setActive(_ active: Bool)
     func setFocused(_ focused: Bool)
+    func exitFullscreen()
     func update(configuration: EngineSessionConfiguration)
 }

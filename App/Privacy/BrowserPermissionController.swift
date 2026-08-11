@@ -29,3 +29,22 @@ final class BrowserPermissionController: EnginePermissionHandler {
         presenter.present(alert, animated: true)
     }
 }
+
+extension BrowserPermissionController: EngineClipboardPermissionHandler {
+    func engineSession(_ id: EngineSessionID, requestedClipboardAccessAt point: EngineScreenPoint,
+                       completion: @escaping (Bool) -> Void) {
+        guard let presenter else { completion(false); return }
+        let alert = UIAlertController(
+            title: VulpraL10n.text("permission.this_site"),
+            message: VulpraL10n.text("permission.clipboard_paste"),
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: VulpraL10n.text("permission.dont_allow"), style: .cancel) { _ in
+            completion(false)
+        })
+        alert.addAction(UIAlertAction(title: VulpraL10n.text("permission.allow"), style: .default) { _ in
+            completion(true)
+        })
+        presenter.present(alert, animated: true)
+    }
+}

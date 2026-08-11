@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "description": "Pinned standard web benchmarks for Vulpra Simulator benchmark gates. Sources are immutable upstream codeload tarballs (fixed commit + SHA-256); Tools/CI/benchmark-fixture.py downloads, verifies, and copies them into the served fixture at /benchmarks/<id>/ with a small same-document reporting probe appended to each run.entry (provenance pinned in .vulpra-fixture.json). The App loads the benchmark entry itself as the TOP-LEVEL page, so progress and score are captured from the page title (GeckoView:PageTitleChanged -> 'Engine title: ...') with no iframe wrapper.",
+  "device": {
+    "family": "ipad",
+    "preferName": "iPad Pro 12.9-inch",
+    "reason": "Native iPad app (TARGETED_DEVICE_FAMILY=1,2); portrait 1024x1366 satisfies the Speedometer 3.1 850x650 minimum viewport without headless rotation. MotionMark's landscape-only Start button is never enabled in portrait, so the fixture-injected probe waits for benchmarkController.frameRateDetectionComplete (FPS detection always completes, even on failure) and then calls benchmarkController.startBenchmark() directly — no landscape required."
+  },
+  "fixture": {
+    "benchmarkRoot": "/benchmarks"
+  },
+  "benchmarks": [
+    {
+      "id": "speedometer3",
+      "displayName": "Speedometer 3.1",
+      "version": "3.1",
+      "purpose": "Web application responsiveness (simulated user interaction timing)",
+      "source": {
+        "repository": "WebKit/Speedometer",
+        "refName": "release/3.1",
+        "commit": "1386415be8fef2f6b6bbdbe1828872471c5d802a",
+        "archiveURL": "https://codeload.github.com/WebKit/Speedometer/tar.gz/1386415be8fef2f6b6bbdbe1828872471c5d802a",
+        "archiveSHA256": "cfefa818d7789ed2f2b9f3f1bf608cc35e4e8241489eef47049296ce92791313"
+      },
+      "run": {
+        "entry": "index.html",
+        "query": "startAutomatically=true&iterationCount=1&suites=TodoMVC-JavaScript-ES5,Editor-CodeMirror,Charts-chartjs,Perf-Dashboard",
+        "start": "auto",
+        "scoreSelector": "#result-number",
+        "scoreTitlePrefix": "VulpraBenchmark speedometer3 score=",
+        "timeoutSeconds": 3600,
+        "progress": {
+          "labelSelector": "#info-label",
+          "textSelector": "#info-progress",
+          "barSelector": "#progress-completed"
+        }
+      },
+      "enabledByDefault": true,
+      "requiresJitBackend": false,
+      "notes": "First-pass Simulator gate on the JIT-disabled v5 engine. A single iteration of the full default suite (20 suites / 58 subtests) does not complete within CI budget in interpreter mode (observed: still running after 2h15m on the macOS runner with iterationCount=1), so this gate runs an explicit representative subset via suites= (TodoMVC-JavaScript-ES5, Editor-CodeMirror, Charts-chartjs, Perf-Dashboard; 4 suites / 11 subtests) at iterationCount=1. The reported #result-number score is the Speedometer geomean of this subset only and is NOT comparable to the official full-suite Speedometer score; it is a stable same-engine regression proxy. Restore the full default suite (drop the suites= param) and iterationCount=10 together with a JIT-enabled engine, then re-baseline. timeoutSeconds=3600 is the wall-clock budget for the interpreter-mode subset run; the fixture-injected probe publishes progress lines ('Engine title: VulpraBenchmark speedometer3 progress=...') from the top-level entry page so a slow or stalled suite is visible in the evidence log."
+    },
+    {
+      "id": "motionmark",
+      "displayName": "MotionMark 1.3.2",
+      "version": "1.3.2",
+      "purpose": "Graphics and animation frame-rate (canvas rendering at target fps)",
+      "source": {
+        "repository": "WebKit/MotionMark",
+        "refName": "motionmark-release-1.3.2",
+        "commit": "0e740d50f2321d255f6176e2f57493574c735996",
+        "archiveURL": "https://codeload.github.com/WebKit/MotionMark/tar.gz/0e740d50f2321d255f6176e2f57493574c735996",
+        "archiveSHA256": "14b746f05b388a382d315186efd6e19017f7f67b3846d20759ab30fe83c2f985"
+      },
+      "run": {
+        "entry": "MotionMark/index.html",
+        "query": "",
+        "start": "controller",
+        "startObject": "benchmarkController",
+        "startMethod": "startBenchmark",
+        "scoreSelector": "#results .score",
+        "scoreTitlePrefix": "VulpraBenchmark motionmark score=",
+        "timeoutSeconds": 3600,
+        "startReadyPath": "benchmarkController.frameRateDetectionComplete",
+        "startReadyValue": true
+      },
+      "enabledByDefault": false,
+      "requiresJitBackend": true,
+      "notes": "MotionMark drives WebGL/canvas 2D scene rendering through benchmarkController FPS detection (frameRateDetectionComplete). On the JIT-disabled v5 engine in the iOS Simulator the detection callback never completes (observed: page loads, then no start for 3600s) because the interpreter-mode engine cannot sustain the canvas rendering loop the detector requires, so a gate on it only burns an hour. Re-enable (enabledByDefault true) together with a JIT-enabled engine and real-device qualification, where WebGL and frame-rate detection actually complete."
+    },
+    {
+      "id": "jetstream",
+      "displayName": "JetStream 3.0",
+      "version": "3.0",
+      "purpose": "JavaScript and WebAssembly throughput (geometric mean of benchmark scores)",
+      "source": {
+        "repository": "WebKit/JetStream",
+        "refName": "JetStream3.0",
+        "commit": "06785cf861ac44855f168cbbe829278c2802e6de",
+        "archiveURL": "https://codeload.github.com/WebKit/JetStream/tar.gz/06785cf861ac44855f168cbbe829278c2802e6de",
+        "archiveSHA256": "0361851eb2ddeb003e06be74239c3f7ce437c64e774a29ba446faaed9ab16fa9"
+      },
+      "run": {
+        "entry": "index.html",
+        "query": "startDelay=0",
+        "start": "auto",
+        "scoreSelector": "#result-summary .score",
+        "scoreTitlePrefix": "VulpraBenchmark jetstream score=",
+        "timeoutSeconds": 5400
+      },
+      "enabledByDefault": false,
+      "requiresJitBackend": true,
+      "notes": "JetStream 3.0 default suite includes ~12 WebAssembly workloads (tsf-wasm, richards-wasm, sqlite3-wasm, 8bitbench-wasm, zlib-wasm, dotnet-interp/aot-wasm, j2cl-box2d-wasm, Dart-flute-todomvc-wasm, Kotlin-compose-wasm, transformersjs-bert-wasm, argon2-wasm, gcc-loops-wasm, quicksort-wasm, HashSet-wasm); the driver aborts the whole run when any sub-benchmark throws (JetStreamDriver.js start(): catch -> reportError -> throw e), and the page refuses a partial suite. The current v5 engine calls JS::DisableJitBackend() in every Gecko child process (toolkit/xre/IOSBootstrap.mm ChildProcessInitImpl), setting JitOptions.disableJitBackend=true, so wasm::HasSupport() is false (HasPlatformSupport -> HasJitBackend -> !disableJitBackend) and WebAssembly is unavailable. Therefore the full JetStream 3.0 gate is guaranteed to fail on the JIT-disabled engine: requiresJitBackend=true and enabledByDefault=false, and the benchmark workflow refuses to select it. Re-enable only together with a JIT-enabled engine build."
+    }
+  ]
+}

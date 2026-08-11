@@ -1,0 +1,46 @@
+diff --git a/js/src/jit/ProcessExecutableMemory.cpp b/js/src/jit/ProcessExecutableMemory.cpp
+index cea7d764..d131d572 100644
+--- a/js/src/jit/ProcessExecutableMemory.cpp
++++ b/js/src/jit/ProcessExecutableMemory.cpp
+@@ -29,6 +29,9 @@
+ 
+ #ifdef XP_WIN
+ #  include "mozilla/StackWalk_windows.h"
++#elif defined(XP_IOS)
++#  include <TargetConditionals.h>
++#  include <dlfcn.h>
+ #elif defined(__wasi__)
+ #  if defined(JS_CODEGEN_WASM32)
+ #    include <cstdlib>
+@@ -992,14 +995,30 @@
+   return true;
+ }
+ 
+-#if defined(JS_USE_APPLE_FAST_WX) && !defined(XP_IOS)
++#if defined(JS_USE_APPLE_FAST_WX) && (!defined(XP_IOS) || TARGET_OS_SIMULATOR)
+ void js::jit::AutoMarkJitCodeWritableForThread::markExecutable(
+     bool executable) {
++#if defined(XP_IOS) && TARGET_OS_SIMULATOR
++  // The iOS Simulator SDK does not declare the macOS-only
++  // pthread_jit_write_protect_np, but the Simulator runtime is macOS, so
++  // resolve it dynamically. Real-device iOS never builds this branch
++  // (TARGET_OS_SIMULATOR == 0) and disables JIT at runtime anyway.
++  static void (*fn)(int) = nullptr;
++  if (!fn) {
++    fn = reinterpret_cast<void (*)(int)>(
++        dlsym(RTLD_DEFAULT, "pthread_jit_write_protect_np"));
++  }
++  if (!fn) {
++    MOZ_CRASH("pthread_jit_write_protect_np must be available on the Simulator");
++  }
++  fn(executable);
++#else
+   if (__builtin_available(macOS 11.0, *)) {
+     pthread_jit_write_protect_np(executable);
+   } else {
+     MOZ_CRASH("pthread_jit_write_protect_np must be available");
+   }
++#endif
+ }
+ #endif
+ 

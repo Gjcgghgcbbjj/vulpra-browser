@@ -1,0 +1,13 @@
+diff --git a/gfx/webrender_bindings/RenderCompositorNative.cpp b/gfx/webrender_bindings/RenderCompositorNative.cpp
+index f60325f45f629b3b8c42b7f193e323f572177f41..aef7ca853af0d4a906c8c206c167dbe8443b9b9a 100644
+--- a/gfx/webrender_bindings/RenderCompositorNative.cpp
++++ b/gfx/webrender_bindings/RenderCompositorNative.cpp
+@@ -108,7 +108,7 @@ bool RenderCompositorNative::Resume() { return true; }
+ inline layers::WebRenderCompositor RenderCompositorNative::CompositorType()
+     const {
+   if (gfx::gfxVars::UseWebRenderCompositor()) {
+-#if defined(XP_DARWIN)
++#if defined(XP_DARWIN) || defined(XP_IOS)
+     return layers::WebRenderCompositor::CORE_ANIMATION;
+ #elif defined(MOZ_WAYLAND)
+     return layers::WebRenderCompositor::WAYLAND;

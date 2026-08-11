@@ -31,6 +31,7 @@ def main() -> None:
     bridge_header = read("Engine/VulpraEngineKit/Internal/ABI/EngineABIBridge.h")
     process = read("Engine/VulpraEngineProcess/EngineProcessExtension.swift")
     simulator_workflow = read(".github/workflows/simulator-smoke.yml")
+    simulator_harness = read("Tools/CI/run-simulator-navigation.sh")
 
     require("@MainActor\npublic protocol EngineRuntime" in public_runtime,
             "EngineRuntime must declare its actor boundary")
@@ -50,6 +51,18 @@ def main() -> None:
             "native RuntimeReady must be the sole runtime callback ready transition")
     require('case "Vulpra:RuntimeReady"' in runtime,
             "runtime does not consume the native ready event")
+    require("guard lifecycle.becomeReady(Self.capabilities) else { return }" in runtime,
+            "runtime must not complete ready observers after a terminal failure")
+    require("case .failed:\n            // Terminal failure already recorded" in read("Engine/VulpraEngineKit/Internal/Lifecycle/EngineLifecycles.swift"),
+            "lifecycle must not mask an existing terminal failure")
+
+    require("applyRDDProcessStartupTimeout()" in runtime and
+            runtime.count("applyRDDProcessStartupTimeout()") == 2 and
+            '"GeckoView:Preferences:SetPref"' in runtime and
+            '"media.rdd-process.startup_timeout_ms"' in runtime and
+            '"type": 64' in runtime and
+            "rddProcessStartupTimeoutMilliseconds" in runtime,
+            "runtime must raise the RDD process startup timeout before ready")
 
     require("private let runtime: any EngineRuntime" in tab,
             "BrowserTab must depend on EngineRuntime protocol")
@@ -89,24 +102,37 @@ def main() -> None:
     for token in (
         'xcrun simctl boot "$test_udid"',
         'test_deadline=$((SECONDS + 600))',
-        '"** TEST SUCCEEDED **"',
-        '"** TEST FAILED **"',
+        '"** TEST EXECUTE SUCCEEDED **"',
+        '"** TEST EXECUTE FAILED **"',
         "testRuntimeCreatesProtocolSessionWithRequestedConfiguration()' passed",
         "testRuntimeStartsStopped()' passed",
         "testCallbackLeaseResolvesOnlyOnce()' passed",
         "testSessionLifecycleClosesAfterFailedOpenAndRetry()' passed",
         "testNavigationLoadErrorPreservesURLAndCoalescesFailedPageStop()' passed",
-        'log stream --style compact --info --debug',
     ):
         require(token in simulator_workflow,
                 f"native test workflow lacks bounded completion evidence: {token}")
-    require("log show --last" not in simulator_workflow,
+    for token in (
+        'log stream --style compact --info --debug',
+        'run_with_timeout 180 xcrun simctl launch',
+        'run_with_timeout 180 xcrun simctl bootstatus',
+        'run_with_timeout 300 xcrun simctl install',
+        'trap cleanup EXIT',
+        '"requestedLaunchIDs": requested',
+        '"connectedLaunchIDs": connected',
+    ):
+        require(token in simulator_harness,
+                f"Simulator navigation harness lacks bounded lifecycle evidence: {token}")
+    require("log show --last" not in simulator_workflow and "log show --last" not in simulator_harness,
             "simulator evidence must not use an unbounded historical log scan")
-    require(simulator_workflow.count("run_with_timeout 180 xcrun simctl launch") == 2 and
-            "run_with_timeout 180 xcrun simctl bootstatus" in simulator_workflow,
-            "simulator lifecycle commands must have bounded completion")
-    require(simulator_workflow.count("run_with_timeout 300 xcrun simctl install") == 2,
-            "large Simulator app installs need a bounded but viable timeout")
+    require("Tools/CI/run-simulator-navigation.sh" in simulator_workflow and
+            "Tools/CI/summarize-r0-engine-gate.py" in simulator_workflow and
+            "r0_attempts:" in simulator_workflow and
+            "timeout-minutes: 420" in simulator_workflow,
+            "workflow does not own the reusable repeated R0 gate")
+    require('"loadToCompleteMs": load_to_complete' in simulator_harness and
+            'max(0, load_to_complete)' not in simulator_harness,
+            "Simulator harness masks missing or regressive timing evidence")
 
     print("PASS: runtime, injection, ABI, and process hardening contracts")
 

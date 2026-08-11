@@ -1,0 +1,13 @@
+diff --git a/mobile/shared/modules/geckoview/moz.build b/mobile/shared/modules/geckoview/moz.build
+index b0a38a3b876fe20a649e9632d502036fe2d540e4..0cebdeffc7615a1ebaa946a8f3080a99441c68f6 100644
+--- a/mobile/shared/modules/geckoview/moz.build
++++ b/mobile/shared/modules/geckoview/moz.build
+@@ -6,6 +6,8 @@ EXTRA_JS_MODULES += [
+     "BrowserUsageTelemetry.sys.mjs",
+     "ChildCrashHandler.sys.mjs",
+     "DelayedInit.sys.mjs",
++    "FormAutoFillKeywords.sys.mjs",
++    "FormFieldClassifier.sys.mjs",
+     "GeckoViewActorChild.sys.mjs",
+     "GeckoViewActorManager.sys.mjs",
+     "GeckoViewActorParent.sys.mjs",

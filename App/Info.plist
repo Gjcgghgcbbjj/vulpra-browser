@@ -43,6 +43,10 @@
 	<true/>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save images selected from web pages.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Web pages can record audio for calls and media capture.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Web pages can see your location when you allow it.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Scan QR codes for website addresses.</string>
 	<key>UIApplicationSceneManifest</key>

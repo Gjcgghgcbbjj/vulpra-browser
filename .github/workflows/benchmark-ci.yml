@@ -1,0 +1,390 @@
+name: Vulpra Standard Benchmarks
+
+on:
+  # Dispatch-only (verified 2026-08-11: gh workflow run with --ref works even
+  # though benchmark-ci.yml is not on the default branch). A push trigger is
+  # intentionally absent: during the JIT experiment the lock file temporarily
+  # points at the JIT candidate tag and the branch patch series diverges from
+  # r0.3-candidate, so push-triggered runs would fail the tag/patchSet gates on
+  # every docs commit. Dispatch with -f engine_release_tag=<lock releaseTag>.
+  workflow_dispatch:
+    inputs:
+      xcode_version:
+        required: true
+        default: Xcode_26.4.1.app
+        type: string
+      engine_release_tag:
+        required: true
+        default: vulpra-engine-v5-r0.3-candidate
+        type: string
+      benchmarks:
+        description: Comma-separated benchmark ids from Configuration/benchmarks.json (defaults to enabledByDefault; jetstream requires the JIT backend and is refused)
+        required: false
+        default: speedometer3
+        type: string
+      attempts:
+        description: Attempts per benchmark (1 = single-attempt gate)
+        required: false
+        default: 1
+        type: number
+      app_bundle_run_id:
+        description: Reuse Vulpra.app built by a prior green simulator run at the same commit
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: macos-26
+    timeout-minutes: 360
+    env:
+      GH_TOKEN: ${{ github.token }}
+      DERIVED_DATA: ${{ github.workspace }}/.build/simulator-derived
+      # workflow_dispatch inputs are empty for push events; fall back to the
+      # same defaults the manual inputs declare.
+      XCODE_APP: ${{ inputs.xcode_version || 'Xcode_26.4.1.app' }}
+      ENGINE_TAG: ${{ inputs.engine_release_tag || 'vulpra-engine-v5-r0.3-candidate' }}
+      BENCHMARKS: ${{ inputs.benchmarks || 'speedometer3' }}
+      ATTEMPTS: ${{ inputs.attempts || 1 }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Select Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo xcode-select --switch "/Applications/${{ env.XCODE_APP }}/Contents/Developer"
+          xcodebuild -version | tee simulator-environment.log
+          xcrun --sdk iphonesimulator --show-sdk-build-version | tee -a simulator-environment.log
+          xcrun simctl list runtimes | tee -a simulator-environment.log
+          xcrun simctl list devicetypes | tee -a simulator-environment.log
+
+      - name: Validate benchmark manifest selection
+        shell: bash
+        run: |
+          set -euo pipefail
+          ids='${{ env.BENCHMARKS }}'
+          # Shared validator: refuses unknown ids, empty selections, and
+          # requiresJitBackend benchmarks (JetStream 3.0 wasm, MotionMark
+          # canvas FPS detection). Contract-covered by
+          # Tests/IndependentEngine/test_benchmark_contract.py.
+          selected="$(python3 Tools/CI/validate-benchmark-selection.py --ids "$ids")"
+          echo "benchmark ids: $selected"
+
+      - name: Restore verified native Simulator engine v5
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - '${{ env.ENGINE_TAG }}' <<'PY' > engine-lock.env
+          import json, shlex, sys
+          lock = json.load(open('Configuration/engine-artifact-lock.json'))
+          if sys.argv[1] != lock['releaseTag']:
+              raise SystemExit('workflow release tag does not match engine-artifact-lock.json')
+          values = {
+              'ENGINE_RELEASE_TAG': lock['releaseTag'],
+              'ENGINE_ARCHIVE': lock['simulator']['archive'],
+              'ENGINE_ARCHIVE_SHA256': lock['simulator']['archiveSHA256'],
+              'ENGINE_ARTIFACT_ID': lock['simulator']['artifactId'],
+              'ENGINE_ABI_VERSION': lock['simulator']['abiVersion'],
+              'ENGINE_SOURCE_COMMIT': lock['simulator']['sourceCommit'],
+              'ENGINE_PRODUCER_RUN_ID': str(lock['producerRunId']),
+              'ENGINE_PRODUCER_HEAD_SHA': lock['producerHeadSha'],
+              'ENGINE_PATCH_SET_SHA256': lock['simulator']['patchSetSHA256'],
+              'ENGINE_CONFIGURATION_SHA256': lock['simulator']['configurationSHA256'],
+              'ENGINE_COMPILED_BY_RUN_ID': str(lock['simulator']['compiledByRunId']),
+              'ENGINE_COMPILED_BY_HEAD_SHA': lock['simulator']['compiledByHeadSha'],
+              'ENGINE_BUILD_FINGERPRINT': lock['simulator']['buildFingerprint'],
+          }
+          for key, value in values.items():
+              print(f'{key}={shlex.quote(value)}')
+          PY
+          set -a
+          source engine-lock.env
+          set +a
+          stage="$(mktemp -d)"
+          gh release download "$ENGINE_RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ENGINE_ARCHIVE" \
+            --dir "$stage"
+          printf '%s  %s\n' "$ENGINE_ARCHIVE_SHA256" "$stage/$ENGINE_ARCHIVE" | shasum -a 256 -c -
+          mkdir -p .build/engine
+          tar -xzf "$stage/$ENGINE_ARCHIVE" -C .build/engine
+          python3 - <<'PY'
+          import json, os
+
+          manifest = json.load(open('.build/engine/manifest.json'))
+          if manifest['artifactId'] != os.environ['ENGINE_ARTIFACT_ID']:
+              raise SystemExit('simulator artifact ID does not match repository lock')
+          if manifest['abiVersion'] != os.environ['ENGINE_ABI_VERSION']:
+              raise SystemExit('simulator ABI version does not match repository lock')
+          if manifest['source']['commit'] != os.environ['ENGINE_SOURCE_COMMIT']:
+              raise SystemExit('engine source commit does not match repository lock')
+          if manifest['producer']['workflowRunId'] != int(os.environ['ENGINE_PRODUCER_RUN_ID']):
+              raise SystemExit('Simulator producer run does not match repository lock')
+          if manifest['producer']['commit'] != os.environ['ENGINE_PRODUCER_HEAD_SHA']:
+              raise SystemExit('Simulator producer source snapshot does not match repository lock')
+          if manifest['patchSet']['sha256'] != os.environ['ENGINE_PATCH_SET_SHA256']:
+              raise SystemExit('Simulator patch set does not match repository lock')
+          if manifest['configurationSHA256'] != os.environ['ENGINE_CONFIGURATION_SHA256']:
+              raise SystemExit('Simulator producer configuration does not match repository lock')
+          if manifest['compiledBy']['workflowRunId'] != int(os.environ['ENGINE_COMPILED_BY_RUN_ID']):
+              raise SystemExit('Simulator compile run does not match repository lock')
+          if manifest['compiledBy']['commit'] != os.environ['ENGINE_COMPILED_BY_HEAD_SHA']:
+              raise SystemExit('Simulator compile snapshot does not match repository lock')
+          if manifest['compiledBy']['buildFingerprint'] != os.environ['ENGINE_BUILD_FINGERPRINT']:
+              raise SystemExit('Simulator build fingerprint does not match repository lock')
+          PY
+          python3 Tools/Engine/verify-engine-artifact.py \
+            --contract Configuration/engine-artifact-simulator-v5.json .build/engine \
+            | tee simulator-engine-verification.log
+
+      - name: Build Vulpra for Simulator
+        if: ${{ inputs.app_bundle_run_id == '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project Vulpra.xcodeproj \
+            -scheme Vulpra \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$DERIVED_DATA" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            build-for-testing 2>&1 | tee simulator-build.log
+          test -d "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          test ! -e "$app/Frameworks/XUL"
+          test -f "$app/Frameworks/GeckoView.framework/XUL"
+          test "$(plutil -extract CFBundleExecutable raw "$app/Frameworks/GeckoView.framework/Info.plist")" = XUL
+          test "$(plutil -extract CFBundleIdentifier raw "$app/Frameworks/GeckoView.framework/Info.plist")" = \
+            com.vulpra.browser.simulator-engine-runtime
+          test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/application.ini"
+          omnijar="$app/Frameworks/VulpraEngineRuntime/Frameworks/omni.ja"
+          test -f "$omnijar"
+          cmp -s .build/engine/runtime/resources/omni.ja "$omnijar"
+          test ! -e "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"
+          python3 - "$omnijar" <<'PY'
+          import sys, zipfile
+
+          required = {
+              'chrome.manifest',
+              'modules/AppConstants.sys.mjs',
+              'modules/XPCOMUtils.sys.mjs',
+          }
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              missing = sorted(required - set(archive.namelist()))
+              if missing:
+                  raise SystemExit(f'staged omnijar is missing: {missing[0]}')
+              bad_entry = archive.testzip()
+              if bad_entry is not None:
+                  raise SystemExit(f'staged omnijar has invalid CRC: {bad_entry}')
+          PY
+          test ! -e "$app/Frameworks/GeckoView.framework/Frameworks/application.ini"
+          otool -D "$app/Frameworks/GeckoView.framework/XUL" \
+            | grep -Fq '@rpath/GeckoView.framework/XUL'
+          otool -L "$app/Frameworks/VulpraEngineKit.framework/VulpraEngineKit" \
+            | grep -Fq '@rpath/GeckoView.framework/XUL'
+          python3 Tools/Build/generate-build-identity.py --check
+          test "$(plutil -extract CFBundleShortVersionString raw "$app/Info.plist")" = \
+            "$(python3 Tools/Build/generate-build-identity.py --print marketingVersion)"
+          test "$(plutil -extract CFBundleVersion raw "$app/Info.plist")" = \
+            "$(python3 Tools/Build/generate-build-identity.py --print buildVersion)"
+          test "$(plutil -extract VulpraUIBuildFingerprint raw "$app/Info.plist")" = \
+            "$(python3 Tools/Build/generate-build-identity.py --print uiFingerprint)"
+          python3 - "$app" "$(python3 Tools/Build/generate-build-identity.py --print uiFingerprint)" <<'PY'
+          import sys
+          from pathlib import Path
+          app = Path(sys.argv[1])
+          token = sys.argv[2].encode('ascii')
+          binaries = [path for path in app.iterdir() if path.is_file()]
+          if not any(token in path.read_bytes() for path in binaries):
+              raise SystemExit('simulator App binaries do not contain the UI fingerprint')
+          PY
+
+      - name: Restore reusable Simulator App bundle
+        if: ${{ inputs.app_bundle_run_id != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id='${{ inputs.app_bundle_run_id }}'
+          [[ "$run_id" =~ ^[0-9]+$ ]] || { echo "app_bundle_run_id must be a numeric run id" >&2; exit 1; }
+          actual_sha="$(gh run view "$run_id" --json headSha --jq .headSha)"
+          current_sha="$(git rev-parse HEAD)"
+          [[ "$actual_sha" == "$current_sha" ]] || {
+            echo "reusable App bundle is from commit $actual_sha, not current $current_sha" >&2
+            exit 1
+          }
+          download_dir="$(mktemp -d)"
+          gh run download "$run_id" -n vulpra-simulator-app -D "$download_dir"
+          # upload-artifact stores the app bundle either as Vulpra.app/ (older
+          # layouts) or flattened into the artifact root; normalize both.
+          if [[ -d "$download_dir/Vulpra.app" ]]; then
+            app_stage="$download_dir/Vulpra.app"
+          else
+            app_stage="$download_dir"
+          fi
+          test -f "$app_stage/Info.plist"
+          test -f "$app_stage/Vulpra"
+          mkdir -p "$DERIVED_DATA/Build/Products/Debug-iphonesimulator"
+          cp -a "$app_stage" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          echo "restored reusable Simulator App bundle from run $run_id"
+
+      - name: Fetch pinned benchmark sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 Tools/CI/benchmark-fixture.py fetch \
+            --benchmark-dir .build/benchmarks \
+            --ids '${{ env.BENCHMARKS }}'
+
+      - name: Generate benchmark fixture
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .build/benchmark-fixture
+          python3 Tools/CI/benchmark-fixture.py generate \
+            --fixture-dir .build/benchmark-fixture \
+            --benchmark-dir .build/benchmarks \
+            --ids '${{ env.BENCHMARKS }}'
+
+      - name: Run standard benchmark gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          attempts='${{ env.ATTEMPTS }}'
+          [[ "$attempts" =~ ^[1-9][0-9]*$ ]] && (( attempts <= 20 ))
+          fixture_dir="$(mktemp -d)"
+          cp -a .build/benchmark-fixture/. "$fixture_dir"/
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory "$fixture_dir" \
+            > simulator-benchmark-fixture.log 2>&1 &
+          fixture_pid=$!
+          cleanup_fixture() {
+            kill "$fixture_pid" >/dev/null 2>&1 || true
+            wait "$fixture_pid" >/dev/null 2>&1 || true
+            rm -rf "$fixture_dir"
+          }
+          trap cleanup_fixture EXIT
+          smoke_url='http://127.0.0.1:8765/'
+          for _ in {1..25}; do
+            curl --max-time 2 --fail --silent "$smoke_url" >/dev/null 2>&1 && break
+            sleep 0.2
+          done
+          curl --max-time 2 --fail --silent "$smoke_url" >/dev/null
+          app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'
+          xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          requested = sys.argv[1]
+          values = [item for item in json.load(sys.stdin)["runtimes"]
+                    if item.get("isAvailable") and item.get("identifier") == requested]
+          if not values: raise SystemExit(f"requested Simulator runtime is unavailable: {requested}")
+          ' "$runtime"
+          # iPad (TARGETED_DEVICE_FAMILY=1,2) so benchmarks see a native tablet
+          # viewport: Speedometer 3.1 requires >= 850x650, which the
+          # iPad Pro 12.9-inch portrait (1024x1366) satisfies headlessly.
+          # MotionMark's Start button is permanently disabled in portrait, so the
+          # fixture-injected probe waits for benchmarkController.frameRateDetectionComplete
+          # (startReadyPath) and then calls startBenchmark() directly; landscape not
+          # required.
+          device_type="$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devicetypes"]
+          # The bare iPad-Pro identifier is the 12.9-inch (1st generation, 2015)
+          # model, which modern runtimes reject. Prefer current iPad Pro models.
+          preferred_ids = [
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-6th-generation-16GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-6th-generation-8GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-12-9-inch-5th-generation",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-16GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M5-12GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M4-16GB",
+              "com.apple.CoreSimulator.SimDeviceType.iPad-Pro-13-inch-M4-8GB",
+          ]
+          for want in preferred_ids:
+              if any(item.get("identifier") == want for item in devices):
+                  print(want)
+                  break
+          else:
+              fallback = [item for item in devices
+                          if item.get("name", "").startswith("iPad")
+                          and item.get("identifier") != "com.apple.CoreSimulator.SimDeviceType.iPad-Pro"
+                          and "--" not in item.get("identifier", "")
+                          and ("12.9-inch" in item.get("name", "") or "13-inch" in item.get("name", ""))]
+              if not fallback:
+                  raise SystemExit("no compatible iPad Simulator type")
+              print(fallback[-1]["identifier"])
+          ')"
+          echo "benchmark device_type: $device_type"
+          evidence='.build/benchmark-gate'
+          rm -rf "$evidence"
+          mkdir -p "$evidence"
+          : > "$evidence/summary.log"
+          for benchmark in $(echo '${{ env.BENCHMARKS }}' | tr ',' ' '); do
+            bench_evidence="$evidence/$benchmark"
+            mkdir -p "$bench_evidence/attempts"
+            # The App loads the benchmark entry page itself (top-level, no runner iframe):
+            # the fixture server serves the whole generated fixture dir, so
+            # /benchmarks/<id>/<entry>?<query> resolves to the copied pinned tree + probe.
+            entry_path="$(python3 Tools/CI/benchmark-fixture.py url --benchmark "$benchmark")"
+            runner_url="http://127.0.0.1:8765$entry_path"
+            printf 'benchmark %s single-attempt gate attempt 1 starting at %s\n' \
+              "$benchmark" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            Tools/CI/run-simulator-benchmark.sh \
+              --app "$app" \
+              --runtime "$runtime" \
+              --device-type "$device_type" \
+              --attempt 1 \
+              --output "$bench_evidence/attempts" \
+              --url "$runner_url" \
+              --benchmark "$benchmark"
+            if (( attempts > 1 )); then
+              for attempt in $(seq 2 "$attempts"); do
+                printf 'benchmark %s gate attempt %s/%s starting at %s\n' \
+                  "$benchmark" "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+                Tools/CI/run-simulator-benchmark.sh \
+                  --app "$app" \
+                  --runtime "$runtime" \
+                  --device-type "$device_type" \
+                  --attempt "$attempt" \
+                  --output "$bench_evidence/attempts" \
+                  --url "$runner_url" \
+                  --benchmark "$benchmark"
+              done
+            fi
+            python3 Tools/CI/summarize-benchmark.py \
+              --benchmark "$benchmark" \
+              --attempts "$attempts" \
+              --input "$bench_evidence/attempts" \
+              --output "$bench_evidence/summary.json" \
+              | tee "$bench_evidence/gate.log"
+            printf '%s\n' "$(tail -1 "$bench_evidence/gate.log")" >> "$evidence/summary.log"
+            printf 'benchmark %s gate passed at %s\n' \
+              "$benchmark" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          done
+          echo "==== benchmark gate summary ===="
+          cat "$evidence/summary.log"
+
+      - name: Upload reusable Simulator App bundle
+        if: ${{ inputs.app_bundle_run_id == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-simulator-app
+          path: ${{ github.workspace }}/.build/simulator-derived/Build/Products/Debug-iphonesimulator/Vulpra.app
+          retention-days: 14
+
+      - name: Upload benchmark gate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-gate
+          path: .build/benchmark-gate/
+          if-no-files-found: warn
+          retention-days: 30

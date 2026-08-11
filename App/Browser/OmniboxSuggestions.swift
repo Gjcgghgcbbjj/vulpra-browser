@@ -18,12 +18,12 @@ enum OmniboxSuggestionProvider {
                 results.append(OmniboxSuggestion(title: tab.title, detail: url, value: url, symbol: "square.on.square"))
             }
         }
-        for bookmark in BookmarkStore.shared.search(value).prefix(6) where !bookmark.isFolder {
+        for bookmark in BookmarkStore.shared.matches(value, limit: 6) {
             if let url = bookmark.url {
                 results.append(OmniboxSuggestion(title: bookmark.title, detail: url, value: url, symbol: "star"))
             }
         }
-        for visit in HistoryStore.shared.search(value).prefix(8) {
+        for visit in HistoryStore.shared.matches(value, limit: 8) {
             results.append(OmniboxSuggestion(title: visit.title, detail: visit.url, value: visit.url, symbol: "clock"))
         }
         var seen = Set<String>()

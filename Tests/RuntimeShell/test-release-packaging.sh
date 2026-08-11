@@ -14,12 +14,13 @@ trap 'rm -rf "$fixture"' EXIT HUP INT TERM
 archive="$fixture/Vulpra.xcarchive"
 app="$archive/Products/Applications/Vulpra.app"
 manifest="$fixture/manifest.json"
+lock="$fixture/engine-artifact-lock.json"
 
-python3 - "$app" "$manifest" "$ROOT/Configuration/build-identity.json" <<'PY'
+python3 - "$app" "$manifest" "$lock" "$ROOT/Configuration/build-identity.json" <<'PY'
 from pathlib import Path
 import hashlib, json, plistlib, struct, sys
 
-app, manifest_path, identity_path = map(Path, sys.argv[1:])
+app, manifest_path, lock_path, identity_path = map(Path, sys.argv[1:])
 identity = json.loads(identity_path.read_text(encoding="utf-8"))
 bundles = {
     app: ("com.vulpra.browser", "Vulpra", "APPL"),
@@ -49,7 +50,7 @@ for bundle, (bundle_id, executable, package_type) in bundles.items():
         plistlib.dump(info, sink)
 
 payload = {
-    "runtime/bin/XUL": macho + b"VulpraEngineRuntime",
+    "runtime/bin/XUL": macho + b"native-gecko-kernel",
     "runtime/lib/libfixture.dylib": macho,
     "runtime/resources/application.ini": b"[App]\n",
     "licenses/LICENSE.txt": b"license\n",
@@ -66,7 +67,36 @@ for relative, content in payload.items():
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_bytes(content)
     entries.append({"path": relative, "size": len(content), "sha256": hashlib.sha256(content).hexdigest()})
-manifest_path.write_text(json.dumps({"artifactId": "fixture-v4", "files": entries}), encoding="utf-8")
+artifact_id = "vulpra-gecko-ios-arm64-v5-" + "a" * 64
+source_commit = "2" * 40
+patch_sha = "3" * 64
+configuration_sha = "4" * 64
+producer_commit = "5" * 40
+abi_version = "gecko-ios-v5-abi-1"
+manifest_path.write_text(json.dumps({
+    "formatVersion": 5, "artifactId": artifact_id, "abiVersion": abi_version,
+    "source": {"repository": "https://example.invalid/firefox", "commit": source_commit},
+    "patchSet": {"series": "fixture-series.json", "sha256": patch_sha},
+    "producer": {"repository": "https://example.invalid/vulpra", "commit": producer_commit,
+                 "workflowRunId": 123},
+    "compiledBy": {"repository": "https://example.invalid/vulpra", "commit": producer_commit,
+                  "workflowRunId": 123, "buildFingerprint": "7" * 64},
+    "configurationSHA256": configuration_sha,
+    "build": {"platform": "iphoneos", "targetTriple": "aarch64-apple-ios",
+              "architecture": "arm64", "deploymentTarget": "15.0",
+              "mozconfigSHA256": "6" * 64, "xcodeBuild": "17E202", "sdkBuild": "23E252"},
+    "files": entries,
+}), encoding="utf-8")
+lock_path.write_text(json.dumps({
+    "schemaVersion": 2, "artifactFormatVersion": 5,
+    "producerRunId": 123, "producerHeadSha": producer_commit,
+    "device": {"artifactId": artifact_id, "abiVersion": abi_version,
+               "sourceCommit": source_commit, "patchSetSHA256": patch_sha,
+               "configurationSHA256": configuration_sha,
+               "platform": "iphoneos", "targetTriple": "aarch64-apple-ios",
+               "compiledByRunId": 123, "compiledByHeadSha": producer_commit,
+               "buildFingerprint": "7" * 64},
+}), encoding="utf-8")
 PY
 
 tree_hash() {
@@ -78,7 +108,12 @@ mkdir -p "$fixture/out"
 	"$fixture/stage" "$fixture/out/Vulpra.ipa"
 after=$(tree_hash "$archive")
 [ "$before" = "$after" ] || fail "packager modified the archive"
-python3 "$ROOT/Tools/Engine/validate-ipa.py" --manifest "$manifest" "$fixture/out/Vulpra.ipa"
+python3 "$ROOT/Tools/Engine/validate-ipa.py" --manifest "$manifest" --lock "$lock" \
+  "$fixture/out/Vulpra.ipa"
+unzip -p "$fixture/out/Vulpra.ipa" \
+  "Payload/Vulpra.app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/vulpra-main-jit.js" \
+  | grep -Fq 'pref("javascript.options.main_process_disable_jit", false);' \
+  || fail "packaged IPA is missing the main-process JIT default pref"
 
 first=$(sha256sum "$fixture/out/Vulpra.ipa" | awk '{print $1}')
 "$ROOT/Tools/Release/package-app.sh" "$archive" Products/Applications/Vulpra.app \
@@ -99,7 +134,7 @@ if "$ROOT/Tools/Release/package-app.sh" "$archive" Products/Applications/Vulpra.
 fi
 
 grep -Fq 'generic/platform=iOS' "$ROOT/Tools/Release/build-app.sh" || fail "archive destination is wrong"
-grep -Fq 'verify-engine-artifact.py' "$ROOT/Tools/Release/build-app.sh" || fail "archive does not verify v4 artifact"
+grep -Fq 'engine-artifact-device-v5.json' "$ROOT/Tools/Release/build-app.sh" || fail "archive does not verify v5 artifact"
 grep -Fq 'VulpraEngineKit.framework/VulpraEngineKit' "$ROOT/Tools/Release/create-ipa.sh" || fail "EngineKit signing is missing"
 grep -Fq 'Vulpra Engine Process.appex/Vulpra Engine Process' "$ROOT/Tools/Release/create-ipa.sh" || fail "process signing is missing"
 if grep -R -n -E 'GeckoView.framework|Vulpra Helper|ptrace|idevice|Tools/(Gecko|Runtime)' "$ROOT/Tools/Release"; then

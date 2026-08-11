@@ -2,9 +2,15 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import re
+import shlex
+import subprocess
 import sys
+import zipfile
+
+from macho_content import MachOContentError, is_thin_macho64, repeat_identity
 
 
 SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
@@ -52,11 +58,12 @@ def is_under(path: str, root: str) -> bool:
     return candidate == parent or parent in candidate.parents
 
 
-def validate_contract(contract: dict[str, object]) -> None:
+def validate_contract(contract: dict[str, object], repository_root: Path) -> None:
     if contract.get("schemaVersion") != 1:
         fail("contract schemaVersion must be 1")
-    if contract.get("formatVersion") != 4:
-        fail("contract formatVersion must be 4")
+    format_version = contract.get("formatVersion")
+    if format_version not in {4, 5}:
+        fail("contract formatVersion must be 4 or 5")
     prefix = contract.get("artifactIdPrefix")
     if not isinstance(prefix, str) or not ARTIFACT_PREFIX_PATTERN.fullmatch(prefix):
         fail("contract artifactIdPrefix is invalid")
@@ -66,9 +73,10 @@ def validate_contract(contract: dict[str, object]) -> None:
         fail("contract platform must be iphoneos or iphonesimulator")
     if contract.get("architecture") != "arm64":
         fail("contract architecture must be arm64")
-    token = contract.get("requiredKernelToken")
-    if not isinstance(token, str) or not KERNEL_TOKEN_PATTERN.fullmatch(token):
-        fail("contract requiredKernelToken is invalid")
+    if format_version == 4:
+        token = contract.get("requiredKernelToken")
+        if not isinstance(token, str) or not KERNEL_TOKEN_PATTERN.fullmatch(token):
+            fail("contract requiredKernelToken is invalid")
     resource_container = normalized_path(
         contract.get("runtimeResourceContainer"), "contract runtimeResourceContainer"
     )
@@ -94,6 +102,70 @@ def validate_contract(contract: dict[str, object]) -> None:
     normalized = [normalized_path(root, "allowed root") for root in roots]
     if len(normalized) != len(set(normalized)):
         fail("contract allowedRoots contains duplicates")
+    if format_version == 5:
+        validate_v5_contract(contract, repository_root)
+
+
+def validate_v5_contract(contract: dict[str, object], repository_root: Path) -> None:
+    expected_keys = {
+        "schemaVersion", "formatVersion", "artifactIdPrefix", "manifestFile",
+        "platform", "targetTriple", "architecture", "deploymentTarget",
+        "producerContract", "patchSeries", "requiredKernel", "requiredExports",
+        "requiredInternalSymbols", "requiredHeaders", "requiredResourceArchives",
+        "forbiddenRuntimeTokens",
+        "runtimeResourceContainer",
+        "runtimeKernelInstallPath", "allowedRoots", "nonEmptyRoots",
+        "forbiddenSourceExtensions", "forbiddenProductExtensions", "forbiddenSegments",
+    }
+    if contract.get("platform") == "iphonesimulator":
+        expected_keys.add("runtimeKernelBundleIdentifier")
+    if set(contract) != expected_keys:
+        fail(f"v5 contract keys must be exactly: {', '.join(sorted(expected_keys))}")
+
+    producer_path = normalized_path(contract.get("producerContract"), "producer contract")
+    series_path = normalized_path(contract.get("patchSeries"), "patch series")
+    producer = load_json(repository_root / producer_path, "Gecko producer contract")
+    platform = contract["platform"]
+    if contract.get("targetTriple") != producer.get("targets", {}).get(platform):
+        fail("v5 contract target triple does not match the producer contract")
+    if contract.get("deploymentTarget") != producer.get("deploymentTarget"):
+        fail("v5 contract deployment target does not match the producer contract")
+    if series_path != producer.get("patchSeries") or not (repository_root / series_path).is_file():
+        fail("v5 contract patch series does not match the producer contract")
+
+    exports = contract.get("requiredExports")
+    internal_symbols = contract.get("requiredInternalSymbols")
+    producer_exports = producer.get("requiredExports")
+    if (not isinstance(exports, list) or not exports or len(exports) != len(set(exports))
+            or not isinstance(internal_symbols, list) or not internal_symbols
+            or len(internal_symbols) != len(set(internal_symbols))
+            or set(exports) & set(internal_symbols)
+            or exports + internal_symbols != producer_exports):
+        fail("v5 external and internal symbols do not match the producer contract")
+    headers = contract.get("requiredHeaders")
+    if not isinstance(headers, dict) or not headers:
+        fail("v5 contract requiredHeaders must be a non-empty object")
+    for path, tokens in headers.items():
+        normalized_path(path, "required header")
+        if (not isinstance(tokens, list) or not tokens
+                or not all(isinstance(token, str) and token for token in tokens)):
+            fail(f"v5 required header tokens are invalid: {path}")
+    resource_archives = contract.get("requiredResourceArchives")
+    if not isinstance(resource_archives, dict) or not resource_archives:
+        fail("v5 contract requiredResourceArchives must be a non-empty object")
+    for path, entries in resource_archives.items():
+        normalized_path(path, "required resource archive")
+        if (not is_under(path, "runtime/resources")
+                or not isinstance(entries, list) or not entries
+                or not all(isinstance(entry, str) and entry for entry in entries)
+                or entries != sorted(entries) or len(entries) != len(set(entries))):
+            fail(f"v5 required resource archive entries are invalid: {path}")
+        for entry in entries:
+            normalized_path(entry, "required resource archive entry")
+    forbidden = contract.get("forbiddenRuntimeTokens")
+    if (not isinstance(forbidden, list) or not forbidden or len(forbidden) != len(set(forbidden))
+            or forbidden != producer.get("forbiddenRuntimeTokens")):
+        fail("v5 forbidden runtime tokens do not match the producer contract")
 
 
 def validate_forbidden_path(path: str, contract: dict[str, object]) -> None:
@@ -117,7 +189,56 @@ def validate_forbidden_path(path: str, contract: dict[str, object]) -> None:
         fail(f"forbidden source file in artifact: {path}")
 
 
-def validate_manifest_identity(manifest: dict[str, object], contract: dict[str, object]) -> None:
+def global_exported_symbols(kernel: Path) -> set[str]:
+    command = shlex.split(os.environ.get("VULPRA_NM", "nm"))
+    if not command:
+        fail("VULPRA_NM is empty")
+    try:
+        result = subprocess.run(
+            [*command, "-gU", str(kernel)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as error:
+        fail(f"cannot execute global symbol inspector: {error}")
+    if result.returncode != 0:
+        fail(f"global symbol inspection failed: {result.stderr.strip()}")
+    return {
+        fields[-1]
+        for line in result.stdout.splitlines()
+        if (fields := line.split())
+    }
+
+
+def defined_symbols(kernel: Path) -> set[str]:
+    command = shlex.split(os.environ.get("VULPRA_NM", "nm"))
+    if not command:
+        fail("VULPRA_NM is empty")
+    try:
+        result = subprocess.run(
+            [*command, "-U", str(kernel)],
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    except OSError as error:
+        fail(f"cannot execute defined symbol inspector: {error}")
+    if result.returncode != 0:
+        fail(f"defined symbol inspection failed: {result.stderr.strip()}")
+    return {
+        fields[-1]
+        for line in result.stdout.splitlines()
+        if (fields := line.split())
+    }
+
+
+def validate_manifest_identity(
+    manifest: dict[str, object], contract: dict[str, object], repository_root: Path
+) -> None:
+    if contract["formatVersion"] == 5:
+        validate_v5_manifest_identity(manifest, contract, repository_root)
+        return
     expected_keys = {
         "formatVersion",
         "artifactId",
@@ -166,6 +287,89 @@ def validate_manifest_identity(manifest: dict[str, object], contract: dict[str, 
     for key in ("xcodeBuild", "sdkBuild"):
         if not isinstance(build.get(key), str) or not build[key].strip():
             fail(f"manifest build {key} is empty")
+
+
+def validate_v5_manifest_identity(
+    manifest: dict[str, object], contract: dict[str, object], repository_root: Path
+) -> None:
+    expected_keys = {
+        "formatVersion", "artifactId", "abiVersion", "source", "patchSet",
+        "producer", "compiledBy", "configurationSHA256", "build",
+        "licenses", "notices", "files",
+    }
+    if set(manifest) != expected_keys:
+        fail(f"v5 manifest keys must be exactly: {', '.join(sorted(expected_keys))}")
+    if manifest.get("formatVersion") != 5:
+        fail("manifest formatVersion does not match v5 contract")
+    artifact_id = manifest.get("artifactId")
+    prefix = contract["artifactIdPrefix"]
+    if (not isinstance(artifact_id, str) or not artifact_id.startswith(prefix)
+            or not SHA256_PATTERN.fullmatch(artifact_id[len(prefix):])):
+        fail("manifest artifactId is invalid")
+    identity = dict(manifest)
+    identity["artifactId"] = ""
+    canonical = json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    if artifact_id != f"{prefix}{hashlib.sha256(canonical).hexdigest()}":
+        fail("manifest artifactId does not match its content identity")
+    if manifest.get("abiVersion") != "gecko-ios-v5-abi-1":
+        fail("manifest v5 ABI version is invalid")
+
+    producer_contract_path = repository_root / contract["producerContract"]
+    producer_contract = load_json(producer_contract_path, "Gecko producer contract")
+    if manifest.get("source") != producer_contract.get("upstream"):
+        fail("manifest source provenance does not match the producer contract")
+    series_path = repository_root / contract["patchSeries"]
+    expected_patch_set = {
+        "series": contract["patchSeries"],
+        "sha256": hashlib.sha256(series_path.read_bytes()).hexdigest(),
+    }
+    if manifest.get("patchSet") != expected_patch_set:
+        fail("manifest patch provenance does not match the audited series")
+    if manifest.get("configurationSHA256") != hashlib.sha256(producer_contract_path.read_bytes()).hexdigest():
+        fail("manifest producer configuration digest is invalid")
+
+    producer = manifest.get("producer")
+    if not isinstance(producer, dict) or set(producer) != {"repository", "commit", "workflowRunId"}:
+        fail("manifest producer identity is invalid")
+    if producer.get("repository") != "https://github.com/Gjcgghgcbbjj/vulpra-browser":
+        fail("manifest producer repository is invalid")
+    if not isinstance(producer.get("commit"), str) or not COMMIT_PATTERN.fullmatch(producer["commit"]):
+        fail("manifest producer commit is invalid")
+    if type(producer.get("workflowRunId")) is not int or producer["workflowRunId"] < 0:
+        fail("manifest producer workflow run ID is invalid")
+    compiled_by = manifest.get("compiledBy")
+    if (not isinstance(compiled_by, dict)
+            or set(compiled_by) != {"repository", "commit", "workflowRunId", "buildFingerprint"}
+            or compiled_by.get("repository") != producer.get("repository")
+            or not isinstance(compiled_by.get("commit"), str)
+            or COMMIT_PATTERN.fullmatch(compiled_by["commit"]) is None
+            or type(compiled_by.get("workflowRunId")) is not int
+            or compiled_by["workflowRunId"] < 0
+            or not isinstance(compiled_by.get("buildFingerprint"), str)
+            or SHA256_PATTERN.fullmatch(compiled_by["buildFingerprint"]) is None):
+        fail("manifest native compilation provenance is invalid")
+
+    build = manifest.get("build")
+    expected_build_keys = {
+        "mozconfigSHA256", "xcodeBuild", "sdkBuild", "platform", "targetTriple",
+        "architecture", "deploymentTarget", "mozBuildDate", "sourceDateEpoch",
+    }
+    if not isinstance(build, dict) or set(build) != expected_build_keys:
+        fail("manifest v5 build identity is invalid")
+    for key in ("mozconfigSHA256",):
+        if not isinstance(build.get(key), str) or not SHA256_PATTERN.fullmatch(build[key]):
+            fail(f"manifest build {key} is invalid")
+    for key in ("xcodeBuild", "sdkBuild"):
+        if not isinstance(build.get(key), str) or not build[key].strip():
+            fail(f"manifest build {key} is empty")
+    for key in ("platform", "targetTriple", "architecture", "deploymentTarget"):
+        if build.get(key) != contract.get(key):
+            fail(f"manifest build {key} does not match contract")
+    reproducible_build = producer_contract.get("reproducibleBuild")
+    if (not isinstance(reproducible_build, dict)
+            or build.get("mozBuildDate") != reproducible_build.get("mozBuildDate")
+            or build.get("sourceDateEpoch") != reproducible_build.get("sourceDateEpoch")):
+        fail("manifest reproducible build inputs do not match the producer contract")
 
 
 def validate_entries(root: Path, manifest: dict[str, object], contract: dict[str, object]) -> list[str]:
@@ -233,19 +437,72 @@ def validate_entries(root: Path, manifest: dict[str, object], contract: dict[str
     required_kernel = contract["requiredKernel"]
     if required_kernel not in declared:
         fail(f"missing required kernel: {required_kernel}")
-    kernel_token = contract["requiredKernelToken"].encode("ascii")
     kernel_content = (root / required_kernel).read_bytes()
-    if kernel_content.count(kernel_token) != 1:
-        fail("required kernel does not own the independent runtime layout")
-    resource_token = contract["runtimeResourceContainer"].encode("ascii")
-    if kernel_content.count(resource_token) != 1:
-        fail("required kernel does not own the declared runtime resource layout")
+    if contract["formatVersion"] == 4:
+        kernel_token = contract["requiredKernelToken"].encode("ascii")
+        if kernel_content.count(kernel_token) != 1:
+            fail("required kernel does not own the independent runtime layout")
+        resource_token = contract["runtimeResourceContainer"].encode("ascii")
+        if kernel_content.count(resource_token) != 1:
+            fail("required kernel does not own the declared runtime resource layout")
+    else:
+        exported = global_exported_symbols(root / required_kernel)
+        for export in contract["requiredExports"]:
+            if export not in exported:
+                fail(f"required v5 exported symbol is missing: {export}")
+        defined = defined_symbols(root / required_kernel)
+        for symbol in contract["requiredInternalSymbols"]:
+            if symbol not in defined:
+                fail(f"required v5 internal symbol is missing: {symbol}")
+        for relative, tokens in contract["requiredHeaders"].items():
+            if relative not in declared:
+                fail(f"required v5 ABI header is missing: {relative}")
+            header = (root / relative).read_bytes()
+            for token in tokens:
+                if token.encode("ascii") not in header:
+                    fail(f"required v5 lifecycle header token is missing: {token}")
+        validate_resource_archives(root, declared, contract["requiredResourceArchives"])
+        for token in contract["forbiddenRuntimeTokens"]:
+            encoded = token.encode("ascii")
+            if any(encoded in (root / relative).read_bytes() for relative in paths):
+                fail(f"forbidden v5 runtime token is present: {token}")
     if not any(path.endswith(".dylib") and is_under(path, "runtime") for path in paths):
         fail("artifact must contain at least one runtime dylib")
     for required_root in contract["nonEmptyRoots"]:
         if not any(is_under(path, required_root) for path in paths):
             fail(f"artifact root must not be empty: {required_root}")
     return paths
+
+
+def validate_resource_archives(
+    root: Path, declared: set[str], archives: dict[str, list[str]],
+) -> None:
+    for relative, required_entries in archives.items():
+        if relative not in declared:
+            fail(f"missing required resource archive: {relative}")
+        try:
+            with zipfile.ZipFile(root / relative) as archive:
+                infos = archive.infolist()
+                names = [info.filename for info in infos]
+                if not names or len(names) != len(set(names)):
+                    fail(f"invalid resource archive entries: {relative}")
+                if len(infos) > 100_000 or sum(info.file_size for info in infos) > 1_073_741_824:
+                    fail(f"resource archive exceeds verification limits: {relative}")
+                for info in infos:
+                    normalized_path(info.filename, "resource archive entry")
+                    if info.is_dir() or info.flag_bits & 0x1:
+                        fail(f"unsafe resource archive entry: {relative}:{info.filename}")
+                    unix_mode = (info.external_attr >> 16) & 0o170000
+                    if unix_mode == 0o120000:
+                        fail(f"unsafe resource archive entry: {relative}:{info.filename}")
+                bad_entry = archive.testzip()
+                if bad_entry is not None:
+                    fail(f"invalid resource archive CRC: {relative}:{bad_entry}")
+        except (OSError, zipfile.BadZipFile, zipfile.LargeZipFile) as error:
+            fail(f"invalid resource archive: {relative}: {error}")
+        missing = sorted(set(required_entries) - set(names))
+        if missing:
+            fail(f"missing required archive entry: {relative}:{missing[0]}")
 
 
 def validate_legal_paths(manifest: dict[str, object], declared: set[str]) -> None:
@@ -263,31 +520,68 @@ def validate_legal_paths(manifest: dict[str, object], declared: set[str]) -> Non
 
 def verify(contract_path: Path, artifact_root: Path) -> tuple[str, int]:
     contract = load_json(contract_path, "artifact contract")
-    validate_contract(contract)
+    repository_root = contract_path.resolve().parent.parent
+    validate_contract(contract, repository_root)
     if not artifact_root.is_dir():
         fail(f"artifact root is not a directory: {artifact_root}")
     manifest = load_json(artifact_root / contract["manifestFile"], "artifact manifest")
-    validate_manifest_identity(manifest, contract)
+    validate_manifest_identity(manifest, contract, repository_root)
     paths = validate_entries(artifact_root, manifest, contract)
     validate_legal_paths(manifest, set(paths))
     return manifest["artifactId"], len(paths)
 
 
+def normalized_repeat_manifest(
+    manifest: dict[str, object], root: Path
+) -> dict[str, object]:
+    normalized = json.loads(json.dumps(manifest))
+    normalized["artifactId"] = ""
+    normalized["producer"]["workflowRunId"] = 0
+    normalized["compiledBy"]["workflowRunId"] = 0
+    for entry in normalized["files"]:
+        path = root / entry["path"]
+        content = path.read_bytes()
+        if is_thin_macho64(content):
+            try:
+                entry["sha256"] = repeat_identity(content, entry["path"])
+            except MachOContentError as error:
+                fail(str(error))
+            entry["size"] = 0
+    return normalized
+
+
+def compare_repeat_builds(contract_path: Path, first: Path, second: Path) -> None:
+    verify(contract_path, first)
+    verify(contract_path, second)
+    first_manifest = load_json(first / "manifest.json", "first artifact manifest")
+    second_manifest = load_json(second / "manifest.json", "second artifact manifest")
+    if normalized_repeat_manifest(first_manifest, first) != normalized_repeat_manifest(
+        second_manifest, second
+    ):
+        fail("repeat v5 build content or provenance differs")
+
+
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Verify a Vulpra Gecko engine artifact v4 root.")
+    parser = argparse.ArgumentParser(description="Verify a Vulpra Gecko engine artifact root.")
     parser.add_argument("--contract", required=True, type=Path)
+    parser.add_argument("--compare", type=Path)
     parser.add_argument("artifact_root", type=Path)
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    contract = load_json(args.contract, "artifact contract")
+    version = contract.get("formatVersion", "unknown")
     try:
         artifact_id, count = verify(args.contract, args.artifact_root)
+        if args.compare is not None:
+            compare_repeat_builds(args.contract, args.artifact_root, args.compare)
     except ArtifactError as error:
-        print(f"engine-artifact-v4-error: {error}", file=sys.stderr)
+        print(f"engine-artifact-v{version}-error: {error}", file=sys.stderr)
         return 1
-    print(f"engine-artifact-v4-ok {artifact_id} files={count}")
+    suffix = " repeat-match" if args.compare is not None else ""
+    print(f"engine-artifact-v{version}-ok {artifact_id} files={count}{suffix}")
     return 0
 
 

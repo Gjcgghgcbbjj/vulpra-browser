@@ -10,8 +10,11 @@ public final class VulpraEngineSession: EngineSession {
     public weak var navigationObserver: (any EngineNavigationObserver)?
     public weak var progressObserver: (any EngineProgressObserver)?
     public weak var contentObserver: (any EngineContentObserver)?
+    public weak var fullscreenObserver: (any EngineFullscreenObserver)?
+    public weak var securityObserver: (any EngineSecurityObserver)?
     public weak var promptHandler: (any EnginePromptHandler)?
     public weak var permissionHandler: (any EnginePermissionHandler)?
+    public weak var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)?
     public weak var downloadHandler: (any EngineDownloadHandler)?
 
     private let runtime: VulpraEngineRuntime
@@ -20,8 +23,14 @@ public final class VulpraEngineSession: EngineSession {
     private var readinessObservation: UUID?
     private var requestedWindowID: String?
     private var pendingCommands: [(type: String, message: [String: Any])] = []
+    private var pendingInitialLoadCommands: [(type: String, message: [String: Any])] = []
+    private var initialLoadQueuedAtNanoseconds: UInt64?
     private var stoppedByUser = false
     private var navigationFailureReported = false
+    private var eventCoalescer = EngineEventCoalescer()
+    private var eventFlushScheduled = false
+    private var navigationDeliveredCount = 0
+    private var navigationCoalescingBaseline = 0
     private var navigation = EngineNavigationEvent(
         sessionID: EngineSessionID(), url: nil, title: "", canGoBack: false, canGoForward: false
     )
@@ -66,6 +75,7 @@ public final class VulpraEngineSession: EngineSession {
             ))
             return
         }
+        runtime.applyTrackingProtectionPrefs(configuration.trackingProtection)
         let identifier = (requestedWindowID ?? id.rawValue.uuidString.replacingOccurrences(of: "-", with: "")) as NSString
         let initialData = Self.initialData(configuration) as NSDictionary
         let owner = EngineABIContext(self)
@@ -94,6 +104,7 @@ public final class VulpraEngineSession: EngineSession {
             }
             Self.logger.notice("Engine window opened")
             navigationObserver?.engineSessionDidOpen(id)
+            flushInitialLoadCommands()
             flushPendingCommands()
         }
     }
@@ -103,6 +114,10 @@ public final class VulpraEngineSession: EngineSession {
         readinessObservation = nil
         requestedWindowID = nil
         pendingCommands.removeAll()
+        pendingInitialLoadCommands.removeAll()
+        initialLoadQueuedAtNanoseconds = nil
+        eventFlushScheduled = false
+        _ = eventCoalescer.drain()
         guard lifecycle.beginClose() else { return }
         guard let window else { lifecycle.finishClose(); return }
         self.window = nil
@@ -112,7 +127,7 @@ public final class VulpraEngineSession: EngineSession {
 
     public func load(_ request: EngineNavigationRequest) {
         Self.logger.notice(
-            "Engine load requested: \(request.url.absoluteString, privacy: .public), open: \(self.isOpen, privacy: .public)"
+            "Engine load requested: \(request.url.absoluteString, privacy: .public), open: \(self.isOpen, privacy: .public) monotonic_ns=\(DispatchTime.now().uptimeNanoseconds)"
         )
         send("GeckoView:LoadUri", ["uri": request.url.absoluteString, "flags": 0])
     }
@@ -122,6 +137,7 @@ public final class VulpraEngineSession: EngineSession {
     public func stop() { stoppedByUser = true; send("GeckoView:Stop") }
     public func setActive(_ active: Bool) { send("GeckoView:SetActive", ["active": active]) }
     public func setFocused(_ focused: Bool) { send("GeckoView:SetFocused", ["focused": focused]) }
+    public func exitFullscreen() { send("GeckoViewContent:ExitFullScreen") }
 
     public func update(configuration: EngineSessionConfiguration) {
         self.configuration = configuration
@@ -130,12 +146,25 @@ public final class VulpraEngineSession: EngineSession {
 
     private func send(_ type: String, _ message: [String: Any] = [:]) {
         if window != nil {
+            // A2: immediate dispatch path (window open before LoadUri).
+            if type == "GeckoView:LoadUri" {
+                Self.logger.notice("initial_load_deferred=false")
+            }
             dispatch(type, message)
             return
         }
 
         guard state == .opening else {
             Self.logger.error("Engine command rejected while session is closed: \(type, privacy: .public)")
+            return
+        }
+        if type == "GeckoView:LoadUri" {
+            // A2: deferred path — LoadUri is queued until the engine window is
+            // open, then flushed at window-open (annex 21) instead of waiting
+            // for the initial about:blank PageStop (cold-nav half-beat).
+            Self.logger.notice("initial_load_deferred=true")
+            initialLoadQueuedAtNanoseconds = DispatchTime.now().uptimeNanoseconds
+            pendingInitialLoadCommands.append((type, message))
             return
         }
         pendingCommands.append((type, message))
@@ -149,10 +178,31 @@ public final class VulpraEngineSession: EngineSession {
         }
     }
 
+    /// A2: flushes queued initial LoadUri commands at window-open instead of
+    /// waiting for the initial about:blank window's first PageStop, removing
+    /// the cold-navigation half-beat. The deferral duration is recorded as
+    /// evidence (initial_load_deferred_ms) so the blind spot in the warm-engine
+    /// navigation gate is closed by the cold-start fixture.
+    private func flushInitialLoadCommands() {
+        guard !pendingInitialLoadCommands.isEmpty else { return }
+        if let queuedAt = initialLoadQueuedAtNanoseconds {
+            let deferralMs = Int((DispatchTime.now().uptimeNanoseconds - queuedAt) / 1_000_000)
+            Self.logger.notice("initial_load_deferred_ms=\(deferralMs)")
+        }
+        initialLoadQueuedAtNanoseconds = nil
+        let initialLoads = pendingInitialLoadCommands
+        pendingInitialLoadCommands.removeAll()
+        for command in initialLoads { dispatch(command.type, command.message) }
+    }
+
     private func failOpen(_ failure: EngineFailure) {
         readinessObservation = nil
         requestedWindowID = nil
         pendingCommands.removeAll()
+        pendingInitialLoadCommands.removeAll()
+        initialLoadQueuedAtNanoseconds = nil
+        eventFlushScheduled = false
+        _ = eventCoalescer.drain()
         lifecycle.fail(failure)
         Self.logger.error("Engine session failed: \(failure.code, privacy: .public)")
         progressObserver?.engineSession(id, didUpdate: .failed(sessionID: id, failure: failure))
@@ -160,7 +210,12 @@ public final class VulpraEngineSession: EngineSession {
 
     private func dispatch(_ type: String, _ message: [String: Any]) {
         guard let window else { return }
-        Self.logger.notice("Engine command dispatched: \(type, privacy: .public)")
+        if type == "GeckoView:SetActive" {
+            let active = message["active"] as? Bool ?? false
+            Self.logger.notice("Engine command dispatched: \(type, privacy: .public) active=\(active)")
+        } else {
+            Self.logger.notice("Engine command dispatched: \(type, privacy: .public)")
+        }
         let name = type as NSString
         let payload = message as NSDictionary
         withExtendedLifetime(name) {
@@ -176,6 +231,29 @@ public final class VulpraEngineSession: EngineSession {
     }
 
     private func handleOnMain(type: String, payload: [String: Any], callback: EngineABICallbackLease?) {
+        // Callback-carrying requests must never be coalesced or reordered:
+        // deliver any pending fire-and-forget state first, then the request.
+        if callback != nil {
+            flushCoalescedEvents()
+            handleImmediate(type: type, payload: payload, callback: callback)
+            return
+        }
+        if EngineEventDelivery.coalescedKinds.contains(type) {
+            _ = eventCoalescer.record(kind: type, payload: payload)
+            scheduleEventFlush()
+            return
+        }
+        if EngineEventDelivery.criticalKinds.contains(type) {
+            // State transitions must arrive in engine order: flush pending
+            // coalesced events first so location/progress precede PageStop
+            // exactly as the engine emitted them.
+            flushCoalescedEvents()
+        }
+        handleImmediate(type: type, payload: payload, callback: callback)
+    }
+
+    private func handleImmediate(type: String, payload: [String: Any], callback: EngineABICallbackLease?) {
+        navigationDeliveredCount += 1
         switch type {
         case "GeckoView:LocationChange":
             navigation = EngineNavigationEvent(
@@ -184,22 +262,36 @@ public final class VulpraEngineSession: EngineSession {
                 canGoForward: payload["canGoForward"] as? Bool ?? false
             )
             if let url = navigation.url {
-                Self.logger.notice("Engine location: \(url.absoluteString, privacy: .public)")
+                Self.logger.notice("Engine location: \(url.absoluteString, privacy: .public) monotonic_ns=\(DispatchTime.now().uptimeNanoseconds)")
             }
             navigationObserver?.engineSession(id, didUpdate: navigation)
         case "GeckoView:PageTitleChanged":
+            let title = payload["title"] as? String ?? ""
             navigation = EngineNavigationEvent(
-                sessionID: id, url: navigation.url, title: payload["title"] as? String ?? "",
+                sessionID: id, url: navigation.url, title: title,
                 canGoBack: navigation.canGoBack, canGoForward: navigation.canGoForward
             )
             navigationObserver?.engineSession(id, didUpdate: navigation)
+            // The Simulator benchmark harness reads scores from the page
+            // title (same-origin runner pages set document.title to
+            // "VulpraBenchmark <id> score=<text>"); emit a public notice so
+            // the unified system log carries the title as evidence.
+            if !title.isEmpty {
+                Self.logger.notice("Engine title: \(title, privacy: .public) monotonic_ns=\(DispatchTime.now().uptimeNanoseconds)")
+            }
         case "GeckoView:PageStart":
             stoppedByUser = false
             navigationFailureReported = false
+            navigationDeliveredCount = 1
+            navigationCoalescingBaseline = eventCoalescer.coalescedCount
             progressObserver?.engineSession(id, didUpdate: .started(sessionID: id, url: Self.url(payload["uri"])))
         case "GeckoView:PageStop":
             let succeeded = payload["success"] as? Bool ?? false
-            Self.logger.notice("Engine page completed: \(succeeded, privacy: .public)")
+            let coalescedThisNavigation = eventCoalescer.coalescedCount - navigationCoalescingBaseline
+            Self.logger.notice(
+                "engine_event_stats delivered=\(self.navigationDeliveredCount) coalesced=\(coalescedThisNavigation) total=\(self.navigationDeliveredCount + coalescedThisNavigation)"
+            )
+            Self.logger.notice("Engine page completed: \(succeeded, privacy: .public) monotonic_ns=\(DispatchTime.now().uptimeNanoseconds)")
             if succeeded || stoppedByUser {
                 progressObserver?.engineSession(id, didUpdate: .completed(sessionID: id, succeeded: succeeded))
             } else if !navigationFailureReported { reportNavigationFailure(payload) }
@@ -208,6 +300,7 @@ public final class VulpraEngineSession: EngineSession {
             let value = (payload["progress"] as? NSNumber)?.doubleValue ?? 0
             progressObserver?.engineSession(id, didUpdate: .changed(sessionID: id, fraction: max(0, min(1, value / 100))))
         case "GeckoView:DOMWindowClose": navigationObserver?.engineSessionDidRequestClose(id)
+        case "GeckoView:FocusRequest": contentObserver?.engineSessionDidRequestFocus(id)
         case "GeckoView:ContentCrash": progressObserver?.engineSession(id, didTerminate: .processExited)
         case "GeckoView:ContentKill": progressObserver?.engineSession(id, didTerminate: .killed)
         case "GeckoView:OnLoadError":
@@ -222,8 +315,8 @@ public final class VulpraEngineSession: EngineSession {
         case "GeckoView:ContextMenu":
             contentObserver?.engineSession(id, requestedContextMenu: EngineContextMenuElement(
                 title: payload["title"] as? String,
-                linkURL: Self.url(payload["linkUri"] ?? payload["linkURL"]),
-                imageURL: Self.url(payload["srcUri"] ?? payload["imageURL"])
+                linkURL: Self.url(payload["linkUri"] ?? payload["linkURL"] ?? payload["uri"]),
+                imageURL: Self.url(payload["srcUri"] ?? payload["imageURL"] ?? payload["elementSrc"])
             ))
         case "GeckoView:Prompt": handlePrompt(payload, callback: callback); return
         case "GeckoView:ContentPermission", "GeckoView:MediaPermission":
@@ -240,9 +333,62 @@ public final class VulpraEngineSession: EngineSession {
                 id, completedDownloadAt: payload["localFilePath"] as? String ?? "",
                 succeeded: payload["succeeded"] as? Bool ?? false
             )
+        case "GeckoView:ClipboardPermissionRequest":
+            handleClipboardPermission(payload, callback: callback); return
+        case "GeckoView:DOMFullscreenEntered": fullscreenObserver?.engineSessionDidEnterFullscreen(id)
+        case "GeckoView:DOMFullscreenExited": fullscreenObserver?.engineSessionDidExitFullscreen(id)
+        case "GeckoView:SecurityChanged":
+            if let security = Self.securityEvent(id, payload) {
+                securityObserver?.engineSession(id, didUpdate: security)
+            }
         default: break
         }
         resolve(callback, value: NSNull())
+    }
+
+    /// Delivery classes for engine events. High-frequency fire-and-forget
+    /// events are coalesced per main-queue turn; state-transition and
+    /// callback-carrying events are delivered immediately (after flushing
+    /// pending coalesced state) so engine ordering is preserved.
+    private enum EngineEventDelivery {
+        static let coalescedKinds: Set<String> = [
+            "GeckoView:ProgressChanged",
+            "GeckoView:LocationChange",
+            "GeckoView:PageTitleChanged",
+            "GeckoView:SecurityChanged",
+        ]
+        static let criticalKinds: Set<String> = [
+            "GeckoView:PageStart",
+            "GeckoView:PageStop",
+            "GeckoView:ContentCrash",
+            "GeckoView:ContentKill",
+            "GeckoView:OnLoadError",
+            "GeckoView:DOMWindowClose",
+            "GeckoView:FocusRequest",
+        ]
+    }
+
+    /// Schedules one coalesced-event flush for the next main-queue turn.
+    private func scheduleEventFlush() {
+        guard !eventFlushScheduled else { return }
+        eventFlushScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.eventFlushScheduled = false
+            self.flushCoalescedEvents()
+        }
+    }
+
+    /// Delivers pending coalesced events in first-arrival order. Called by the
+    /// scheduled flush and before every critical/callback-carrying event so
+    /// engine ordering is never violated.
+    private func flushCoalescedEvents() {
+        guard case .open = lifecycle.state, !eventCoalescer.isEmpty else { return }
+        eventFlushScheduled = false
+        let items = eventCoalescer.drain()
+        for item in items {
+            handleImmediate(type: item.kind, payload: item.payload, callback: nil)
+        }
     }
 
     private func reportNavigationFailure(_ payload: [String: Any]) {
@@ -260,18 +406,45 @@ public final class VulpraEngineSession: EngineSession {
             sessionID: id, failure: EngineFailure(code: "navigation-failed", message: message, isRecoverable: true)
         ))
     }
+    private static func securityEvent(_ sessionID: EngineSessionID, _ payload: [String: Any]) -> EngineSecurityEvent? {
+        guard let identity = payload["identity"] as? [String: Any] else { return nil }
+        let mode = identity["mode"] as? [String: Any] ?? [:]
+        return EngineSecurityEvent(
+            sessionID: sessionID,
+            origin: identity["origin"] as? String,
+            isSecure: identity["secure"] as? Bool ?? false,
+            host: identity["host"] as? String,
+            identityMode: mode["identity"] as? String ?? "unknown",
+            hasMixedDisplayContent: (mode["mixed_display"] as? NSNumber)?.boolValue ?? false,
+            hasMixedActiveContent: (mode["mixed_active"] as? NSNumber)?.boolValue ?? false,
+            certificate: identity["certificate"] as? String,
+            hasSecurityException: identity["securityException"] as? Bool ?? false
+        )
+    }
+
     private func handlePrompt(_ payload: [String: Any], callback: EngineABICallbackLease?) {
         let value = payload["prompt"] as? [String: Any] ?? payload
         let type = (value["type"] as? String ?? value["promptType"] as? String ?? "").lowercased()
-        let kind: EnginePromptKind = type.contains("auth") ? .authentication :
+        let kind: EnginePromptKind = type == "share" ? .share :
+            type.contains("auth") ? .authentication :
             type.contains("text") ? .text : type.contains("confirm") ? .confirm :
             type.contains("file") ? .file : type.contains("alert") ? .alert : .unknown
         let request = EnginePromptRequest(
             id: value["id"] as? String ?? UUID().uuidString, kind: kind,
             title: value["title"] as? String ?? "", message: value["message"] as? String ?? "",
-            defaultValue: value["defaultValue"] as? String
+            defaultValue: value["defaultValue"] as? String,
+            text: value["text"] as? String, uri: Self.url(value["uri"])
         )
         guard let promptHandler else { resolve(callback, value: NSNull()); return }
+        if kind == .share {
+            // Gecko ShareDelegate.sys.mjs expects {response: 0|1|2}
+            // (0 = success, 1 = failure, 2 = abort/dismiss).
+            promptHandler.engineSession(id, handle: request) { response in
+                let dictionary: NSDictionary = ["response": NSNumber(value: response?.accepted ?? false ? 0 : 2)]
+                resolve(callback, value: dictionary)
+            }
+            return
+        }
         promptHandler.engineSession(id, handle: request) { response in
             let dictionary: NSDictionary = [
                 "allow": response?.accepted ?? false,
@@ -297,11 +470,24 @@ public final class VulpraEngineSession: EngineSession {
         }
     }
 
+    private func handleClipboardPermission(_ payload: [String: Any], callback: EngineABICallbackLease?) {
+        let rawPoint = payload["screenPoint"] as? [String: Any] ?? [:]
+        let point = EngineScreenPoint(
+            x: (rawPoint["x"] as? NSNumber)?.doubleValue ?? 0,
+            y: (rawPoint["y"] as? NSNumber)?.doubleValue ?? 0
+        )
+        // No handler: default to deny (resolves, never hangs) — A51 amendment.
+        guard let clipboardPermissionHandler else { resolve(callback, value: NSNumber(value: false)); return }
+        clipboardPermissionHandler.engineSession(id, requestedClipboardAccessAt: point) { allow in
+            resolve(callback, value: NSNumber(value: allow))
+        }
+    }
+
     private func handleDownload(_ payload: [String: Any], callback: EngineABICallbackLease?) {
         let response = EngineDownloadResponse(
             sourceURL: Self.url(payload["uri"] ?? payload["url"]),
             suggestedFilename: payload["suggestedFilename"] as? String ?? payload["filename"] as? String,
-            contentType: payload["contentType"] as? String,
+            contentType: payload["contentType"] as? String ?? payload["mimeType"] as? String,
             contentLength: (payload["contentLength"] as? NSNumber)?.int64Value ?? -1,
             localFilePath: payload["localFilePath"] as? String ?? ""
         )
@@ -318,12 +504,13 @@ public final class VulpraEngineSession: EngineSession {
     private static func initialData(_ value: EngineSessionConfiguration) -> [String: Any] {
         ["settings": settings(value), "modules": [
             "GeckoViewContent": true, "GeckoViewNavigation": true,
-            "GeckoViewPermission": true, "GeckoViewProgress": true
+            "GeckoViewPermission": true, "GeckoViewProgress": true,
+            "GeckoViewContentBlocking": true
         ]]
     }
 
     private static func settings(_ value: EngineSessionConfiguration) -> [String: Any] {
-        ["chromeUri": NSNull(), "screenId": 0, "useTrackingProtection": value.trackingProtection,
+        ["chromeUri": NSNull(), "screenId": 0, "useTrackingProtection": value.trackingProtection != .off,
          "userAgentMode": value.userAgentMode == .desktop ? 1 : 0, "userAgentOverride": NSNull(),
          "viewportMode": value.userAgentMode == .desktop ? 1 : 0, "pageZoom": value.pageZoom,
          "displayMode": 0, "suspendMediaWhenInactive": false, "allowJavascript": true,

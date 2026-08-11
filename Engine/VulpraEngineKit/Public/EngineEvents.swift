@@ -56,6 +56,51 @@ public enum EngineTerminationReason: String, Codable, Sendable {
     case unknown
 }
 
+public struct EngineSecurityEvent: Equatable, Sendable {
+    public let sessionID: EngineSessionID
+    public let origin: String?
+    public let isSecure: Bool
+    public let host: String?
+    public let identityMode: String
+    public let hasMixedDisplayContent: Bool
+    public let hasMixedActiveContent: Bool
+    public let certificate: String?
+    public let hasSecurityException: Bool
+
+    public init(
+        sessionID: EngineSessionID,
+        origin: String?,
+        isSecure: Bool,
+        host: String?,
+        identityMode: String,
+        hasMixedDisplayContent: Bool,
+        hasMixedActiveContent: Bool,
+        certificate: String?,
+        hasSecurityException: Bool
+    ) {
+        self.sessionID = sessionID
+        self.origin = origin
+        self.isSecure = isSecure
+        self.host = host
+        self.identityMode = identityMode
+        self.hasMixedDisplayContent = hasMixedDisplayContent
+        self.hasMixedActiveContent = hasMixedActiveContent
+        self.certificate = certificate
+        self.hasSecurityException = hasSecurityException
+    }
+}
+
+@MainActor
+public protocol EngineSecurityObserver: AnyObject {
+    func engineSession(_ id: EngineSessionID, didUpdate security: EngineSecurityEvent)
+}
+
+@MainActor
+public protocol EngineFullscreenObserver: AnyObject {
+    func engineSessionDidEnterFullscreen(_ id: EngineSessionID)
+    func engineSessionDidExitFullscreen(_ id: EngineSessionID)
+}
+
 @MainActor
 public protocol EngineNavigationObserver: AnyObject {
     func engineSessionDidOpen(_ id: EngineSessionID)

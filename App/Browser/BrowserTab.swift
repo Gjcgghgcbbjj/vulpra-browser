@@ -1,4 +1,5 @@
 import Foundation
+import os
 import UIKit
 import VulpraEngineKit
 
@@ -12,8 +13,11 @@ struct BrowserTabRecord: Codable, Equatable {
 
 @MainActor
 protocol BrowserTabObserver: AnyObject {
-    func browserTabDidChange(_ tab: BrowserTab)
+    func browserTabPresentationDidChange(_ tab: BrowserTab)
+    func browserTabPersistableStateDidChange(_ tab: BrowserTab)
+    func browserTabContentDidChange(_ tab: BrowserTab)
     func browserTabDidRequestClose(_ tab: BrowserTab)
+    func browserTabDidRequestFocus(_ tab: BrowserTab)
     func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> Bool
     func browserTab(_ tab: BrowserTab, requestedDownload response: EngineDownloadResponse,
                     completion: @escaping (Bool) -> Void)
@@ -28,6 +32,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     let id: UUID
     let isPrivate: Bool
     weak var observer: BrowserTabObserver?
+    private let logger = Logger(subsystem: "com.vulpra.browser", category: "browser-tab")
     private let runtime: any EngineRuntime
     private(set) var session: (any EngineSession)?
     private var engineSurface: (any EngineView)?
@@ -38,10 +43,13 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
     private(set) var progress = 0
     private(set) var isLoading = false
     private(set) var lastFailure: EngineFailure?
+    private(set) var lastTerminationReason: EngineTerminationReason?
     private(set) var httpFallbackURL: URL?
     private(set) var lastAccess: Date
     private(set) var thumbnail: UIImage?
+    private var thumbnailWorkItem: DispatchWorkItem?
     weak var permissionHandler: (any EnginePermissionHandler)?
+    weak var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)?
     weak var promptHandler: (any EnginePromptHandler)?
 
     init(record: BrowserTabRecord, runtime: any EngineRuntime) {
@@ -89,6 +97,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         created.progressObserver = self
         created.contentObserver = self
         created.permissionHandler = permissionHandler
+        created.clipboardPermissionHandler = clipboardPermissionHandler
         created.promptHandler = promptHandler
         created.downloadHandler = self
         session = created
@@ -97,7 +106,6 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         if windowID == nil, let url {
             created.load(EngineNavigationRequest(url: url, userInitiated: false))
         }
-        observer?.browserTabDidChange(self)
         return created
     }
 
@@ -113,14 +121,37 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         }
     }
 
+    var hasLiveSession: Bool { session != nil && engineSurface != nil }
+
+    func releaseThumbnail() {
+        thumbnailWorkItem?.cancel(); thumbnailWorkItem = nil
+        thumbnail = nil
+    }
+
+    /// Refreshes the tab thumbnail after a completed load, off the PageStop
+    /// observer turn and never on the tab-switch path (TabManager.select no
+    /// longer performs main-thread drawHierarchy work). The capture is
+    /// debounced so burst PageStops produce at most one render pass, and only
+    /// runs while the engine view is still attached (non-zero bounds).
+    private func scheduleThumbnailCapture() {
+        thumbnailWorkItem?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            guard let self, !self.isLoading else { return }
+            self.captureThumbnail()
+        }
+        thumbnailWorkItem = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: work)
+    }
+
     func suspend() {
+        thumbnailWorkItem?.cancel(); thumbnailWorkItem = nil
         session?.close(); session = nil; engineSurface = nil; progress = 0; isLoading = false
     }
 
     func retry(settings: BrowserSettings) {
         lastFailure = nil
         if let url { load(url, settings: settings, httpFallbackURL: httpFallbackURL) }
-        else { _ = activate(settings: settings); observer?.browserTabDidChange(self) }
+        else { _ = activate(settings: settings) }
     }
 
     func load(_ target: URL, settings: BrowserSettings, httpFallbackURL: URL? = nil) {
@@ -134,7 +165,7 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         } else {
             activate(settings: settings)
         }
-        observer?.browserTabDidChange(self)
+        observer?.browserTabPersistableStateDidChange(self)
     }
 
     func loadHTTPFallback(settings: BrowserSettings) {
@@ -146,7 +177,13 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         session?.update(configuration: settings.engineConfiguration(isPrivate: isPrivate))
     }
 
-    func setActive(_ active: Bool) { session?.setActive(active); session?.setFocused(active) }
+    func setActive(_ active: Bool) {
+        // Evidence for the hidden-session compositor-suspend contract: every
+        // host-side activation change is recorded so the gate can prove the
+        // App deactivates hidden tabs on switch and on scene background.
+        logger.notice("browser_tab_active=\(active) tab=\(self.id.uuidString, privacy: .public)")
+        session?.setActive(active); session?.setFocused(active)
+    }
     func goBack() { session?.goBack() }
     func goForward() { session?.goForward() }
     func reload() { session?.reload() }
@@ -154,7 +191,8 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
 
     func engineSessionDidOpen(_ id: EngineSessionID) {
         lastFailure = nil
-        observer?.browserTabDidChange(self)
+        lastTerminationReason = nil
+        observer?.browserTabContentDidChange(self)
     }
 
     func engineSession(_ id: EngineSessionID, didUpdate event: EngineNavigationEvent) {
@@ -162,10 +200,11 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         title = event.title.isEmpty ? title : event.title
         canGoBack = event.canGoBack
         canGoForward = event.canGoForward
-        observer?.browserTabDidChange(self)
+        observer?.browserTabPersistableStateDidChange(self)
     }
 
     func engineSessionDidRequestClose(_ id: EngineSessionID) { observer?.browserTabDidRequestClose(self) }
+    func engineSessionDidRequestFocus(_ id: EngineSessionID) { observer?.browserTabDidRequestFocus(self) }
 
     func engineSession(_ id: EngineSessionID, requestedNewSessionFor url: URL, windowID: String) -> Bool {
         observer?.browserTab(self, requestedNewTab: url, windowID: windowID) ?? false
@@ -180,14 +219,25 @@ final class BrowserTab: EngineNavigationObserver, EngineProgressObserver,
         case .completed(_, let succeeded):
             isLoading = false
             if succeeded { progress = 100; httpFallbackURL = nil }
+            scheduleThumbnailCapture()
         case .failed(_, let failure):
             isLoading = false; lastFailure = failure
         }
-        observer?.browserTabDidChange(self)
+        switch event {
+        case .failed: observer?.browserTabContentDidChange(self)
+        default: observer?.browserTabPresentationDidChange(self)
+        }
     }
 
     func engineSession(_ id: EngineSessionID, didTerminate reason: EngineTerminationReason) {
-        suspend(); observer?.browserTabDidChange(self)
+        // Keep url/title/canGoBack/canGoForward/thumbnail so the tab can offer
+        // recovery; suspend() closes the dead session, drops the surface and
+        // resets progress state. The reason is recorded for device-side
+        // diagnosis (jetsam vs Gecko kill vs invalid state).
+        logger.error("content process terminated tab=\(id.rawValue.uuidString, privacy: .public) reason=\(reason.rawValue, privacy: .public)")
+        lastTerminationReason = reason
+        suspend()
+        observer?.browserTabContentDidChange(self)
     }
 
     func engineSession(_ id: EngineSessionID, requestedContextMenu element: EngineContextMenuElement) {

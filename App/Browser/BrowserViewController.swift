@@ -6,13 +6,13 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     StartPageViewControllerDelegate, PageToolsControllerDelegate {
     private let logger = Logger(subsystem: "com.vulpra.browser", category: "browser")
     private let runtime: any EngineRuntime
-    private let tabManager: TabManager
+    let tabManager: TabManager
     private let permissionController = BrowserPermissionController()
     private let promptController = BrowserPromptController()
     private let pageTools = PageToolsController()
     private let contextMenu = BrowserContextMenuController()
     private let contentContainer = UIView()
-    private let chrome = BrowserChromeView()
+    let chrome = BrowserChromeView()
     private let startPage = StartPageViewController()
     private let suggestionsView = OmniboxSuggestionsView()
     private var attachedEngineView: UIView?
@@ -40,8 +40,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         configureOwners()
         configureLayout()
         showSelectedTab()
-        NotificationCenter.default.addObserver(self, selector: #selector(settingsChanged),
-                                               name: .browserSettingsDidChange, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(settingsChanged), name: .browserSettingsDidChange, object: nil)
         scheduleInitialEnginePresentation()
     }
 
@@ -62,7 +61,12 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
-        tabManager.suspendBackgroundTabs()
+        applyMemoryPressure(.heavy)
+    }
+
+    func applyMemoryPressure(_ level: TabManager.MemoryPressureLevel) {
+        if level == .light { suggestionWorkItem?.cancel(); suggestionWorkItem = nil; suggestionsView.update([]) }
+        tabManager.applyMemoryPressure(level)
     }
 
     func open(_ url: URL) {
@@ -88,6 +92,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private func configureOwners() {
         tabManager.delegate = self
         tabManager.permissionHandler = permissionController
+        tabManager.clipboardPermissionHandler = permissionController
         tabManager.promptHandler = promptController
         permissionController.presenter = self
         promptController.presenter = self
@@ -127,22 +132,15 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         forwardEdge.edges = .right
         contentContainer.addGestureRecognizer(forwardEdge)
     }
-
-    private func showSelectedTab() {
+    func showSelectedTab() {
         guard isViewLoaded, let tab = tabManager.selectedTab else { return }
         chrome.update(tab: tab, tabCount: tabManager.tabs.count)
         if tab.lastFailure != nil { showFailure(for: tab); return }
         guard tab.url != nil else { showStartPage(); return }
         _ = tab.activate(settings: BrowserSettingsStore.shared.value)
         if tab.lastFailure != nil { showFailure(for: tab); return }
-        guard let engineView = tab.engineView else {
-            showStartPage()
-            return
-        }
-        if attachedEngineView === engineView {
-            tab.setActive(isSceneActive)
-            return
-        }
+        guard let engineView = tab.engineView else { showStartPage(); return }
+        guard attachedEngineView !== engineView else { return }
         attachedEngineView?.removeFromSuperview()
         attachedEngineView = nil
         clearFailureView()
@@ -162,12 +160,10 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         ])
         attachedEngineView = engineView
         logger.notice("Engine view attached")
-        DispatchQueue.main.async { [weak self, weak tab] in
-            guard let self, self.attachedEngineView === engineView else { return }
-            tab?.setActive(self.isSceneActive)
-        }
+        // Activate synchronously so SetActive cannot race the next PageStop.
+        contentContainer.layoutIfNeeded()
+        tab.setActive(isSceneActive)
     }
-
     private func showStartPage() {
         attachedEngineView?.removeFromSuperview()
         attachedEngineView = nil
@@ -184,7 +180,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         ])
         startPage.didMove(toParent: self)
     }
-
     private func showFailure(for tab: BrowserTab) {
         guard let failure = tab.lastFailure else { return }
         showFailure(failure, url: tab.url, retry: { [weak self, weak tab] in
@@ -195,7 +190,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             tab.loadHTTPFallback(settings: BrowserSettingsStore.shared.value); self.showSelectedTab()
         })
     }
-
     private func showFailure(_ failure: EngineFailure, url: URL? = nil,
                              retry: @escaping () -> Void, useHTTP: (() -> Void)? = nil) {
         logger.error("\(failure.code, privacy: .public): \(failure.message, privacy: .public)")
@@ -226,12 +220,10 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         ])
         failureView = state
     }
-
     private func clearFailureView() {
         failureView?.removeFromSuperview()
         failureView = nil
     }
-
     private func presentLibrary(_ section: LibrarySection) {
         let controller = LibraryViewController(section: section)
         controller.onOpenURL = { [weak self] in self?.open($0) }
@@ -279,9 +271,18 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     func browserChrome(_ chrome: BrowserChromeView, requestedAdjacentTab offset: Int) {
         tabManager.selectAdjacent(offset: offset); showSelectedTab()
     }
-    func tabManagerDidChange(_ manager: TabManager) {
-        showSelectedTab()
-        guard let tab = manager.selectedTab, let url = tab.url, !tab.isLoading,
+    func tabManagerDidChange(_ manager: TabManager) { showSelectedTab(); recordHistoryIfNeeded(for: manager.selectedTab) }
+    func tabManager(_ manager: TabManager, didUpdatePresentationFor tab: BrowserTab) { updatePresentation(for: tab, in: manager) }
+    func tabManager(_ manager: TabManager, didUpdatePersistableStateFor tab: BrowserTab) { updatePresentation(for: tab, in: manager) }
+    func tabManager(_ manager: TabManager, didUpdateContentFor tab: BrowserTab) {
+        guard tab === manager.selectedTab else { return }; showSelectedTab()
+    }
+    private func updatePresentation(for tab: BrowserTab, in manager: TabManager) {
+        guard tab === manager.selectedTab else { return }; chrome.update(tab: tab, tabCount: manager.tabs.count)
+        if !tab.isLoading { recordHistoryIfNeeded(for: tab) }
+    }
+    private func recordHistoryIfNeeded(for tab: BrowserTab?) {
+        guard let tab, let url = tab.url, !tab.isLoading,
               recordedURLs[tab.id] != url.absoluteString else { return }
         recordedURLs[tab.id] = url.absoluteString
         HistoryStore.shared.record(title: tab.title, url: url, privateMode: tab.isPrivate)

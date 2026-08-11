@@ -1,7 +1,6 @@
 {
   "schemaVersion": 1,
   "headers": [
-    "GeckoView/GeckoViewRuntimeSupport.h",
     "GeckoView/GeckoViewSwiftSupport.h",
     "GeckoView/IOSBootstrap.h"
   ],
@@ -40,9 +39,14 @@
       ]
     },
     {
-      "id": "interpreter-mode-startup",
-      "declarationTokens": ["JITRuntimeInfo", "ReportJITStatusForChild"],
-      "exportedSymbols": ["_ReportJITStatusForChild"]
+      "id": "child-process-lifecycle",
+      "declarationTokens": [
+        "GeckoChildProcessLifecycleObserver",
+        "GeckoChildProcessDidChange"
+      ],
+      "exportedSymbols": [
+        "_GeckoChildProcessDidChange"
+      ]
     }
   ]
 }

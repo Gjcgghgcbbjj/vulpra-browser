@@ -9,9 +9,9 @@ on:
         default: Xcode_26.4.1.app
         type: string
       engine_release_tag:
-        description: Release containing the verified precompiled v4 engine
+        description: Release containing the verified native Gecko v5 engine
         required: true
-        default: vulpra-engine-v4-candidate
+        default: vulpra-engine-v5-r0.3-candidate
         type: string
 
 permissions:
@@ -47,7 +47,7 @@ jobs:
           xcodebuild -version | tee build-environment.log
           xcrun --sdk iphoneos --show-sdk-build-version | tee -a build-environment.log
 
-      - name: Restore verified precompiled engine v4
+      - name: Restore verified native Gecko engine v5
         shell: bash
         run: |
           set -euo pipefail
@@ -61,7 +61,15 @@ jobs:
               'ENGINE_ARCHIVE': lock['device']['archive'],
               'ENGINE_ARCHIVE_SHA256': lock['device']['archiveSHA256'],
               'ENGINE_ARTIFACT_ID': lock['device']['artifactId'],
+              'ENGINE_ABI_VERSION': lock['device']['abiVersion'],
               'ENGINE_SOURCE_COMMIT': lock['device']['sourceCommit'],
+              'ENGINE_PRODUCER_RUN_ID': str(lock['producerRunId']),
+              'ENGINE_PRODUCER_HEAD_SHA': lock['producerHeadSha'],
+              'ENGINE_PATCH_SET_SHA256': lock['device']['patchSetSHA256'],
+              'ENGINE_CONFIGURATION_SHA256': lock['device']['configurationSHA256'],
+              'ENGINE_COMPILED_BY_RUN_ID': str(lock['device']['compiledByRunId']),
+              'ENGINE_COMPILED_BY_HEAD_SHA': lock['device']['compiledByHeadSha'],
+              'ENGINE_BUILD_FINGERPRINT': lock['device']['buildFingerprint'],
           }
           for key, value in values.items():
               print(f'{key}={shlex.quote(value)}')
@@ -78,15 +86,31 @@ jobs:
           mkdir -p .build/engine
           tar -xzf "$stage/$ENGINE_ARCHIVE" -C .build/engine
           python3 Tools/Engine/verify-engine-artifact.py \
-            --contract Configuration/engine-artifact-v4.json .build/engine \
+            --contract Configuration/engine-artifact-device-v5.json .build/engine \
             | tee engine-verification.log
           python3 - <<'PY'
           import json, os
           manifest = json.load(open('.build/engine/manifest.json'))
           if manifest['artifactId'] != os.environ['ENGINE_ARTIFACT_ID']:
               raise SystemExit('engine artifact ID does not match repository lock')
+          if manifest['abiVersion'] != os.environ['ENGINE_ABI_VERSION']:
+              raise SystemExit('engine ABI version does not match repository lock')
           if manifest['source']['commit'] != os.environ['ENGINE_SOURCE_COMMIT']:
               raise SystemExit('engine source commit does not match repository lock')
+          if manifest['producer']['workflowRunId'] != int(os.environ['ENGINE_PRODUCER_RUN_ID']):
+              raise SystemExit('engine producer run does not match repository lock')
+          if manifest['producer']['commit'] != os.environ['ENGINE_PRODUCER_HEAD_SHA']:
+              raise SystemExit('engine producer snapshot does not match repository lock')
+          if manifest['patchSet']['sha256'] != os.environ['ENGINE_PATCH_SET_SHA256']:
+              raise SystemExit('engine patch set does not match repository lock')
+          if manifest['configurationSHA256'] != os.environ['ENGINE_CONFIGURATION_SHA256']:
+              raise SystemExit('engine producer configuration does not match repository lock')
+          if manifest['compiledBy']['workflowRunId'] != int(os.environ['ENGINE_COMPILED_BY_RUN_ID']):
+              raise SystemExit('engine compile run does not match repository lock')
+          if manifest['compiledBy']['commit'] != os.environ['ENGINE_COMPILED_BY_HEAD_SHA']:
+              raise SystemExit('engine compile snapshot does not match repository lock')
+          if manifest['compiledBy']['buildFingerprint'] != os.environ['ENGINE_BUILD_FINGERPRINT']:
+              raise SystemExit('engine build fingerprint does not match repository lock')
           PY
 
       - name: Run portable architecture gates

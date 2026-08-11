@@ -3,10 +3,14 @@ set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 ENGINE_ROOT=${VULPRA_ENGINE_ROOT:-$ROOT/.build/engine}
-APP_BUNDLE=${TARGET_BUILD_DIR:?}/${WRAPPER_NAME:?}
-FRAMEWORKS=$APP_BUNDLE/Frameworks
-ENGINE_FRAMEWORK=$FRAMEWORKS/VulpraEngineKit.framework
-CONTRACT=${VULPRA_ENGINE_CONTRACT:-$ROOT/Configuration/engine-artifact-v4.json}
+if [ -n "${VULPRA_ENGINE_PRODUCT_BUNDLE:-}" ]; then
+  PRODUCT_BUNDLE=$VULPRA_ENGINE_PRODUCT_BUNDLE
+else
+  PRODUCT_BUNDLE=${TARGET_BUILD_DIR:?}/${WRAPPER_NAME:?}
+fi
+FRAMEWORKS=$PRODUCT_BUNDLE/Frameworks
+ENGINE_FRAMEWORK=${VULPRA_ENGINE_FRAMEWORK:-$FRAMEWORKS/VulpraEngineKit.framework}
+CONTRACT=${VULPRA_ENGINE_CONTRACT:-$ROOT/Configuration/engine-artifact-device-v5.json}
 
 python3 "$ROOT/Tools/Engine/verify-engine-artifact.py" \
   --contract "$CONTRACT" "$ENGINE_ROOT"
@@ -60,9 +64,9 @@ if bundle_identifier:
         "CFBundleInfoDictionaryVersion": "6.0",
         "CFBundleName": "VulpraSimulatorEngineRuntime",
         "CFBundlePackageType": "FMWK",
-        "CFBundleShortVersionString": "4.0",
+        "CFBundleShortVersionString": "5.0",
         "CFBundleSupportedPlatforms": ["iPhoneSimulator"],
-        "CFBundleVersion": "4",
+        "CFBundleVersion": "5",
         "MinimumOSVersion": os.environ.get("IPHONEOS_DEPLOYMENT_TARGET", "15.0"),
     }
     with open(sys.argv[2], "wb") as sink:

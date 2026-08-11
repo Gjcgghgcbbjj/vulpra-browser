@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "candidateDocs": [
+    "docs/aegis/specs/2026-07-29-vulpra-power-browser-architecture-design.md",
+    "docs/aegis/plans/2026-07-29-vulpra-r0-trustworthy-engine.md",
+    "docs/aegis/adr/ADR-0004-independent-engine-runtime-and-distribution.md",
+    "docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md"
+  ],
+  "whyRelevant": "These files define the approved owners, compatibility boundary, evidence gates, retirement, and current runtime truth.",
+  "missingAuthority": []
+}

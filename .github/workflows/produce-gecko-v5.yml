@@ -1,0 +1,436 @@
+name: Produce Native Gecko v5 Runtimes
+
+on:
+  push:
+    branches:
+      - fix/browser-performance-20260729
+    paths:
+      - Engine/GeckoPatches/v5/**
+      - Tools/GeckoProducer/**
+      - '!Tools/GeckoProducer/package-runtime.py'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: R0 prerelease tag for repeat-verified promotion
+        required: true
+        default: vulpra-engine-v5-r0.3-candidate
+        type: string
+      reuse_build_run_id:
+        description: Repackage verified build snapshots from this producer run
+        required: false
+        default: ''
+        type: string
+      promote_run_id:
+        description: Existing producer run selected for repeat-gated promotion
+        required: false
+        default: ''
+        type: string
+      repeat_producer_run_id:
+        description: Independent producer run used for repeat comparison
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: >-
+    vulpra-gecko-v5-${{ github.ref }}-${{
+      github.event_name == 'workflow_dispatch' && github.run_id || 'push'
+    }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build native ${{ matrix.platform }} runtime
+    if: ${{ inputs.promote_run_id == '' }}
+    runs-on: macos-26
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [iphoneos, iphonesimulator]
+    env:
+      GH_TOKEN: ${{ github.token }}
+      MOZ_FETCHES_DIR: ${{ github.workspace }}/.build/fetches
+      SCCACHE_DIR: ${{ github.workspace }}/.build/sccache
+      # Cap sccache below GitHub's 10 GB per-entry cache limit so the post-step
+      # save of a failed/partial build can never silently fail on size.
+      SCCACHE_CACHE_SIZE: 8G
+      REUSE_BUILD_RUN_ID: ${{ inputs.reuse_build_run_id || '' }}
+
+    steps:
+      - name: Checkout producer source
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Select pinned Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo xcode-select --switch /Applications/Xcode_26.4.1.app/Contents/Developer
+          {
+            xcodebuild -version
+            xcrun --sdk '${{ matrix.platform }}' --show-sdk-build-version
+            clang --version
+            rustc --version
+          } | tee gecko-${{ matrix.platform }}-environment.log
+          xcode_build=$(xcodebuild -version | awk '/Build version/{print $3}')
+          sdk_build=$(xcrun --sdk '${{ matrix.platform }}' --show-sdk-build-version)
+          test -n "$xcode_build"
+          test -n "$sdk_build"
+          printf 'VULPRA_XCODE_BUILD=%s\nVULPRA_SDK_BUILD=%s\n' \
+            "$xcode_build" "$sdk_build" >> "$GITHUB_ENV"
+
+      - name: Verify producer inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 Tools/GeckoProducer/verify-producer.py \
+            --contract Configuration/gecko-producer-v5.json \
+            | tee gecko-${{ matrix.platform }}-patch-verification.log
+          python3 Tests/IndependentEngine/test_gecko_producer_v5.py \
+            | tee gecko-${{ matrix.platform }}-portable.log
+          python3 Tests/IndependentEngine/test_gecko_producer_tools.py \
+            | tee -a gecko-${{ matrix.platform }}-portable.log
+
+      - name: Fetch and patch pinned Firefox
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Tools/GeckoProducer/fetch-source.sh \
+            Configuration/gecko-producer-v5.json .build/gecko-source
+          python3 Tools/GeckoProducer/apply-series.py \
+            --contract Configuration/gecko-producer-v5.json \
+            --source .build/gecko-source
+
+      - name: Bootstrap Firefox build dependencies
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            command -v python3
+            command -v clang
+            command -v rustc
+            command -v cargo
+            python3 --version
+            clang --version
+            rustc --version
+            cargo --version
+          } 2>&1 | tee gecko-${{ matrix.platform }}-bootstrap.log
+          if ! command -v sccache >/dev/null 2>&1; then
+            brew install sccache 2>&1 | tee -a gecko-${{ matrix.platform }}-bootstrap.log
+          fi
+          command -v sccache
+          sccache --version
+          # mach does not auto-detect sccache at this Firefox version; wire it
+          # in explicitly so C/C++ and Rust compiles populate the persisted
+          # cache. Absolute paths survive configure's PATH search.
+          printf 'CCACHE=%s\nRUSTC_WRAPPER=%s\n' \
+            "$(command -v sccache)" "$(command -v sccache)" >> "$GITHUB_ENV"
+
+      - name: Restore Gecko build cache (sccache)
+        # Restore sccache from a previous run so a retry reuses the compiled
+        # units of an earlier failed/partial build (the JIT experiment touches
+        # only 3 files). restore-keys keeps the unchanged units reusable even
+        # when the patch series changed the exact cache key.
+        id: gecko-cache
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
+        continue-on-error: true
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ github.workspace }}/.build/sccache
+          key: gecko-sccache-${{ matrix.platform }}-${{
+            hashFiles('Engine/GeckoPatches/v5/**', 'Tools/GeckoProducer/**',
+                      'Configuration/gecko-producer-v5.json') }}
+          restore-keys: |
+            gecko-sccache-${{ matrix.platform }}-
+
+      - name: Build native runtime
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Tools/GeckoProducer/build-runtime.sh '${{ matrix.platform }}' \
+            .build/gecko-source 2>&1 | tee gecko-${{ matrix.platform }}-build.log
+
+      - name: Preserve partial Gecko build cache (sccache)
+        # Save sccache even when the build above fails. The combined
+        # actions/cache@v4 action only saves in a post-step gated on success(),
+        # so a failed Gecko rebuild would otherwise lose all compile state and
+        # the next retry would start from scratch. A separate save step keeps
+        # the partial compiled units for the retry. Use !cancelled() instead of
+        # always(): combining always() with && does NOT override the default
+        # success() gate (proven by run 31384820854 where the save step was
+        # skipped after the iphoneos link failure), while !cancelled() stays
+        # true on failure and only gates on cancellation.
+        # cache-hit != 'true' avoids re-saving a key that already exists.
+        if: ${{ !cancelled() && env.REUSE_BUILD_RUN_ID == '' &&
+            steps.gecko-cache.outputs.cache-hit != 'true' }}
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ github.workspace }}/.build/sccache
+          key: ${{ steps.gecko-cache.outputs.cache-primary-key }}
+
+      - name: Capture verified build snapshot
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          platform='${{ matrix.platform }}'
+          snapshot="gecko-v5-$platform-build-snapshot.tar.gz"
+          python3 Tools/GeckoProducer/build-snapshot.py create \
+            --contract Configuration/gecko-producer-v5.json \
+            --platform "$platform" \
+            --source .build/gecko-source \
+            --xcode-build "$VULPRA_XCODE_BUILD" \
+            --sdk-build "$VULPRA_SDK_BUILD" \
+            --producer-commit '${{ github.sha }}' \
+            --producer-run-id '${{ github.run_id }}' \
+            --output "$snapshot"
+          python3 Tools/GeckoProducer/build-snapshot.py extract \
+            --contract Configuration/gecko-producer-v5.json \
+            --platform "$platform" \
+            --xcode-build "$VULPRA_XCODE_BUILD" \
+            --sdk-build "$VULPRA_SDK_BUILD" \
+            --archive "$snapshot" \
+            --expected-producer-run-id '${{ github.run_id }}' \
+            --output .build/package-source
+
+      - name: Upload verified build snapshot
+        if: ${{ env.REUSE_BUILD_RUN_ID == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: gecko-v5-build-snapshot-${{ matrix.platform }}-${{ github.run_id }}
+          path: |
+            gecko-v5-${{ matrix.platform }}-build-snapshot.tar.gz
+            gecko-${{ matrix.platform }}-build.log
+            gecko-${{ matrix.platform }}-bootstrap.log
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Restore verified build snapshot
+        if: ${{ env.REUSE_BUILD_RUN_ID != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          reuse_run_id="$REUSE_BUILD_RUN_ID"
+          [[ "$reuse_run_id" =~ ^[1-9][0-9]*$ ]] || {
+            echo "reuse_build_run_id must be a positive integer" >&2
+            exit 1
+          }
+          platform='${{ matrix.platform }}'
+          mkdir -p .build/reused-snapshot
+          gh run download "$reuse_run_id" --repo "$GITHUB_REPOSITORY" \
+            --name "gecko-v5-build-snapshot-$platform-$reuse_run_id" \
+            --dir .build/reused-snapshot
+          snapshot=".build/reused-snapshot/gecko-v5-$platform-build-snapshot.tar.gz"
+          python3 Tools/GeckoProducer/build-snapshot.py extract \
+            --contract Configuration/gecko-producer-v5.json \
+            --platform "$platform" \
+            --xcode-build "$VULPRA_XCODE_BUILD" \
+            --sdk-build "$VULPRA_SDK_BUILD" \
+            --archive "$snapshot" \
+            --expected-producer-run-id "$reuse_run_id" \
+            --output .build/package-source
+          cp ".build/reused-snapshot/gecko-$platform-build.log" \
+            "gecko-$platform-build.log"
+          cp ".build/reused-snapshot/gecko-$platform-bootstrap.log" \
+            "gecko-$platform-bootstrap.log"
+
+      - name: Package content-bound runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          platform='${{ matrix.platform }}'
+          case "$platform" in
+            iphoneos)
+              archive=vulpra-engine-ios-arm64-v5.tar.gz
+              ;;
+            iphonesimulator)
+              archive=vulpra-engine-ios-simulator-native-arm64-v5.tar.gz
+              ;;
+          esac
+          dist=".build/package-source/dist"
+          mozconfig=".build/package-source/.mozconfig-vulpra-$platform"
+          python3 Tools/GeckoProducer/package-runtime.py \
+            --contract Configuration/gecko-producer-v5.json \
+            --platform "$platform" --dist "$dist" --mozconfig "$mozconfig" \
+            --output "$archive"
+          mkdir -p ".build/gecko-v5-evidence/$platform"
+          python3 - "$archive" "$platform" ".build/gecko-v5-evidence/$platform/manifest.json" <<'PY'
+          import json
+          from pathlib import PurePosixPath
+          import sys
+          import tarfile
+
+          archive_path, platform, output = sys.argv[1:]
+          with tarfile.open(archive_path, 'r:gz') as archive:
+              members = archive.getmembers()
+              for member in members:
+                  path = PurePosixPath(member.name)
+                  if path.is_absolute() or '..' in path.parts or member.issym() or member.islnk():
+                      raise SystemExit(f'unsafe archive member: {member.name}')
+              source = archive.extractfile('manifest.json')
+              if source is None:
+                  raise SystemExit('artifact manifest is missing')
+              manifest = json.load(source)
+          if manifest['formatVersion'] != 5 or manifest['build']['platform'] != platform:
+              raise SystemExit('artifact manifest platform identity mismatch')
+          if manifest['producer']['commit'] != '${{ github.sha }}':
+              raise SystemExit('artifact producer commit mismatch')
+          if manifest['producer']['workflowRunId'] != ${{ github.run_id }}:
+              raise SystemExit('artifact producer run mismatch')
+          with open(output, 'w', encoding='utf-8') as sink:
+              json.dump(manifest, sink, indent=2)
+              sink.write('\n')
+          PY
+          nm -gU "$dist/bin/XUL" > ".build/gecko-v5-evidence/$platform/symbols.log"
+          cp "gecko-$platform-environment.log" ".build/gecko-v5-evidence/$platform/environment.log"
+          cp "gecko-$platform-patch-verification.log" ".build/gecko-v5-evidence/$platform/patch-verification.log"
+          cp "gecko-$platform-build.log" ".build/gecko-v5-evidence/$platform/build.log"
+          shasum -a 256 "$archive" > ".build/gecko-v5-evidence/$platform/archive.sha256"
+
+      - name: Upload native runtime and evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: gecko-v5-${{ matrix.platform }}-${{ github.run_id }}
+          path: |
+            vulpra-engine-ios*-v5.tar.gz
+            .build/gecko-v5-evidence/${{ matrix.platform }}/
+            gecko-${{ matrix.platform }}-bootstrap.log
+            gecko-${{ matrix.platform }}-portable.log
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  verify-pair:
+    name: Verify and optionally publish native pair
+    needs: build
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout pair verifier
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Download device runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: gecko-v5-iphoneos-${{ github.run_id }}
+          path: candidate/iphoneos
+
+      - name: Download Simulator runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: gecko-v5-iphonesimulator-${{ github.run_id }}
+          path: candidate/iphonesimulator
+
+      - name: Verify cross-target identity and native distinction
+        shell: bash
+        run: |
+          set -euo pipefail
+          device='candidate/iphoneos/vulpra-engine-ios-arm64-v5.tar.gz'
+          simulator='candidate/iphonesimulator/vulpra-engine-ios-simulator-native-arm64-v5.tar.gz'
+          python3 Tools/Engine/promote-engine-artifacts.py verify-pair \
+            --producer-run-id '${{ github.run_id }}' \
+            --device-archive "$device" \
+            --simulator-archive "$simulator"
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+          import tarfile
+
+          roots = {
+              'iphoneos': Path('candidate/iphoneos'),
+              'iphonesimulator': Path('candidate/iphonesimulator'),
+          }
+          archives = {
+              platform: next(root.glob('vulpra-engine-ios*-v5.tar.gz'))
+              for platform, root in roots.items()
+          }
+          manifests = {}
+          kernels = {}
+          for platform, archive_path in archives.items():
+              with tarfile.open(archive_path, 'r:gz') as archive:
+                  source = archive.extractfile('manifest.json')
+                  kernel = archive.extractfile('runtime/bin/XUL')
+                  if source is None or kernel is None:
+                      raise SystemExit(f'{platform} artifact is incomplete')
+                  manifests[platform] = json.load(source)
+                  kernels[platform] = hashlib.sha256(kernel.read()).hexdigest()
+          device = manifests['iphoneos']
+          simulator = manifests['iphonesimulator']
+          for field in ('source', 'patchSet', 'producer', 'configurationSHA256', 'abiVersion'):
+              if device[field] != simulator[field]:
+                  raise SystemExit(f'cross-target {field} identity mismatch')
+          for field in ('repository', 'commit', 'workflowRunId'):
+              if device['compiledBy'][field] != simulator['compiledBy'][field]:
+                  raise SystemExit(f'cross-target compiledBy {field} identity mismatch')
+          if device['build']['platform'] != 'iphoneos' or \
+                  simulator['build']['platform'] != 'iphonesimulator':
+              raise SystemExit('artifact pair does not contain both native platforms')
+          if device['build']['targetTriple'] == simulator['build']['targetTriple']:
+              raise SystemExit('artifact target triples are not distinct')
+          if kernels['iphoneos'] == kernels['iphonesimulator']:
+              raise SystemExit('device and Simulator XUL content is identical')
+          summary = {
+              'producerRunId': device['producer']['workflowRunId'],
+              'producerCommit': device['producer']['commit'],
+              'compiledBy': {
+                  'repository': device['compiledBy']['repository'],
+                  'commit': device['compiledBy']['commit'],
+                  'workflowRunId': device['compiledBy']['workflowRunId'],
+                  'buildFingerprints': {
+                      platform: manifests[platform]['compiledBy']['buildFingerprint']
+                      for platform in manifests
+                  },
+              },
+              'source': device['source'],
+              'patchSet': device['patchSet'],
+              'artifacts': {
+                  platform: {
+                      'archive': archive.name,
+                      'archiveSHA256': hashlib.sha256(archive.read_bytes()).hexdigest(),
+                      'artifactId': manifests[platform]['artifactId'],
+                      'kernelSHA256': kernels[platform],
+                  }
+                  for platform, archive in archives.items()
+              },
+          }
+          Path('candidate/pair-verification.json').write_text(
+              json.dumps(summary, indent=2) + '\n', encoding='utf-8'
+          )
+          PY
+          cat candidate/pair-verification.json
+
+      - name: Upload pair verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: gecko-v5-pair-${{ github.run_id }}
+          path: |
+            candidate/pair-verification.json
+          if-no-files-found: error
+          retention-days: 30
+
+  promote-repeat-verified-pair:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.promote_run_id != '' }}
+    uses: ./.github/workflows/promote-gecko-v5.yml
+    with:
+      producer_run_id: ${{ inputs.promote_run_id }}
+      repeat_producer_run_id: ${{ inputs.repeat_producer_run_id }}
+      release_tag: ${{ inputs.release_tag }}

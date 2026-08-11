@@ -49,13 +49,22 @@ func takeCallback(_ pointer: UnsafeMutableRawPointer?) -> EngineABICallbackLease
     pointer.map(EngineABICallbackLease.init(pointer:))
 }
 
+typealias EngineABICallbackHandler = @convention(c) (
+    UnsafeMutableRawPointer?, UnsafeRawPointer?, UnsafeRawPointer?
+) -> Void
+
 typealias EngineABIEventHandler = @convention(c) (
     UnsafeMutableRawPointer?, UnsafeRawPointer, UnsafeRawPointer?, UnsafeMutableRawPointer?
+) -> Void
+typealias EngineABIChildProcessHandler = @convention(c) (
+    UnsafeMutableRawPointer?, UInt64, Int32, Int32, UnsafeRawPointer, Int32,
+    UInt64, Int32, UnsafeRawPointer?
 ) -> Void
 
 @_silgen_name("VEKRuntimeCreate")
 func engineABIRuntimeCreate(
-    _ context: UnsafeMutableRawPointer?, _ handler: EngineABIEventHandler
+    _ context: UnsafeMutableRawPointer?, _ eventHandler: EngineABIEventHandler,
+    _ childProcessHandler: EngineABIChildProcessHandler?
 ) -> UnsafeMutableRawPointer?
 
 @_silgen_name("VEKRuntimeMain")
@@ -63,6 +72,13 @@ func engineABIRuntimeMain(
     _ runtime: UnsafeMutableRawPointer, _ argc: Int32,
     _ argv: UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>
 ) -> Int32
+
+@_silgen_name("VEKRuntimeDispatchWithCallback")
+func engineABIRuntimeDispatchWithCallback(
+    _ runtime: UnsafeMutableRawPointer, _ type: UnsafeRawPointer,
+    _ message: UnsafeRawPointer?, _ context: UnsafeMutableRawPointer?,
+    _ callback: EngineABICallbackHandler?
+)
 
 @_silgen_name("VEKRuntimeDispatch")
 func engineABIRuntimeDispatch(

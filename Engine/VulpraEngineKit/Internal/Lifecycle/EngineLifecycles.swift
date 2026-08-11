@@ -16,19 +16,30 @@ struct EngineRuntimeLifecycle {
         }
     }
 
-    mutating func becomeReady(_ capabilities: EngineCapabilities) {
-        switch state {
-        case .starting, .failed:
-            state = .ready(capabilities)
-        case .stopped, .ready:
-            break
-        }
+    /// Transition to ready ONLY from .starting. A late `Vulpra:RuntimeReady`
+    /// arriving after a terminal non-recoverable failure must not resurrect the
+    /// runtime (terminal state is terminal). Returns true only when the
+    /// transition actually happened.
+    mutating func becomeReady(_ capabilities: EngineCapabilities) -> Bool {
+        guard case .starting = state else { return false }
+        state = .ready(capabilities)
+        return true
     }
 
     mutating func fail(_ failure: EngineFailure) {
-        guard case .ready = state else {
+        switch state {
+        case .ready:
+            // Recoverable failures after ready are handled by sessions; only
+            // non-recoverable runtime-main exits should poison the whole runtime.
+            if !failure.isRecoverable {
+                state = .failed(failure)
+            }
+        case .stopped, .starting:
             state = .failed(failure)
-            return
+        case .failed:
+            // Terminal failure already recorded; do not mask it with a later
+            // failure (recoverable child failures must not hide the reason).
+            break
         }
     }
 }

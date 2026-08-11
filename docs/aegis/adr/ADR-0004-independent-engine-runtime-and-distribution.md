@@ -119,3 +119,167 @@ No fallback, duplicate runtime owner, GeckoView, Helper, JIT, source-build clien
 ### Boundary
 
 This amendment is an advisory Aegis Method Pack record. It does not grant completion authority or replace project-authoritative architecture sources.
+
+---
+
+## Amendment - 2026-08-08 - Gecko v5 r0.3 repeat-verified pair is the locked
+engine; the hosted Simulator R0 gate is 20/20 under the evidence-loss-proof
+contract; the final package is bound to the same snapshot. The v4/vtool
+simulator derivation, old contract files, and retired harness paths are removed;
+only device/simulator native v5 kernels remain.
+
+### Source Evidence
+- Engine/VulpraEngineKit/Internal/Lifecycle/EngineLifecycles.swift (terminal
+  state machine; ready-only-fails on non-recoverable main exit)
+- Engine/VulpraEngineKit/Internal/Process/EngineChildProcessLifecycle.swift
+  (typed child launch state machine: requested -> extensionConnected ->
+  bootstrapAcknowledged -> ipcConnected)
+- Engine/VulpraEngineProcess/EngineProcessRequest.swift (protocolVersion=2,
+  typed XPC endpoint handoff validation)
+- Tools/CI/run-simulator-navigation.sh (warm settle evidence unconditional +
+  persisted unified-log fallback; gate-http-dispatch delivery)
+- Tools/CI/summarize-r0-engine-gate.py (20-attempt contract:
+  locationMatched, pageCompleted, renderedDarkPixels>=1000, crashCount==0,
+  deliveryMethod=gate-http-dispatch, warmSettleSeconds>=0,
+  gateDispatchStatus=0, no open/failed child launches,
+  p95<=15000ms max<=30000ms)
+- Configuration/engine-artifact-lock.json (v5, producer 30598301958,
+  Firefox 27b462b, releaseTag vulpra-engine-v5-r0.3-candidate)
+- Tests/IndependentEngine/test_cutover_readiness.py --require-r0-complete
+  (verified; cutover-ready)
+
+### Change Summary
+- Promoted Gecko v5 r0.3 pair: producer runs 30598301958 (device+simulator)
+  and 30598347174 (device+simulator); repeat compile verified; promotion run
+  30613021710; selected producer 30598301958; artifactFormatVersion=5.
+- Locked engine: Configuration/engine-artifact-lock.json (v5,
+  vulpra-engine-v5-r0.3-candidate, Firefox 27b462b, compiledBy 30598301958).
+- Hosted Simulator R0 gate: run 31237088851 @ 4b2dc58, 20/20 attempts,
+  deliveryMethod=gate-http-dispatch, p95=1810ms max=1961ms,
+  warm settle evidence >=0 on all attempts, open/failed launches=0.
+- Final package: run 31244000908 @ 4b2dc58; Vulpra.ipa
+  0971a3ad2744ebfb8881021ceb08f7d62dd8a762997ba245fa3c115bbaf039fc; Vulpra-TrollStore.tipa 5adc09ba48cb757a9814c13250d21c935fdac213c033cb8e0834d32f6f351802.
+- Simulator evidence contract upgraded: warm settle is recorded unconditionally
+  when the app is alive; navigation completion falls back to a throttled
+  persisted unified-log snapshot when the live stream drops events
+  (run 31220738161 attempt-01 root cause).
+- v4/vtool paths retired: produce-simulator-artifact.sh, old Simulator
+  workflow, v4 contracts, legacy artifact/Simulator tests, vtool-derived
+  simulator binary path. Simulator kernel is now a native iphonesimulator
+  build, not a vtool-mangled device binary.
+
+### Compatibility Boundary
+- Gecko v5 kernel and Swift/App layer are frozen at 4b2dc58 for this package;
+  no engine recompile is required for App/EngineKit-only changes.
+- Device and Simulator kernels are independent native builds with identical
+  verified source inputs; binary identity audit (annex 19) shows packaged
+  XUL == verified artifact except signature plumbing.
+
+### Retirement Impact
+- v4 contract files, produce-simulator-artifact.sh, old Simulator workflow,
+  and legacy v4 tests are gone; retirement is asserted by
+  Tests/IndependentEngine/test_cutover_readiness.py --require-r0-complete
+  (retired paths + active-root token scan).
+
+### Baseline Sync
+- docs/aegis/baseline/2026-07-27-independent-engine-package-baseline.md:
+  status package-verified-simulator-20-20; independent engine cutover
+  complete-v5-r0.3; hosted Simulator gate verified-20-20; last amended
+  2026-08-08; v5 lock values + final package hashes; physical device/JIT/
+  OpenIn/App Store remain needs-verification.
+
+### Evidence References
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30598301958
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30598347174
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/30613021710
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31237088851
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31244000908
+
+### Boundary
+- This amendment is an advisory Aegis record. Physical-device behavior,
+  JIT-on-device, OpenIn-on-device, and App Store distribution eligibility are
+  NOT claimed by this amendment and remain external validation items.
+
+## Amendment - 2026-08-09 - Real-device rendering entitlements, verified RDD startup-timeout delivery, and content-process termination diagnosis are enforced on the final snapshot.
+
+- Status: amended
+
+### Change Summary
+- EngineProcess.appex now carries the same `com.apple.security.iokit-user-client-class`
+  (IOSurfaceRootUserClient + AGXDevice/AGXCommandQueue/AGXDeviceUserClient/
+  AGXSharedUserClient) and `com.apple.private.security.no-sandbox` as the App so
+  the GPU process can create a Metal device on real devices instead of silently
+  falling back to software WebRender (observed as 卡顿/发热/滑动慢半拍 on the
+  prior package). The App Store variant keeps standard entitlements.
+- RDD startup-timeout delivery is now verified end-to-end: the runtime sends
+  `GeckoView:Preferences:SetPref` for `media.rdd-process.startup_timeout_ms`
+  (30000, PREF_INT=64, user branch) through the ABI dispatcher with a callback;
+  the packaged `GeckoViewPreferences.sys.mjs` replies and the runtime records
+  `rdd-timeout-pref-set verified ... isSet=true`. The 2026-08-09 20-attempt gate
+  shows isSet=true on 76 evidence lines with zero isSet=false/timeouts, and
+  161/161 child launches connected (0 failed, 0 open).
+- Content-process termination is diagnosed instead of silently reloading:
+  BrowserTab logs the termination reason (category `browser-tab`), keeps
+  url/title/back-forward/thumbnail state, and exposes `lastTerminationReason`
+  until the next session opens.
+- Final snapshot `5942698` re-closed the hosted Simulator R0 gate:
+  single-attempt gate run `31288215667` and 20-attempt gate run `31288670337`
+  (20/20, p95=1623ms, max=3111ms).
+
+### Evidence References
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31288215667
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31288670337
+- commit 8aea481 (didTerminate diagnosis + os_log compile fix)
+- commit 5942698 (final gates.json binding)
+- final package run 31294387233 @ 5942698
+
+### Boundary
+- Physical-device retest of the new package (Metal smoothness, swipe-up reload
+  triage, heat) is the remaining external validation; JIT-on-device, OpenIn,
+  and App Store distribution eligibility are NOT claimed here.
+
+## Amendment - 2026-08-09 - Host-process low-memory early reclaim is enforced on the final snapshot.
+
+- Status: amended
+
+### Change Summary
+- Candidate 3 (low-memory early reclaim, App/EngineKit layer only, no Gecko
+  recompile; v5 lock `vulpra-engine-v5-r0.3-candidate` unchanged):
+  - `MemoryPressureMonitor` registers a host-process
+    `dispatch_source_memorypressure` source (warning + critical) and delivers
+    levels on the main actor, ahead of UIKit's late
+    `didReceiveMemoryWarning`.
+  - `EngineRuntime.onMemoryPressure` is the public channel;
+    `MemoryPressureRouter` maps warning -> light reclaim (release thumbnails,
+    deactivate idle sessions, cancel suggestion work) and critical -> heavy
+    LRU suspend (bounded keep-active cap, selected tab never touched), so the
+    App reduces its footprint before the content process can be selected by
+    jetsam (observed on-device as page reload on scroll / 上滑重新加载).
+  - Contract gate `Tests/IndependentEngine/test_low_memory_monitor.py` pins
+    the public API, monitor shape, App mapping, and the no-Gecko-symbol ABI
+    boundary.
+- Re-verified on the final snapshot HEAD `355c010`:
+  - single-attempt gate run `31295629075` PASS (r0Passed=1, 8/8 connected,
+    0 failed/open, p95=max=404ms);
+  - 20-attempt gate run `31296543332` **20/20 passed**: 160 child launches
+    requested / 160 connected / 0 failed / 0 open, p95 load-to-complete
+    `668ms`, max `2347ms` (bounds p95<=15000ms, max<=30000ms),
+    deliveryMethod `gate-http-dispatch`, `rdd-timeout-pref-set isSet=true`
+    on 75 evidence lines with 0 failures;
+  - final package run `31301272885` at HEAD `355c010`, IPA/TIPA SHA-256
+    verified below.
+
+### Evidence References
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31295629075
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31296543332
+- https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/31301272885
+- commit 355c010 (host-process memory pressure early reclaim)
+- final package run 31301272885 @ 355c010
+  - Vulpra.ipa 01fa37c624a9f61a112c83e98885d3610e6962e2544e9ac6aabf7d0637ada91c
+  - Vulpra-TrollStore.tipa 6519c9d4a40f21841ffa512b958868c55e20b8f740223b479e8abb55a9c4e4aa
+
+### Boundary
+- Physical-device retest of the new package (Metal smoothness, heat,
+  scroll responsiveness, swipe-up reload triage) is the remaining external
+  validation; JIT-on-device, OpenIn, and App Store distribution eligibility
+  are NOT claimed here.

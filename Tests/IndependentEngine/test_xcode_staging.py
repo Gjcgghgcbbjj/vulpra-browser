@@ -35,6 +35,17 @@ def main() -> None:
 
     require(text.count("isa = PBXNativeTarget;") == 5, "Xcode target set is not canonical")
     require(len(text.splitlines()) < 800, "project.pbxproj exceeds 800-line budget")
+    test_target = text.split(
+        '/* VulpraEngineKitTests */ = {isa = PBXNativeTarget;', 1
+    )[1].split('};', 1)[0]
+    require('B00000000000000000000006' not in test_target,
+            "EngineKit unit tests still depend on the production App test host")
+    require('TEST_HOST =' not in text and 'BUNDLE_LOADER =' not in text,
+            "EngineKit unit tests still launch through the production App main")
+    require('Stage Engine Test Runtime' in test_target,
+            "hostless EngineKit tests do not stage their runtime link dependencies")
+    require('VULPRA_ENGINE_PRODUCT_BUNDLE' in text and 'VULPRA_ENGINE_FRAMEWORK' in text,
+            "EngineKit test staging does not call the shared runtime owner explicitly")
 
     app = "\n".join(path.read_text(encoding="utf-8") for path in (ROOT / "App").rglob("*.swift"))
     require("import VulpraEngineKit" in app, "App is not migrated to VulpraEngineKit")
@@ -46,6 +57,8 @@ def main() -> None:
                 f"{name} config retains inherited source")
 
     staging = (ROOT / "Tools/Engine/stage-engine-runtime.sh").read_text(encoding="utf-8")
+    require('VULPRA_ENGINE_PRODUCT_BUNDLE' in staging and 'VULPRA_ENGINE_FRAMEWORK' in staging,
+            "runtime staging cannot target a hostless test bundle")
     require('codesign --force --sign - {}' in staging,
             "simulator runtime does not repair the precompiled Mach-O signature")
     require('json.load(open(sys.argv[1]' in staging and '["runtimeResourceContainer"]' in staging,
@@ -92,16 +105,55 @@ def main() -> None:
     require("GeckoView" not in scheme and "Vulpra Helper" not in scheme, "scheme retains old targets")
 
     simulator = SIMULATOR_WORKFLOW.read_text(encoding="utf-8")
-    for token in ("Engine view attached", "rendered_dark_pixels=", "simulator-rendering.log"):
+    harness = (ROOT / "Tools/CI/run-simulator-navigation.sh").read_text(encoding="utf-8")
+    summarizer = (ROOT / "Tools/CI/summarize-r0-engine-gate.py").read_text(encoding="utf-8")
+    for token in (
+        "Tools/CI/run-simulator-navigation.sh", "Tools/CI/summarize-r0-engine-gate.py",
+        "Tools/CI/check-single-attempt-gate.py",
+        "r0_attempts:", "name: r0-engine-gate",
+    ):
         require(token in simulator, f"simulator evidence does not verify visible content: {token}")
+    require('for attempt in $(seq 2 "$attempts")' in simulator,
+            "Simulator gate no longer runs a single-attempt fast gate before the repeated loop")
+    require("single-attempt navigation gate" in simulator,
+            "Simulator gate lacks the single-attempt pass marker")
+    for token in (
+        "rendered_dark_pixels=", "lifecycleEvents", "requestedLaunchIDs",
+        "connectedLaunchIDs", "openLaunchIDs", "trap cleanup EXIT",
+    ):
+        require(token in harness, f"Simulator harness is missing evidence field: {token}")
+    render_audit = (ROOT / "Tools/CI/audit-rendering.sh").read_text(encoding="utf-8")
+    require("audit-rendering.sh" in harness,
+            "Simulator harness does not use the shared render audit")
+    require("(height / 4)..<(height * 3 / 4)" in render_audit,
+            "shared render audit lost the central dark-pixel region")
+    require("data-vulpra-engine-fixture" in simulator,
+            "Simulator workflow lacks a deterministic central page marker")
+    require('VulpraEngineRuntime/Frameworks/omni.ja' in simulator,
+            "Simulator gate does not require the staged Gecko omnijar")
+    require('test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"'
+            not in simulator,
+            "Simulator gate still requires the retired unpacked omnijar layout")
+    require('modules/AppConstants.sys.mjs' in simulator and
+            'modules/XPCOMUtils.sys.mjs' in simulator,
+            "Simulator gate does not inspect required omnijar entries")
+    require('build-for-testing 2>&1 | tee simulator-build.log' in simulator,
+            "Simulator gate does not build App and unit tests in one build phase")
+    require('test-without-building > simulator-native-tests.log' in simulator,
+            "native EngineKit execution still mixes compilation into its deadline")
+    require('grep -Fq "** TEST EXECUTE SUCCEEDED **" simulator-native-tests.log' in simulator and
+            '! grep -Fq "** TEST EXECUTE FAILED **" simulator-native-tests.log' in simulator,
+            "native EngineKit gate still checks the retired combined-test result markers")
+    require("p95 > 15000" in summarizer and "maximum > 30000" in summarizer,
+            "R0 summarizer does not enforce navigation performance thresholds")
     require("lock['simulator']['archive']" in simulator,
             "simulator evidence does not use the pinned simulator engine")
     require("xcrun vtool" not in simulator and "derive_simulator_from_device" not in simulator,
             "simulator workflow still rewrites the device engine")
-    log_start = simulator.index("log stream --style compact --info --debug")
-    navigation_launch = simulator.index("launch_output=")
-    navigation_screenshot = simulator.index("screenshot simulator-navigation.png")
-    log_stop = simulator.index('kill "$system_log_pid"')
+    log_start = harness.index("log stream --style compact --info --debug")
+    navigation_launch = harness.index("LAUNCH_OUTPUT=")
+    navigation_screenshot = harness.index('screenshot "$PREFIX-navigation.png"')
+    log_stop = harness.rindex('kill "$SYSTEM_LOG_PID"')
     require(log_start < navigation_launch,
             "simulator logging must start before navigation launches")
     require(log_stop > navigation_screenshot,

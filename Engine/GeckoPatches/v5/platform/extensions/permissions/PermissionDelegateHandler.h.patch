@@ -1,0 +1,13 @@
+diff --git a/extensions/permissions/PermissionDelegateHandler.h b/extensions/permissions/PermissionDelegateHandler.h
+index 7a41f08d41517d9c3e873ca93ed277d7214f5d17..e22e5ea6c21e3ca33ab0a4833bd760c1682fc80d 100644
+--- a/extensions/permissions/PermissionDelegateHandler.h
++++ b/extensions/permissions/PermissionDelegateHandler.h
+@@ -50,7 +50,7 @@ class PermissionDelegateHandler final : public nsIPermissionDelegateHandler {
+   explicit PermissionDelegateHandler() = default;
+   explicit PermissionDelegateHandler(mozilla::dom::Document* aDocument);
+ 
+-  static constexpr size_t DELEGATED_PERMISSION_COUNT = 16;
++  static constexpr size_t DELEGATED_PERMISSION_COUNT = 17;
+ 
+   typedef struct DelegatedPermissionList {
+     Array<uint32_t, DELEGATED_PERMISSION_COUNT> mPermissions;

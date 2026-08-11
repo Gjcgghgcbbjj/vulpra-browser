@@ -18,11 +18,25 @@ final class StartPageViewController: UIViewController {
     private let actionGrid = UIStackView()
     private var quickItems: [(String, URL)] = []
     private var quickURLs: [URL] = []
+    private weak var jitLabel: UILabel?
     private var renderedColumns = 0
+
+    private var jitRefreshTimer: Timer?
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         reloadQuickSites()
+        refreshJITFooter()
+        jitRefreshTimer?.invalidate()
+        jitRefreshTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            self?.refreshJITFooter()
+        }
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        jitRefreshTimer?.invalidate()
+        jitRefreshTimer = nil
     }
 
     override func viewDidLoad() {
@@ -94,6 +108,16 @@ final class StartPageViewController: UIViewController {
         contentStack.addArrangedSubview(actionGrid)
         contentStack.addArrangedSubview(quickSection)
 
+        let jitLabel = UILabel()
+        self.jitLabel = jitLabel
+        jitLabel.text = VulpraJitProbe.footerText
+        jitLabel.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+        jitLabel.textColor = .secondaryLabel
+        jitLabel.textAlignment = .center
+        jitLabel.numberOfLines = 0
+        jitLabel.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.addArrangedSubview(jitLabel)
+
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -104,6 +128,10 @@ final class StartPageViewController: UIViewController {
             contentStack.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor, constant: -20),
             contentStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -24),
         ])
+    }
+
+    private func refreshJITFooter() {
+        jitLabel?.text = VulpraJitProbe.footerText
     }
 
     private func configureActions() {

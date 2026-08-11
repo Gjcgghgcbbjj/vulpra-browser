@@ -12,6 +12,16 @@ protocol BrowserChromeViewDelegate: AnyObject {
 }
 
 final class BrowserChromeView: UIView, UITextFieldDelegate {
+    private struct RenderState: Equatable {
+        let address: String?
+        let canGoBack: Bool
+        let canGoForward: Bool
+        let isLoading: Bool
+        let progress: Int
+        let tabCount: Int
+        let addressSymbol: String
+    }
+
     weak var delegate: BrowserChromeViewDelegate?
     let progressView = BrowserProgressView(progressViewStyle: .bar)
     private let material = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterial))
@@ -25,7 +35,7 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
     private let lockView = UIImageView(image: UIImage(systemName: "lock.fill"))
     private let buttonRow = UIStackView()
     private(set) var addressField = UITextField()
-    private var isLoading = false
+    private var renderedState: RenderState?
     private var compactConstraint: NSLayoutConstraint!
     private var focusedConstraint: NSLayoutConstraint!
     private var buttonRowConstraint: NSLayoutConstraint!
@@ -51,18 +61,31 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
     }
 
     func update(tab: BrowserTab, tabCount: Int) {
-        if !addressField.isFirstResponder { addressField.text = tab.url?.absoluteString }
-        backButton.isEnabled = tab.canGoBack
-        forwardButton.isEnabled = tab.canGoForward
-        isLoading = tab.isLoading
-        reloadButton.setImage(UIImage(systemName: tab.isLoading ? "xmark" : "arrow.clockwise"), for: .normal)
-        reloadButton.accessibilityLabel = VulpraL10n.text(tab.isLoading ? "browser.stop" : "browser.reload")
-        tabsButton.accessibilityValue = VulpraL10n.format("browser.tabs.count", tabCount)
-        tabCountLabel.text = tabCount > 99 ? "99+" : String(tabCount)
         let symbol = tab.url == nil ? "magnifyingglass" :
             tab.url?.scheme?.lowercased() == "https" ? "lock.fill" : "globe"
-        lockView.image = UIImage(systemName: symbol)
-        progressView.update(progress: tab.progress, loading: tab.isLoading)
+        let state = RenderState(
+            address: tab.url?.absoluteString, canGoBack: tab.canGoBack,
+            canGoForward: tab.canGoForward, isLoading: tab.isLoading,
+            progress: tab.progress, tabCount: tabCount, addressSymbol: symbol
+        )
+        guard state != renderedState else { return }
+        let previous = renderedState
+        renderedState = state
+        if previous?.address != state.address, !addressField.isFirstResponder { addressField.text = state.address }
+        if previous?.canGoBack != state.canGoBack { backButton.isEnabled = state.canGoBack }
+        if previous?.canGoForward != state.canGoForward { forwardButton.isEnabled = state.canGoForward }
+        if previous?.isLoading != state.isLoading {
+            reloadButton.setImage(UIImage(systemName: state.isLoading ? "xmark" : "arrow.clockwise"), for: .normal)
+            reloadButton.accessibilityLabel = VulpraL10n.text(state.isLoading ? "browser.stop" : "browser.reload")
+        }
+        if previous?.tabCount != state.tabCount {
+            tabsButton.accessibilityValue = VulpraL10n.format("browser.tabs.count", state.tabCount)
+            tabCountLabel.text = state.tabCount > 99 ? "99+" : String(state.tabCount)
+        }
+        if previous?.addressSymbol != state.addressSymbol { lockView.image = UIImage(systemName: state.addressSymbol) }
+        if previous?.progress != state.progress || previous?.isLoading != state.isLoading {
+            progressView.update(progress: state.progress, loading: state.isLoading)
+        }
     }
 
     func focusAddress() {
@@ -176,7 +199,10 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
     }
 
     func textFieldDidBeginEditing(_ textField: UITextField) { animateEditing(true) }
-    func textFieldDidEndEditing(_ textField: UITextField) { animateEditing(false) }
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        addressField.text = renderedState?.address
+        animateEditing(false)
+    }
 
     private func animateEditing(_ editing: Bool) {
         compactConstraint.isActive = !editing

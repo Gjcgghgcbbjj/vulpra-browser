@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verify the precompiled-v4 package workflow contract."""
+"""Verify the precompiled native Gecko v5 package workflow contract."""
 
 from pathlib import Path
 
@@ -19,7 +19,16 @@ def main() -> None:
         "workflow_dispatch:",
         "runs-on: macos-26",
         "engine_release_tag",
+        "vulpra-engine-v5-r0.3-candidate",
         "verify-engine-artifact.py",
+        "engine-artifact-device-v5.json",
+        "ENGINE_ABI_VERSION",
+        "ENGINE_PRODUCER_RUN_ID",
+        "ENGINE_PATCH_SET_SHA256",
+        "ENGINE_CONFIGURATION_SHA256",
+        "ENGINE_COMPILED_BY_RUN_ID",
+        "ENGINE_COMPILED_BY_HEAD_SHA",
+        "ENGINE_BUILD_FINGERPRINT",
         "xcodebuild -list",
         "run-portable.sh",
         "build-app.sh",
@@ -39,6 +48,10 @@ def main() -> None:
         "build-gecko",
         "GeckoView.framework",
         "Vulpra Helper",
+        "engine-artifact-v4.json",
+        "vulpra-engine-v4-candidate",
+        "produce-simulator-artifact",
+        "apple-vtool-set-build-version-iossim-15",
     ):
         require(forbidden not in text, f"package workflow retains {forbidden}")
     print("PASS: independent iOS package workflow")

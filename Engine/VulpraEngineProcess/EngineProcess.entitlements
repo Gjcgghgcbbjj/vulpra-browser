@@ -1,5 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  App Store (external-signing) entitlements for the Engine Process appex.
+
+  Intentionally empty: App Store binaries are re-signed by Apple with the
+  provisioning profile, and Metal/IOKit is available to normally-signed
+  apps without private entitlements. Private IOKit/no-sandbox entitlements
+  live only in EngineProcess.private.entitlements for the TrollStore TIPA
+  (see the comment there for the real-device GPU-process rationale).
+-->
 <plist version="1.0">
 <dict/>
 </plist>

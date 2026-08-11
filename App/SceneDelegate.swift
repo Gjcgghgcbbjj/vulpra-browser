@@ -6,6 +6,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     private let logger = Logger(subsystem: "com.vulpra.browser", category: "build")
     var window: UIWindow?
     private var browser: BrowserViewController?
+#if DEBUG
+    private var gateDispatchServer: GateDispatchServer?
+#endif
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
@@ -26,8 +29,25 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.tintColor = VulpraAppearance.accent
         window.rootViewController = browser
         self.browser = browser
+        MemoryPressureRouter.attach(runtime: VulpraEngine.runtime, controller: browser)
         self.window = window
         window.makeKeyAndVisible()
+#if DEBUG
+        if let port = ProcessInfo.processInfo.environment["VULPRA_GATE_DISPATCH_PORT"],
+           let server = GateDispatchServer(portText: port, onOpen: { [weak self] url in
+               // Mirror scene openURLContexts: normalize the deep link back to the
+               // target web URL before handing it to the browser/engine.
+               guard let resolved = RuntimeURLRouter.resolve(url) else { return }
+               self?.browser?.open(resolved)
+           }, onTabSwitchDuringLoad: { [weak self] url in
+               self?.browser?.runTabSwitchDuringLoadScenario(url: url)
+           }, onScrollPerformance: { [weak self] url, seconds in
+               self?.browser?.runScrollPerformanceScenario(url: url, seconds: seconds)
+           }) {
+            gateDispatchServer = server
+            server.start()
+        }
+#endif
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
@@ -37,9 +57,13 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func sceneDidBecomeActive(_ scene: UIScene) { browser?.setActive(true) }
     func sceneWillResignActive(_ scene: UIScene) { browser?.setActive(false) }
-    func sceneDidEnterBackground(_ scene: UIScene) { browser?.setActive(false) }
+    func sceneDidEnterBackground(_ scene: UIScene) { browser?.setActive(false); browser?.applyMemoryPressure(.light) }
     func sceneDidDisconnect(_ scene: UIScene) {
         browser?.shutdown()
+#if DEBUG
+        gateDispatchServer?.stop()
+        gateDispatchServer = nil
+#endif
         browser = nil
         window = nil
     }

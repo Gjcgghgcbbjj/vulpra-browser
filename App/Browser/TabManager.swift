@@ -5,6 +5,9 @@ import VulpraEngineKit
 @MainActor
 protocol TabManagerDelegate: AnyObject {
     func tabManagerDidChange(_ manager: TabManager)
+    func tabManager(_ manager: TabManager, didUpdatePresentationFor tab: BrowserTab)
+    func tabManager(_ manager: TabManager, didUpdatePersistableStateFor tab: BrowserTab)
+    func tabManager(_ manager: TabManager, didUpdateContentFor tab: BrowserTab)
     func tabManager(_ manager: TabManager, requestedDownload response: EngineDownloadResponse,
                     completion: @escaping (Bool) -> Void)
     func tabManager(_ manager: TabManager, downloadAt path: String, received bytes: Int64) -> Bool
@@ -25,6 +28,10 @@ final class TabManager: BrowserTabObserver {
     weak var promptHandler: (any EnginePromptHandler)? {
         didSet { tabs.forEach { $0.promptHandler = promptHandler; $0.session?.promptHandler = promptHandler } }
     }
+    weak var clipboardPermissionHandler: (any EngineClipboardPermissionHandler)? {
+        didSet { tabs.forEach { $0.clipboardPermissionHandler = clipboardPermissionHandler; $0.session?.clipboardPermissionHandler = clipboardPermissionHandler } }
+    }
+
     weak var permissionHandler: (any EnginePermissionHandler)? {
         didSet { tabs.forEach { $0.permissionHandler = permissionHandler; $0.session?.permissionHandler = permissionHandler } }
     }
@@ -55,7 +62,9 @@ final class TabManager: BrowserTabObserver {
     @MainActor
     func select(_ tab: BrowserTab) {
         guard tabs.contains(where: { $0 === tab }) else { return }
-        selectedTab?.captureThumbnail(); selectedTab?.setActive(false)
+        // Thumbnails refresh on page completion (BrowserTab), never on the
+        // tab-switch path: select() must stay free of main-thread draw work.
+        selectedTab?.setActive(false)
         selectedID = tab.id; tab.setActive(true); changed()
     }
 
@@ -92,7 +101,29 @@ final class TabManager: BrowserTabObserver {
         configure(tab); tabs.append(tab); selectedID = tab.id; changed()
     }
 
-    func suspendBackgroundTabs() { tabs.filter { $0.id != selectedID }.sorted { $0.lastAccess < $1.lastAccess }.forEach { $0.suspend() } }
+    enum MemoryPressureLevel { case light, heavy }
+
+    /// Bounded live-session cap: selected tab + this many most-recent
+    /// non-selected tabs keep live sessions under heavy memory pressure.
+    static let keepActiveSessionCount = 3
+
+    func applyMemoryPressure(_ level: MemoryPressureLevel) {
+        let background = tabs.filter { $0.id != selectedID }.sorted { $0.lastAccess < $1.lastAccess }
+        switch level {
+        case .light:
+            // Release decoded thumbnails and idle sessions; keep page state
+            // fully alive (no session.close, no teardown).
+            background.forEach { $0.releaseThumbnail(); $0.setActive(false) }
+        case .heavy:
+            // Full LRU teardown beyond the bounded cap. The selected tab is
+            // never touched; the most-recent (cap-1) background tabs keep
+            // their live sessions so tab switching stays fast.
+            let keep = max(Self.keepActiveSessionCount - 1, 0)
+            background.prefix(max(background.count - keep, 0)).forEach { $0.suspend() }
+        }
+    }
+
+    private func suspendBackgroundTabs() { tabs.filter { $0.id != selectedID }.sorted { $0.lastAccess < $1.lastAccess }.forEach { $0.suspend() } }
 
     func shutdown() {
         tabs.forEach { $0.suspend() }
@@ -102,7 +133,7 @@ final class TabManager: BrowserTabObserver {
         tab.observer = self; tab.permissionHandler = permissionHandler; tab.promptHandler = promptHandler
     }
 
-    private func changed() {
+    private func persistTabs() {
         let normal = tabs.filter { !$0.isPrivate }.map(\.record)
         let snapshot = SavedTabs(
             selectedID: normal.contains(where: { $0.id == selectedID }) ? selectedID : normal.first?.id,
@@ -112,11 +143,25 @@ final class TabManager: BrowserTabObserver {
             lastPersistedTabs = snapshot
             store.save(snapshot)
         }
+    }
+
+    private func changed() {
+        persistTabs()
         delegate?.tabManagerDidChange(self)
     }
 
-    func browserTabDidChange(_ tab: BrowserTab) { changed() }
+    func browserTabPresentationDidChange(_ tab: BrowserTab) {
+        delegate?.tabManager(self, didUpdatePresentationFor: tab)
+    }
+    func browserTabPersistableStateDidChange(_ tab: BrowserTab) {
+        persistTabs()
+        delegate?.tabManager(self, didUpdatePersistableStateFor: tab)
+    }
+    func browserTabContentDidChange(_ tab: BrowserTab) {
+        delegate?.tabManager(self, didUpdateContentFor: tab)
+    }
     func browserTabDidRequestClose(_ tab: BrowserTab) { close(tab) }
+    func browserTabDidRequestFocus(_ tab: BrowserTab) { select(tab) }
     func browserTab(_ tab: BrowserTab, requestedNewTab url: URL, windowID: String) -> Bool {
         newTab(url: url, privateMode: tab.isPrivate, windowID: windowID).session != nil
     }

@@ -1,0 +1,123 @@
+diff --git a/toolkit/xre/IOSBootstrap.mm b/toolkit/xre/IOSBootstrap.mm
+index 264320ae..a13caf08 100644
+--- a/toolkit/xre/IOSBootstrap.mm
++++ b/toolkit/xre/IOSBootstrap.mm
+@@ -9,9 +9,14 @@
+ #include "mozilla/DarwinObjectPtr.h"
+ #include "mozilla/GeckoArgs.h"
+ #include "mozilla/widget/GeckoViewSupport.h"
++#include "js/Initialization.h"
+ #include "nsDebug.h"
++#include "nsIThreadManager.h"
+ #include "nsPrintfCString.h"
+ #include "XREChildData.h"
++#include <pthread.h>
++#include <time.h>
++#include <TargetConditionals.h>
+ 
+ #include "application.ini.h"
+ 
+@@ -27,6 +32,32 @@ id<GeckoProcessExtension> mozilla::widget::GetCurrentProcessExtension() {
+   return gCurrentProcessExtension;
+ }
+ 
++void GeckoChildProcessDidChange(uint64_t aLaunchID, int32_t aChildID,
++                                int32_t aPid, const char* aProcessType,
++                                int32_t aStage, int32_t aFailureCode,
++                                const char* aReason) {
++  if (!gRuntime || !aProcessType) {
++    return;
++  }
++  struct timespec now;
++  if (clock_gettime(CLOCK_MONOTONIC, &now) != 0) {
++    return;
++  }
++  uint64_t timestamp = static_cast<uint64_t>(now.tv_sec) * 1000000000ULL +
++                       static_cast<uint64_t>(now.tv_nsec);
++  NSString* processType = [NSString stringWithUTF8String:aProcessType];
++  NSString* reason = aReason ? [NSString stringWithUTF8String:aReason] : nil;
++  [gRuntime childProcessDidChangeWithLaunchID:aLaunchID
++                                      childID:aChildID
++                                          pid:aPid
++                                  processType:processType
++                                        stage:(GeckoChildProcessStage)aStage
++               monotonicTimestampNanoseconds:timestamp
++                                  failureCode:
++                                      (GeckoChildProcessFailureCode)aFailureCode
++                                       reason:reason];
++}
++
+ int MainProcessInit(int aArgc, char** aArgv,
+                     id<SwiftGeckoViewRuntime> aRuntime) {
+   auto bootstrap = mozilla::GetBootstrap();
+@@ -106,6 +137,14 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+ 
+   mozilla::SetGeckoChildID(aArgv[aArgc - 2]);
+ 
++#if !TARGET_OS_SIMULATOR
++  // Real devices cannot allocate executable JIT memory without the
++  // allow-jit entitlement (MAP_JIT), so stay interpreter-only there.
++  // The Simulator runs on macOS where executable memory is available:
++  // keep the full JIT backend enabled for benchmark/regression gates.
++  JS::DisableJitBackend();
++#endif
++
+ #if defined(MOZ_MEMORY)
+   jemalloc_reset_small_alloc_randomization(
+       /* aRandomizeSmall */ !XRE_IsContentProcess());
+@@ -117,6 +156,45 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+   return NS_FAILED(rv);
+ }
+ 
++struct ChildBootstrapThreadArgs {
++  int argc;
++  char** argv;
++};
++
++static void* ChildBootstrapThreadMain(void* aClosure) {
++  auto* args = static_cast<ChildBootstrapThreadArgs*>(aClosure);
++  const int argc = args->argc;
++  char** argv = args->argv;
++  delete args;
++
++  pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
++  _exit(ChildProcessInitImpl(argc, argv));
++}
++
++static void LaunchChildBootstrapThread(int aArgc, char** aArgv) {
++  auto* args = new ChildBootstrapThreadArgs{aArgc, aArgv};
++  pthread_attr_t attr;
++  int rv = pthread_attr_init(&attr);
++  MOZ_RELEASE_ASSERT(rv == 0, "Failed to initialize bootstrap thread attrs");
++  rv = pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
++  MOZ_RELEASE_ASSERT(rv == 0, "Failed to detach bootstrap thread");
++
++  size_t stackSize = nsIThreadManager::LargeStackSize();
++  if (stackSize < PTHREAD_STACK_MIN) {
++    stackSize = PTHREAD_STACK_MIN;
++  }
++  rv = pthread_attr_setstacksize(&attr, stackSize);
++  MOZ_RELEASE_ASSERT(rv == 0, "Failed to size bootstrap thread stack");
++
++  pthread_t thread;
++  rv = pthread_create(&thread, &attr, ChildBootstrapThreadMain, args);
++  pthread_attr_destroy(&attr);
++  if (rv != 0) {
++    delete args;
++    MOZ_CRASH("Failed to create Gecko child bootstrap thread");
++  }
++}
++
+ void HandleBootstrapMessage(xpc_object_t aEvent) {
+   // Set up stdout and stderr if they were provided.
+   int fd = xpc_dictionary_dup_fd(aEvent, "stdout");
+@@ -198,6 +276,7 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
+   }
+   argv[argc] = nullptr;
+ 
+-  dispatch_async(dispatch_get_main_queue(),
+-                 [argc, argv] { _exit(ChildProcessInitImpl(argc, argv)); });
++  // Keep ExtensionKit's main queue available while Gecko starts on a stack
++  // sized for deep JavaScript execution.
++  LaunchChildBootstrapThread(argc, argv);
+ }

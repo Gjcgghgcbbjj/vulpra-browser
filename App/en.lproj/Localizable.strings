@@ -48,6 +48,7 @@
 "page_tools.save_image" = "Save Image";
 "page_tools.camera_unavailable" = "Camera unavailable";
 "permission.this_site" = "This site";
+"permission.clipboard_paste" = "The page wants to read the clipboard. Allow paste?";
 "permission.request" = "Allow %@ to access %@?";
 "permission.dont_allow" = "Don't Allow";
 "permission.allow" = "Allow";
@@ -95,3 +96,6 @@
 "tracking.custom" = "Custom";
 "common.retry" = "Retry";
 "engine.failure" = "The browser engine is unavailable";
+"keyboard.focus_address" = "Focus Address Bar";
+"keyboard.close_tab" = "Close Tab";
+"keyboard.tab_number" = "Tab %d";

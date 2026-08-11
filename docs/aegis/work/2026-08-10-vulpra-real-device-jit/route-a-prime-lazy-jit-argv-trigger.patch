@@ -1,0 +1,98 @@
+diff --git a/js/src/jit/JitContext.cpp b/js/src/jit/JitContext.cpp
+index 79b22d9..0d071a3 100644
+--- a/js/src/jit/JitContext.cpp
++++ b/js/src/jit/JitContext.cpp
+@@ -137,9 +137,12 @@ bool jit::InitializeJit() {
+   JitOptions.enable_regexp_unaligned_accesses = supportsUnaligned;
+ 
+   if (HasJitBackend()) {
+-    if (!InitProcessExecutableMemory()) {
+-      return false;
+-    }
++    // Route A': soft-fail. On iOS devices MAP_JIT can be unavailable at
++    // JS::Init time (no debugger attached yet). Do not abort startup; the
++    // first real JIT allocation retries lazily in
++    // ProcessExecutableMemory::allocate() and falls back to the interpreter
++    // while the mapping is unavailable.
++    (void)InitProcessExecutableMemory();
+   }
+ 
+   PerfSpewer::Init();
+diff --git a/js/src/jit/ProcessExecutableMemory.cpp b/js/src/jit/ProcessExecutableMemory.cpp
+index 8f09754..855bb32 100644
+--- a/js/src/jit/ProcessExecutableMemory.cpp
++++ b/js/src/jit/ProcessExecutableMemory.cpp
+@@ -743,7 +743,11 @@ class ProcessExecutableMemory {
+   }
+ 
+   void release() {
+-    MOZ_ASSERT(initialized());
++    if (!initialized()) {
++      // JIT memory was never mapped (MAP_JIT unavailable, e.g. no debugger
++      // attached on an iOS device). Nothing to release.
++      return;
++    }
+     MOZ_ASSERT(pages_.empty());
+     MOZ_ASSERT(pagesAllocated_ == 0);
+     DeallocateProcessExecutableMemory(base_, MaxCodeBytesPerProcess);
+@@ -771,11 +775,23 @@ class ProcessExecutableMemory {
+ void* ProcessExecutableMemory::allocate(size_t bytes,
+                                         ProtectionSetting protection,
+                                         MemCheckKind checkKind) {
+-  MOZ_ASSERT(initialized());
+   MOZ_ASSERT(HasJitBackend());
+   MOZ_ASSERT(bytes > 0);
+   MOZ_ASSERT((bytes % ExecutableCodePageSize) == 0);
+ 
++  // Route A': lazy init with retry. On iOS devices MAP_JIT can become
++  // available after process start once a debugger attaches (CS_DEBUGGED).
++  // Retry here on each allocation instead of failing the whole process at
++  // JS::Init, and fall back to the interpreter while the mapping is
++  // unavailable. init() is single-shot (MOZ_RELEASE_ASSERT(!initialized())),
++  // so guard it with the existing lock and double-check before calling.
++  if (!initialized()) {
++    LockGuard<Mutex> guard(lock_);
++    if (!initialized() && !init()) {
++      return nullptr;
++    }
++  }
++
+   size_t numPages = bytes / ExecutableCodePageSize;
+ 
+   // Take the lock and try to allocate.
+diff --git a/toolkit/xre/IOSBootstrap.mm b/toolkit/xre/IOSBootstrap.mm
+index a13caf0..2d8cb778d3 100644
+--- a/toolkit/xre/IOSBootstrap.mm
++++ b/toolkit/xre/IOSBootstrap.mm
+@@ -138,11 +138,26 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+   mozilla::SetGeckoChildID(aArgv[aArgc - 2]);
+ 
+ #if !TARGET_OS_SIMULATOR
+-  // Real devices cannot allocate executable JIT memory without the
+-  // allow-jit entitlement (MAP_JIT), so stay interpreter-only there.
+-  // The Simulator runs on macOS where executable memory is available:
+-  // keep the full JIT backend enabled for benchmark/regression gates.
+-  JS::DisableJitBackend();
++  // Real devices can only allocate JIT memory (MAP_JIT) while a debugger is
++  // attached (CS_DEBUGGED). Default to interpreter-only; the benchmark
++  // harness enables JIT by injecting "-enable-jit" into the child argv on
++  // the parent side (GeckoChildProcessHost::AsyncLaunch writes
++  // mChildArgs.mArgs into the XPC "argv" array; the appex rebuilds argv in
++  // HandleBootstrapMessage and calls ChildProcessInitImpl(argc, argv)).
++  // getenv is NOT usable here: the appex is launched by launchd and the XPC
++  // bootstrap message carries no environment. With Route A' the attach
++  // window is any time before the first JIT allocation, not just before
++  // JS::Init.
++  bool enableJit = false;
++  for (int i = 0; i < aArgc; ++i) {
++    if (strcmp(aArgv[i], "-enable-jit") == 0) {
++      enableJit = true;
++      break;
++    }
++  }
++  if (!enableJit) {
++    JS::DisableJitBackend();
++  }
+ #endif
+ 
+ #if defined(MOZ_MEMORY)

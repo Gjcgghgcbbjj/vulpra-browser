@@ -57,6 +57,7 @@
 "permission.kind.notifications" = "通知";
 "permission.kind.persistentStorage" = "持久存储";
 "permission.kind.unknown" = "此功能";
+"permission.clipboard_paste" = "页面想要读取剪贴板。允许粘贴吗？";
 "permission.decision.allow" = "已允许";
 "permission.decision.deny" = "已拒绝";
 "privacy.clear_cookies" = "清除 Cookie";
@@ -95,3 +96,6 @@
 "tracking.custom" = "自定义";
 "common.retry" = "重试";
 "engine.failure" = "浏览引擎暂时不可用";
+"keyboard.focus_address" = "聚焦地址栏";
+"keyboard.close_tab" = "关闭标签页";
+"keyboard.tab_number" = "标签页 %d";

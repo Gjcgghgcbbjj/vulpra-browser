@@ -1,0 +1,385 @@
+#!/usr/bin/env python3
+"""Portable fixtures for the repeated R0 Simulator engine gate."""
+
+from __future__ import annotations
+
+import copy
+import json
+import os
+from pathlib import Path
+import stat
+import subprocess
+import tempfile
+
+
+ROOT = Path(__file__).resolve().parents[2]
+SUMMARIZER = ROOT / "Tools/CI/summarize-r0-engine-gate.py"
+HARNESS = ROOT / "Tools/CI/run-simulator-navigation.sh"
+CHECKER = ROOT / "Tools/CI/check-single-attempt-gate.py"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise SystemExit(f"FAIL: {message}")
+
+
+def event(stage: str, timestamp: int, pid: int | None = None) -> dict[str, object]:
+    return {
+        "launchID": 1,
+        "childID": 1,
+        "processType": "content",
+        "pid": pid,
+        "stage": stage,
+        "monotonicTimestampNanoseconds": timestamp,
+        "failureCode": "none",
+        "reason": None,
+    }
+
+
+def valid_attempt(identifier: int, duration: int = 12000) -> dict[str, object]:
+    return {
+        "attempt": identifier,
+        "locationMatched": True,
+        "pageCompleted": True,
+        "renderedDarkPixels": 12266,
+        "loadToCompleteMs": duration,
+        "appSurvived": True,
+        "crashCount": 0,
+        "lifecycleEvents": [
+            event("requested", 1_000_000_000),
+            event("extensionConnected", 1_002_000_000),
+            event("bootstrapAcknowledged", 1_003_000_000, 321),
+            event("ipcConnected", 1_005_000_000, 321),
+        ],
+        "requestedLaunchIDs": [1],
+        "connectedLaunchIDs": [1],
+        "failedLaunchIDs": [],
+        "openLaunchIDs": [],
+        "deliveryMethod": "gate-http-dispatch",
+        "warmSettleSeconds": 0,
+        "gateDispatchStatus": 0,
+        "openurlStatus": "skipped",
+        "launchStatus": 0,
+        "launchAttempts": 1,
+        "logShowStatus": 0,
+        "logEvidenceSource": "merged-system+stream",
+        "tabSwitchStatus": "completed",
+        "engineEventStats": {"delivered": 14, "coalesced": 9, "total": 23},
+        "browserTabDeactivatedCount": 2,
+        "initialLoadPath": False,
+        "initialLoadDeferredMs": -1,
+    }
+
+
+def write_attempts(directory: Path, values: list[dict[str, object]]) -> None:
+    directory.mkdir(parents=True)
+    for index, value in enumerate(values, 1):
+        (directory / f"attempt-{index:02d}.json").write_text(
+            json.dumps(value, indent=2) + "\n", encoding="utf-8"
+        )
+
+
+def write_executable(path: Path, content: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    path.chmod(path.stat().st_mode | stat.S_IXUSR)
+
+
+def test_harness(base: Path) -> None:
+    fake_bin = base / "fake-bin"
+    operations = base / "simctl-operations.log"
+    app_pid = base / "app.pid"
+    curl_log = base / "curl-operations.log"
+    write_executable(fake_bin / "sleep", "#!/bin/sh\n/bin/sleep 0.05\n")
+    write_executable(fake_bin / "swift", "#!/bin/sh\necho rendered_dark_pixels=12266\n")
+    write_executable(fake_bin / "curl", '#!/bin/sh\nprintf "%s\\n" "$*" >> "$VULPRA_FAKE_CURL_LOG"\nexit 0\n')
+    write_executable(fake_bin / "xcrun", r'''#!/bin/sh
+set -eu
+printf '%s\n' "$*" >> "$VULPRA_FAKE_SIMCTL_LOG"
+if [ "$1" = simctl ] && [ "$2" = create ]; then
+  echo fixture-udid
+elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" = stream ]; then
+  cat <<'LOG'
+2026-07-30 12:00:00.000 Engine load requested: http://127.0.0.1:8765/?vulpra-warm=1
+2026-07-30 12:00:00.010 launch=1 child=1 type=content pid=0 stage=1 monotonic_ns=1000000000 failure=0 reason=none
+2026-07-30 12:00:00.500 Engine location: about:blank
+2026-07-30 12:00:00.510 Engine page completed: true
+2026-07-30 12:00:01.000 Engine location: http://127.0.0.1:8765/?vulpra-warm=1
+2026-07-30 12:00:02.000 Engine page completed: true
+2026-07-30 12:00:02.500 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:02.600 initial_load_deferred=false
+2026-07-30 12:00:03.000 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:04.000 Engine page completed: true
+2026-07-30 12:00:04.010 engine_event_stats delivered=14 coalesced=9 total=23
+2026-07-30 12:00:04.100 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:04.200 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:04.300 initial_load_deferred=false
+2026-07-30 12:00:05.100 browser_tab_active=false tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:05.200 browser_tab_active=true tab=22222222-2222-2222-2222-222222222222
+2026-07-30 12:00:05.500 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:06.100 browser_tab_active=false tab=22222222-2222-2222-2222-222222222222
+2026-07-30 12:00:06.200 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:06.500 Engine page completed: true
+2026-07-30 12:00:06.600 gate_scenario=tab-switch-during-load completed
+2026-07-30 12:00:06.700 engine_event_stats delivered=2 coalesced=0 total=2
+LOG
+elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = log ] && [ "${5:-}" = show ]; then
+  cat <<'LOG'
+2026-07-30 12:00:00.000 Engine load requested: http://127.0.0.1:8765/?vulpra-warm=1
+2026-07-30 12:00:00.010 launch=1 child=1 type=content pid=0 stage=1 monotonic_ns=1000000000 failure=0 reason=none
+2026-07-30 12:00:00.020 launch=1 child=1 type=content pid=0 stage=2 monotonic_ns=1002000000 failure=0 reason=none
+2026-07-30 12:00:00.030 launch=1 child=1 type=content pid=321 stage=3 monotonic_ns=1003000000 failure=0 reason=none
+2026-07-30 12:00:00.040 launch=1 child=1 type=content pid=321 stage=4 monotonic_ns=1005000000 failure=0 reason=none
+2026-07-30 12:00:00.500 Engine location: about:blank
+2026-07-30 12:00:00.510 Engine page completed: true
+2026-07-30 12:00:01.000 Engine location: http://127.0.0.1:8765/?vulpra-warm=1
+2026-07-30 12:00:02.000 Engine page completed: true
+2026-07-30 12:00:02.500 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:02.600 initial_load_deferred=false
+2026-07-30 12:00:03.000 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:04.000 Engine page completed: true
+2026-07-30 12:00:04.010 engine_event_stats delivered=14 coalesced=9 total=23
+2026-07-30 12:00:04.100 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:04.200 Engine load requested: http://127.0.0.1:8765/
+2026-07-30 12:00:04.300 initial_load_deferred=false
+2026-07-30 12:00:05.100 browser_tab_active=false tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:05.200 browser_tab_active=true tab=22222222-2222-2222-2222-222222222222
+2026-07-30 12:00:05.500 Engine location: http://127.0.0.1:8765/
+2026-07-30 12:00:06.100 browser_tab_active=false tab=22222222-2222-2222-2222-222222222222
+2026-07-30 12:00:06.200 browser_tab_active=true tab=11111111-1111-1111-1111-111111111111
+2026-07-30 12:00:06.500 Engine page completed: true
+2026-07-30 12:00:06.600 gate_scenario=tab-switch-during-load completed
+2026-07-30 12:00:06.700 engine_event_stats delivered=2 coalesced=0 total=2
+LOG
+elif [ "$1" = simctl ] && [ "$2" = launch ]; then
+  /bin/sleep 300 >/dev/null 2>&1 &
+  pid=$!
+  printf '%s\n' "$pid" > "$VULPRA_FAKE_APP_PID"
+  echo "com.vulpra.browser: $pid"
+elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = launchctl ]; then
+  printf '%s\t0\t%s\n' "$(cat "$VULPRA_FAKE_APP_PID")" "com.vulpra.browser"
+elif [ "$1" = simctl ] && [ "$2" = openurl ]; then
+  printf 'openurl:%s\n' "$5" >> "$VULPRA_FAKE_SIMCTL_LOG"
+  :
+elif [ "$1" = simctl ] && [ "$2" = io ]; then
+  for value in "$@"; do output=$value; done
+  printf 'fixture-png' > "$output"
+elif [ "$1" = simctl ] && [ "$2" = spawn ] && [ "${4:-}" = /bin/kill ]; then
+  kill -0 "$(cat "$VULPRA_FAKE_APP_PID")"
+elif [ "$1" = simctl ] && [ "$2" = terminate ]; then
+  kill "$(cat "$VULPRA_FAKE_APP_PID")" >/dev/null 2>&1 || true
+fi
+''')
+    app = base / "Vulpra.app"
+    app.mkdir()
+    output = base / "harness-output"
+    environment = os.environ.copy()
+    environment.update({
+        "PATH": f"{fake_bin}:{environment['PATH']}",
+        "HOME": str(base / "home"),
+        "VULPRA_FAKE_SIMCTL_LOG": str(operations),
+        "VULPRA_FAKE_APP_PID": str(app_pid),
+        "VULPRA_FAKE_CURL_LOG": str(curl_log),
+        "SIMCTL_OPENURL_FIRST": "0",
+    })
+    result = subprocess.run([
+        str(HARNESS), "--app", str(app),
+        "--runtime", "fixture-runtime", "--device-type", "fixture-device",
+        "--attempt", "1", "--output", str(output),
+        "--url", "http://127.0.0.1:8765/",
+    ], env=environment, text=True, capture_output=True, check=False)
+    require(result.returncode == 0, result.stderr or result.stdout)
+    evidence = json.loads((output / "attempt-01.json").read_text(encoding="utf-8"))
+    require(evidence["locationMatched"] and evidence["pageCompleted"] and
+            evidence["appSurvived"] and evidence["connectedLaunchIDs"] == [1] and
+            evidence["loadToCompleteMs"] == 1500,
+            "Simulator harness lost functional, lifecycle, or timing evidence")
+    require(evidence["deliveryMethod"] == "gate-http-dispatch",
+            "Simulator harness evidence did not route through loopback gate dispatch")
+    require(evidence["gateDispatchStatus"] == 0 and evidence["warmSettleSeconds"] >= 0 and
+            evidence["openurlStatus"] == "skipped",
+            "Simulator harness evidence lost settle/delivery audit fields")
+    require(evidence["tabSwitchStatus"] == "completed",
+            "Simulator harness lost tab-switch-during-load scenario completion")
+    require(evidence["engineEventStats"] == {"delivered": 14, "coalesced": 9, "total": 23},
+            "Simulator harness lost engine event coalescing evidence")
+    require(evidence["browserTabDeactivatedCount"] >= 1,
+            "Simulator harness lost tab deactivation evidence")
+    require(evidence["initialLoadPath"] is False and evidence["initialLoadDeferredMs"] == -1,
+            "Simulator harness lost initial load path evidence")
+    curl_log_text = curl_log.read_text(encoding="utf-8")
+    require("vulpra://open?url=http%3A%2F%2F127.0.0.1%3A8765%2F" in curl_log_text,
+            "Simulator harness did not send the measured deep link through the loopback gate dispatch")
+    require('"scenario", "tab-switch-during-load"' in curl_log_text or
+            '"scenario": "tab-switch-during-load"' in curl_log_text,
+            "Simulator harness did not dispatch the tab-switch-during-load scenario")
+    log = operations.read_text(encoding="utf-8")
+    for command in (
+        "simctl create", "simctl spawn fixture-udid log show",
+        "simctl terminate", "simctl shutdown", "simctl delete",
+    ):
+        require(command in log, f"Simulator harness did not execute {command}")
+    require("simctl openurl" not in log,
+            "Simulator harness should skip the blocked openurl path in CI mode")
+    result = run(output, count=1)
+    require(result.returncode == 0, result.stderr or result.stdout)
+
+
+def run_checker(directory: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([
+        "python3", str(CHECKER), "--input", str(directory / "attempt-01.json"),
+    ], text=True, capture_output=True, check=False)
+
+
+def test_single_attempt_gate(base: Path) -> None:
+    good = base / "single-good"
+    write_attempts(good, [valid_attempt(1)])
+    result = run_checker(good)
+    require(result.returncode == 0, result.stderr or result.stdout)
+    require("single-attempt navigation gate" in result.stdout,
+            "single-attempt gate did not print its pass marker")
+    single_mutations = (
+        ("gate-failed", lambda value: value.update(gateDispatchStatus=7),
+         "gate dispatch did not succeed"),
+        ("app-died", lambda value: value.update(appSurvived=False),
+         "appSurvived is false"),
+        ("crash", lambda value: value.update(crashCount=1),
+         "contains a crash"),
+        ("location-miss", lambda value: value.update(locationMatched=False),
+         "locationMatched is false"),
+        ("page-incomplete", lambda value: value.update(pageCompleted=False),
+         "pageCompleted is false"),
+        ("blank", lambda value: value.update(renderedDarkPixels=999),
+         "visually blank"),
+        ("slow", lambda value: value.update(loadToCompleteMs=60000),
+         "exceeds 30000 ms"),
+        ("open-launch", lambda value: value.update(openLaunchIDs=[1]),
+         "unresolved launches"),
+        ("wrong-attempt", lambda value: value.update(attempt=2),
+         "must be attempt 1"),
+        ("scenario-missing", lambda value: value.update(tabSwitchStatus="aborted"),
+         "scenario did not complete"),
+        ("events-missing", lambda value: value.update(
+            engineEventStats={"delivered": 0, "coalesced": 0, "total": 0}),
+         "engineEventStats.delivered"),
+        ("stats-mismatch", lambda value: value.update(
+            engineEventStats={"delivered": 5, "coalesced": 2, "total": 8}),
+         "does not equal delivered + coalesced"),
+        ("no-deactivation", lambda value: value.update(browserTabDeactivatedCount=0),
+         "browserTabDeactivatedCount"),
+        ("deferred-unmeasured", lambda value: value.update(
+            initialLoadPath=True, initialLoadDeferredMs=-1),
+         "deferral measurement"),
+    )
+    for name, mutate, token in single_mutations:
+        directory = base / f"single-{name}"
+        value = valid_attempt(1)
+        mutate(value)
+        write_attempts(directory, [value])
+        result = run_checker(directory)
+        require(result.returncode != 0, f"invalid single-attempt fixture passed: {name}")
+        require(token in result.stderr,
+                f"single-attempt {name} did not report {token!r}: {result.stderr}")
+
+
+def run(directory: Path, count: int = 20) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([
+        "python3", str(SUMMARIZER), "--attempts", str(count),
+        "--input", str(directory), "--output", str(directory.parent / "summary.json"),
+    ], text=True, capture_output=True, check=False)
+
+
+def expect_failure(base: Path, name: str, values: list[dict[str, object]], token: str) -> None:
+    directory = base / name
+    write_attempts(directory, values)
+    result = run(directory)
+    require(result.returncode != 0, f"invalid R0 fixture passed: {name}")
+    require(token in result.stderr, f"{name} did not report {token!r}: {result.stderr}")
+
+
+def main() -> None:
+    require(SUMMARIZER.is_file(), "missing Tools/CI/summarize-r0-engine-gate.py")
+    require(HARNESS.is_file(), "missing Tools/CI/run-simulator-navigation.sh")
+    require(CHECKER.is_file(), "missing Tools/CI/check-single-attempt-gate.py")
+    harness_text = HARNESS.read_text(encoding="utf-8")
+    for token in (
+        "defaults write com.apple.iphonesimulator ConfirmOpenURLInSimulator",
+        "gate-http-dispatch",
+        "VULPRA_GATE_DISPATCH_PORT",
+        'openurl "$UDID" "$DEEP_LINK"',
+        "launch_status=",
+        "log_evidence_source=merged-system+stream",
+        "monotonic_ns",
+        "run-with-timeout.py",
+        "monotonic_ms",
+        "app_running_at_audit=false",
+        "launch_ready=false",
+        "tab_switch_scenario_status=",
+        "gate_scenario=tab-switch-during-load completed",
+        "tab_switch_scenario_dispatch_status=",
+    ):
+        require(token in harness_text, f"R0 harness is missing {token}")
+    with tempfile.TemporaryDirectory(prefix="vulpra-r0-gate-") as temporary:
+        base = Path(temporary)
+        test_harness(base)
+        test_single_attempt_gate(base)
+        valid = [valid_attempt(index) for index in range(1, 21)]
+        valid_directory = base / "valid"
+        write_attempts(valid_directory, valid)
+        result = run(valid_directory)
+        require(result.returncode == 0, result.stderr or result.stdout)
+        summary = json.loads((base / "summary.json").read_text(encoding="utf-8"))
+        require(summary["r0Attempts"] == 20 and summary["r0Passed"] == 20,
+                "valid R0 fixture did not produce a 20/20 summary")
+        require(summary["p95LoadToCompleteMs"] == 12000 and
+                summary["totalOpenLaunches"] == 0,
+                "valid R0 summary lost performance or lifecycle evidence")
+
+        expect_failure(base, "missing-attempt", valid[:-1], "exactly 1...20")
+        duplicate = copy.deepcopy(valid)
+        duplicate[-1]["attempt"] = 19
+        expect_failure(base, "duplicate-attempt", duplicate, "exactly 1...20")
+
+        mutations = (
+            ("blank", lambda value: value.update(renderedDarkPixels=999), "visually blank"),
+            ("crash", lambda value: value.update(crashCount=1), "contains a crash"),
+            ("missing-duration", lambda value: value.update(loadToCompleteMs=-1), "integer >= 0"),
+            ("missing-request", lambda value: value["lifecycleEvents"].pop(0), "first event is not requested"),
+            ("duplicate-request", lambda value: value["lifecycleEvents"].insert(1, {
+                **copy.deepcopy(value["lifecycleEvents"][0]),
+                "monotonicTimestampNanoseconds": 1_001_000_000,
+            }), "duplicate stage"),
+            ("zero-timestamp", lambda value: value["lifecycleEvents"][0].update(monotonicTimestampNanoseconds=0), "timestamp"),
+            ("regressive-timestamp", lambda value: value["lifecycleEvents"][1].update(monotonicTimestampNanoseconds=999_999_999), "regressive"),
+            ("stored-mismatch", lambda value: value.update(connectedLaunchIDs=[]), "stored/derived"),
+            ("open-launch", lambda value: (value.update(lifecycleEvents=value["lifecycleEvents"][:2], connectedLaunchIDs=[], openLaunchIDs=[1])), "open child launches"),
+            ("both-outcomes", lambda value: value.update(failedLaunchIDs=[1]), "both outcome sets"),
+            ("wrong-delivery", lambda value: value.update(deliveryMethod="simctl-openurl"), "deliveryMethod"),
+            ("gate-failed", lambda value: value.update(gateDispatchStatus=7), "gate dispatch did not succeed"),
+            ("scenario-missing", lambda value: value.update(tabSwitchStatus="aborted"),
+             "scenario did not complete"),
+            ("events-missing", lambda value: value.update(
+                engineEventStats={"delivered": 0, "coalesced": 0, "total": 0}),
+             "engineEventStats.delivered"),
+            ("stats-mismatch", lambda value: value.update(
+                engineEventStats={"delivered": 5, "coalesced": 2, "total": 8}),
+             "does not equal delivered + coalesced"),
+        )
+        for name, mutate, token in mutations:
+            values = copy.deepcopy(valid)
+            mutate(values[0])
+            expect_failure(base, name, values, token)
+
+        p95 = copy.deepcopy(valid)
+        p95[-1]["loadToCompleteMs"] = 20000
+        p95[-2]["loadToCompleteMs"] = 16000
+        expect_failure(base, "p95", p95, "p95 load-to-complete")
+        maximum = copy.deepcopy(valid)
+        maximum[-1]["loadToCompleteMs"] = 30001
+        expect_failure(base, "maximum", maximum, "maximum load-to-complete")
+
+    print("PASS: repeated R0 Simulator engine gate contracts")
+
+
+if __name__ == "__main__":
+    main()

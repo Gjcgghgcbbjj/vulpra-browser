@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-29-vulpra-r0-trustworthy-engine-execution",
+  "taskIntentRef": "docs/aegis/work/2026-07-29-vulpra-r0-trustworthy-engine-execution/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/aegis/plans/2026-07-29-vulpra-r0-trustworthy-engine.md",
+    "Configuration/engine-artifact-lock.json"
+  ],
+  "scopeStatus": "Tasks 1-9 remain producer/runtime-boundary work; v5 native pair promotion is complete and Task 10 is the next bounded gate.",
+  "compatStatus": "v5 r0.3 lock and release are promoted; App identity, persistence, package shape, and user retry are unchanged.",
+  "retirementStatus": "v4/vtool paths remain until the 20-attempt Simulator gate and package/retirement Task 11 pass.",
+  "newRiskSignals": [
+    "Physical-device runtime and JIT evidence remain external and unverified.",
+    "Simulator gate must execute from pushed 8fa770c lock/workflow state."
+  ],
+  "decision": "needs-verification"
+}

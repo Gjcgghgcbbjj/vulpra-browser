@@ -9,12 +9,32 @@ on:
         type: string
       engine_release_tag:
         required: true
-        default: vulpra-engine-v4-candidate
+        default: vulpra-engine-v5-r0.3-candidate
         type: string
       isolate_engine_process:
         required: false
         default: false
         type: boolean
+      r0_attempts:
+        description: Fresh Simulator navigation attempts
+        required: true
+        default: 1
+        type: number
+      a2_cold_start_attempts:
+        description: Fresh-launch cold-start attempts (0 skips; 1 = single-attempt A2 gate)
+        required: false
+        default: 0
+        type: number
+      scroll_attempts:
+        description: Scroll-performance attempts (1 = single-attempt scroll gate; 10+ = repeated gate)
+        required: false
+        default: 1
+        type: number
+      app_bundle_run_id:
+        description: Reuse Vulpra.app built by a prior green simulator run at the same commit instead of rebuilding
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -22,7 +42,7 @@ permissions:
 jobs:
   launch:
     runs-on: macos-26
-    timeout-minutes: 90
+    timeout-minutes: 420
     env:
       GH_TOKEN: ${{ github.token }}
       DERIVED_DATA: ${{ github.workspace }}/.build/simulator-derived
@@ -43,7 +63,7 @@ jobs:
           xcrun simctl list runtimes | tee -a simulator-environment.log
           xcrun simctl list devicetypes | tee -a simulator-environment.log
 
-      - name: Restore verified Simulator engine v4
+      - name: Restore verified native Simulator engine v5
         shell: bash
         run: |
           set -euo pipefail
@@ -59,11 +79,13 @@ jobs:
               'ENGINE_ARTIFACT_ID': lock['simulator']['artifactId'],
               'ENGINE_ABI_VERSION': lock['simulator']['abiVersion'],
               'ENGINE_SOURCE_COMMIT': lock['simulator']['sourceCommit'],
-              'ENGINE_PRODUCER_RUN_ID': str(lock['simulator']['producerRunId']),
-              'ENGINE_PRODUCER_HEAD_SHA': lock['simulator']['producerHeadSha'],
-              'ENGINE_PRODUCED_FROM_ARTIFACT_ID': lock['simulator']['producedFromArtifactId'],
-              'ENGINE_PRODUCER_TOOL': lock['simulator']['producerTool'],
-              'ENGINE_PRODUCER_POLICY': lock['simulator']['producerPolicy'],
+              'ENGINE_PRODUCER_RUN_ID': str(lock['producerRunId']),
+              'ENGINE_PRODUCER_HEAD_SHA': lock['producerHeadSha'],
+              'ENGINE_PATCH_SET_SHA256': lock['simulator']['patchSetSHA256'],
+              'ENGINE_CONFIGURATION_SHA256': lock['simulator']['configurationSHA256'],
+              'ENGINE_COMPILED_BY_RUN_ID': str(lock['simulator']['compiledByRunId']),
+              'ENGINE_COMPILED_BY_HEAD_SHA': lock['simulator']['compiledByHeadSha'],
+              'ENGINE_BUILD_FINGERPRINT': lock['simulator']['buildFingerprint'],
           }
           for key, value in values.items():
               print(f'{key}={shlex.quote(value)}')
@@ -89,26 +111,27 @@ jobs:
               raise SystemExit('simulator ABI version does not match repository lock')
           if manifest['source']['commit'] != os.environ['ENGINE_SOURCE_COMMIT']:
               raise SystemExit('engine source commit does not match repository lock')
-          if os.environ['ENGINE_PRODUCER_RUN_ID'] != '30361153382':
-              raise SystemExit('Simulator producer run is not pinned')
-          if os.environ['ENGINE_PRODUCER_HEAD_SHA'] != \
-                  'a84e040fd4b5d811862c782faf674e5e478145d4':
-              raise SystemExit('Simulator producer source snapshot is not pinned')
-          if os.environ['ENGINE_PRODUCED_FROM_ARTIFACT_ID'] != \
-                  'vulpra-gecko-ios-arm64-v4-fb98d5119a6c3e53ea96015a78a19269fef447a88fdf37a14b1bf0bc63e91ba9':
-              raise SystemExit('Simulator producer source artifact is not pinned')
-          if os.environ['ENGINE_PRODUCER_TOOL'] != \
-                  'Tools/Engine/produce-simulator-artifact.sh':
-              raise SystemExit('unsupported Simulator packaging owner')
-          if os.environ['ENGINE_PRODUCER_POLICY'] != \
-                  'apple-vtool-set-build-version-iossim-15':
-              raise SystemExit('unsupported Simulator packaging policy')
+          if manifest['producer']['workflowRunId'] != int(os.environ['ENGINE_PRODUCER_RUN_ID']):
+              raise SystemExit('Simulator producer run does not match repository lock')
+          if manifest['producer']['commit'] != os.environ['ENGINE_PRODUCER_HEAD_SHA']:
+              raise SystemExit('Simulator producer source snapshot does not match repository lock')
+          if manifest['patchSet']['sha256'] != os.environ['ENGINE_PATCH_SET_SHA256']:
+              raise SystemExit('Simulator patch set does not match repository lock')
+          if manifest['configurationSHA256'] != os.environ['ENGINE_CONFIGURATION_SHA256']:
+              raise SystemExit('Simulator producer configuration does not match repository lock')
+          if manifest['compiledBy']['workflowRunId'] != int(os.environ['ENGINE_COMPILED_BY_RUN_ID']):
+              raise SystemExit('Simulator compile run does not match repository lock')
+          if manifest['compiledBy']['commit'] != os.environ['ENGINE_COMPILED_BY_HEAD_SHA']:
+              raise SystemExit('Simulator compile snapshot does not match repository lock')
+          if manifest['compiledBy']['buildFingerprint'] != os.environ['ENGINE_BUILD_FINGERPRINT']:
+              raise SystemExit('Simulator build fingerprint does not match repository lock')
           PY
           python3 Tools/Engine/verify-engine-artifact.py \
-            --contract Configuration/engine-artifact-simulator-v4.json .build/engine \
+            --contract Configuration/engine-artifact-simulator-v5.json .build/engine \
             | tee simulator-engine-verification.log
 
       - name: Build Vulpra for Simulator
+        if: ${{ inputs.app_bundle_run_id == '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -120,7 +143,7 @@ jobs:
             -derivedDataPath "$DERIVED_DATA" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            build 2>&1 | tee simulator-build.log
+            build-for-testing 2>&1 | tee simulator-build.log
           test -d "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
           app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
           test ! -e "$app/Frameworks/XUL"
@@ -129,7 +152,26 @@ jobs:
           test "$(plutil -extract CFBundleIdentifier raw "$app/Frameworks/GeckoView.framework/Info.plist")" = \
             com.vulpra.browser.simulator-engine-runtime
           test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/application.ini"
-          test -f "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"
+          omnijar="$app/Frameworks/VulpraEngineRuntime/Frameworks/omni.ja"
+          test -f "$omnijar"
+          cmp -s .build/engine/runtime/resources/omni.ja "$omnijar"
+          test ! -e "$app/Frameworks/VulpraEngineRuntime/Frameworks/defaults/pref/mobile.js"
+          python3 - "$omnijar" <<'PY'
+          import sys, zipfile
+
+          required = {
+              'chrome.manifest',
+              'modules/AppConstants.sys.mjs',
+              'modules/XPCOMUtils.sys.mjs',
+          }
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              missing = sorted(required - set(archive.namelist()))
+              if missing:
+                  raise SystemExit(f'staged omnijar is missing: {missing[0]}')
+              bad_entry = archive.testzip()
+              if bad_entry is not None:
+                  raise SystemExit(f'staged omnijar has invalid CRC: {bad_entry}')
+          PY
           test ! -e "$app/Frameworks/GeckoView.framework/Frameworks/application.ini"
           otool -D "$app/Frameworks/GeckoView.framework/XUL" \
             | grep -Fq '@rpath/GeckoView.framework/XUL'
@@ -152,7 +194,36 @@ jobs:
               raise SystemExit('simulator App binaries do not contain the UI fingerprint')
           PY
 
+      - name: Restore reusable Simulator App bundle
+        if: ${{ inputs.app_bundle_run_id != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id='${{ inputs.app_bundle_run_id }}'
+          [[ "$run_id" =~ ^[0-9]+$ ]] || { echo "app_bundle_run_id must be a numeric run id" >&2; exit 1; }
+          actual_sha="$(gh run view "$run_id" --json headSha --jq .headSha)"
+          current_sha="$(git rev-parse HEAD)"
+          [[ "$actual_sha" == "$current_sha" ]] || {
+            echo "reusable App bundle is from commit $actual_sha, not current $current_sha" >&2
+            exit 1
+          }
+          download_dir="$(mktemp -d)"
+          gh run download "$run_id" -n vulpra-simulator-app -D "$download_dir"
+          # upload-artifact stores the app bundle either as Vulpra.app/ (older
+          # layouts) or flattened into the artifact root; normalize both.
+          if [[ -d "$download_dir/Vulpra.app" ]]; then
+            app_stage="$download_dir/Vulpra.app"
+          else
+            app_stage="$download_dir"
+          fi
+          test -f "$app_stage/Info.plist"
+          test -f "$app_stage/Vulpra"
+          mkdir -p "$DERIVED_DATA/Build/Products/Debug-iphonesimulator"
+          cp -a "$app_stage" "$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          echo "restored reusable Simulator App bundle from run $run_id"
+
       - name: Run native EngineKit tests
+        if: ${{ inputs.app_bundle_run_id == '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -189,67 +260,91 @@ jobs:
             xcrun simctl delete "$test_udid" >/dev/null 2>&1 || true
           }
           trap cleanup_test_device EXIT
-          xcrun simctl boot "$test_udid"
-          xcrun simctl bootstatus "$test_udid" -b
-          test_deadline=$((SECONDS + 600))
-          rm -rf simulator-native-tests.xcresult
-          xcodebuild \
-            -project Vulpra.xcodeproj \
-            -scheme Vulpra \
-            -configuration Debug \
-            -destination "platform=iOS Simulator,id=$test_udid" \
-            -derivedDataPath "$DERIVED_DATA" \
-            -resultBundlePath "$PWD/simulator-native-tests.xcresult" \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            test > simulator-native-tests.log 2>&1 &
-          test_pid=$!
-          while kill -0 "$test_pid" >/dev/null 2>&1; do
-            if (( SECONDS >= test_deadline )); then
-              kill "$test_pid" >/dev/null 2>&1 || true
-              sleep 2
-              kill -9 "$test_pid" >/dev/null 2>&1 || true
-              wait "$test_pid" >/dev/null 2>&1 || true
-              collect_test_diagnostics
-              cat simulator-native-tests.log
-              echo "native EngineKit tests exceeded 600 seconds" >&2
-              exit 1
+          # Xcode 26 CoreSimulator can crash inside
+          # -installApplicationWithLaunchSession: (DVT assertion in
+          # DVTiPhoneSimulator.m) while installing the unit-test host onto a
+          # freshly created Simulator; every test case in run 31317395727 was
+          # passing when the harness died. Retry once with a recreated
+          # Simulator so an infrastructure flake does not fail the whole gate.
+          run_native_tests() {
+            xcrun simctl boot "$test_udid"
+            xcrun simctl bootstatus "$test_udid" -b
+            test_deadline=$((SECONDS + 600))
+            rm -rf simulator-native-tests.xcresult
+            xcodebuild \
+              -project Vulpra.xcodeproj \
+              -scheme Vulpra \
+              -configuration Debug \
+              -destination "platform=iOS Simulator,id=$test_udid" \
+              -derivedDataPath "$DERIVED_DATA" \
+              -resultBundlePath "$PWD/simulator-native-tests.xcresult" \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              test-without-building > simulator-native-tests.log 2>&1 &
+            test_pid=$!
+            while kill -0 "$test_pid" >/dev/null 2>&1; do
+              if (( SECONDS >= test_deadline )); then
+                kill "$test_pid" >/dev/null 2>&1 || true
+                sleep 2
+                kill -9 "$test_pid" >/dev/null 2>&1 || true
+                wait "$test_pid" >/dev/null 2>&1 || true
+                collect_test_diagnostics
+                cat simulator-native-tests.log
+                echo "native EngineKit tests exceeded 600 seconds" >&2
+                return 1
+              fi
+              sleep 5
+            done
+            set +e
+            wait "$test_pid"
+            test_exit=$?
+            set -e
+            collect_test_diagnostics
+            cat simulator-native-tests.log
+            if [[ "$test_exit" -ne 0 ]]; then
+              echo "native EngineKit test process exited with $test_exit" >&2
+              return "$test_exit"
             fi
-            sleep 5
+            ! grep -Fq "** TEST EXECUTE FAILED **" simulator-native-tests.log
+            grep -Fq "** TEST EXECUTE SUCCEEDED **" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeCreatesProtocolSessionWithRequestedConfiguration()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeStartsStopped()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseResolvesOnlyOnce()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseCancelsWhenAbandoned()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeLifecycleCanRetryRecoverableFailure()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testSessionLifecycleClosesAfterFailedOpenAndRetry()' passed" simulator-native-tests.log
+            grep -Fq "Test case 'VulpraEngineKitTests.testNavigationLoadErrorPreservesURLAndCoalescesFailedPageStop()' passed" simulator-native-tests.log
+          }
+          native_tests_ok=false
+          for attempt in 1 2; do
+            if run_native_tests; then
+              native_tests_ok=true
+              break
+            fi
+            if [[ "$attempt" -eq 1 ]]; then
+              echo "native EngineKit tests attempt $attempt failed; recreating Simulator and retrying" >&2
+              xcrun simctl shutdown "$test_udid" >/dev/null 2>&1 || true
+              xcrun simctl delete "$test_udid" >/dev/null 2>&1 || true
+              test_udid="$(xcrun simctl create "Vulpra-Tests-$GITHUB_RUN_ID-retry-2" "$test_device_type" "$test_runtime")"
+            fi
           done
-          set +e
-          wait "$test_pid"
-          test_exit=$?
-          set -e
-          collect_test_diagnostics
-          cat simulator-native-tests.log
-          if [[ "$test_exit" -ne 0 ]]; then
-            echo "native EngineKit test process exited with $test_exit" >&2
-            exit "$test_exit"
+          if [[ "$native_tests_ok" != true ]]; then
+            echo "native EngineKit tests failed on both attempts" >&2
+            exit 1
           fi
-          ! grep -Fq "** TEST FAILED **" simulator-native-tests.log
-          grep -Fq "** TEST SUCCEEDED **" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeCreatesProtocolSessionWithRequestedConfiguration()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeStartsStopped()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseResolvesOnlyOnce()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testCallbackLeaseCancelsWhenAbandoned()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testRuntimeLifecycleCanRetryRecoverableFailure()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testSessionLifecycleClosesAfterFailedOpenAndRetry()' passed" simulator-native-tests.log
-          grep -Fq "Test case 'VulpraEngineKitTests.testNavigationLoadErrorPreservesURLAndCoalescesFailedPageStop()' passed" simulator-native-tests.log
 
-      - name: Launch and navigate
+      - name: Run repeated Simulator navigation gate
         shell: bash
         run: |
           set -euo pipefail
-          run_with_timeout() {
-            local seconds="$1"
-            shift
-            perl -e 'alarm shift; exec @ARGV or die "exec failed: $!\n"' "$seconds" "$@"
-          }
+          attempts='${{ inputs.r0_attempts }}'
+          [[ "$attempts" =~ ^[1-9][0-9]*$ ]] && (( attempts <= 20 ))
           fixture_dir="$(mktemp -d)"
           printf '%s\n' \
-            '<!doctype html><html><head><meta charset="utf-8"><title>Vulpra Engine Fixture</title></head>' \
-            '<body><main><h1>Vulpra Engine Ready</h1><p>Independent Gecko navigation rendered this page.</p></main></body></html>' \
+            '<!doctype html><html><head><meta charset="utf-8"><title>Vulpra Engine Fixture</title>' \
+            '<style>html,body{margin:0;min-height:100%;background:#fff}body{display:grid;place-items:center;min-height:100vh}' \
+            'main{width:72vw;height:36vh;display:grid;place-items:center;background:#102a24;color:#fff;font:700 28px system-ui}</style></head>' \
+            '<body><main data-vulpra-engine-fixture>Vulpra Engine Ready</main></body></html>' \
             > "$fixture_dir/index.html"
           python3 -m http.server 8765 --bind 127.0.0.1 --directory "$fixture_dir" \
             > simulator-fixture.log 2>&1 &
@@ -257,174 +352,295 @@ jobs:
           cleanup_fixture() {
             kill "$fixture_pid" >/dev/null 2>&1 || true
             wait "$fixture_pid" >/dev/null 2>&1 || true
+            rm -rf "$fixture_dir"
           }
           trap cleanup_fixture EXIT
           smoke_url='http://127.0.0.1:8765/'
-          fixture_ready=0
           for _ in {1..25}; do
-            if curl --max-time 2 --fail --silent --show-error "$smoke_url" \
-                > /dev/null 2>&1; then
-              fixture_ready=1
-              break
-            fi
+            curl --max-time 2 --fail --silent "$smoke_url" >/dev/null 2>&1 && break
             sleep 0.2
           done
-          test "$fixture_ready" -eq 1
+          curl --max-time 2 --fail --silent "$smoke_url" >/dev/null
           app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
-          simulator_runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'
-          runtime="$(xcrun simctl list runtimes -j | python3 -c '
+          if [[ '${{ inputs.isolate_engine_process }}' == 'true' ]]; then
+            rm -rf "$app/PlugIns/OpenIn.appex"
+          fi
+          runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'
+          xcrun simctl list runtimes -j | python3 -c '
           import json, sys
           requested = sys.argv[1]
-          values = [item for item in json.load(sys.stdin)["runtimes"] if item.get("isAvailable") and item.get("identifier") == requested]
+          values = [item for item in json.load(sys.stdin)["runtimes"]
+                    if item.get("isAvailable") and item.get("identifier") == requested]
           if not values: raise SystemExit(f"requested Simulator runtime is unavailable: {requested}")
-          print(values[0]["identifier"])
-          ' "$simulator_runtime")"
-          device_types="$(xcrun simctl list devicetypes -j | python3 -c '
+          ' "$runtime"
+          device_type="$(xcrun simctl list devicetypes -j | python3 -c '
           import json, sys
-          values = [item for item in json.load(sys.stdin)["devicetypes"] if item.get("name", "").startswith("iPhone")]
+          values = [item for item in json.load(sys.stdin)["devicetypes"]
+                    if item.get("name", "").startswith("iPhone")]
           if not values: raise SystemExit("no iPhone Simulator type")
           preferred = [item for item in values if "Pro" in item["name"]]
-          ordered = list(reversed(preferred)) + [item for item in reversed(values) if item not in preferred]
-          print("\n".join(item["identifier"] for item in ordered))
+          print((preferred or values)[-1]["identifier"])
           ')"
-          udid=""
-          while IFS= read -r device_type; do
-            if candidate="$(xcrun simctl create "Vulpra-Independent-$GITHUB_RUN_ID" "$device_type" "$runtime" 2>/dev/null)"; then
-              udid="$candidate"
-              printf 'runtime=%s\ndevice_type=%s\nudid=%s\n' "$runtime" "$device_type" "$udid" \
-                | tee simulator-device.log
-              break
-            fi
-          done <<< "$device_types"
-          test -n "$udid"
-          cleanup() {
-            cleanup_fixture
-            run_with_timeout 60 xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true
-            run_with_timeout 60 xcrun simctl delete "$udid" >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
-          xcrun simctl boot "$udid"
-          run_with_timeout 180 xcrun simctl bootstatus "$udid" -b
-          xcrun simctl spawn "$udid" defaults write NSGlobalDomain AppleLanguages -array zh-Hans
-          xcrun simctl spawn "$udid" defaults write NSGlobalDomain AppleLocale -string zh_CN
-          if [[ '${{ inputs.isolate_engine_process }}' == 'true' ]]; then
-            mkdir -p .build/diagnostic-plugins
-            mv "$app/PlugIns/OpenIn.appex" .build/diagnostic-plugins/
+          # iOS 26.4 headless Simulator always blocks `simctl openurl` behind an
+          # untappable SpringBoard "Open in Vulpra?" prompt (defaults write does not
+          # disable it). Route the measured deep link through the debug loopback
+          # GateDispatchServer directly, after the warm-up engine has settled.
+          export SIMCTL_OPENURL_FIRST=0
+          export WARM_SETTLE_SECONDS=${WARM_SETTLE_SECONDS:-45}
+          evidence='.build/r0-engine-gate'
+          rm -rf "$evidence"
+          mkdir -p "$evidence/attempts"
+          # A fresh single navigation attempt must pass before the repeated
+          # stability loop: systemic harness or lifecycle failures fail in
+          # minutes instead of after all attempts have run.
+          printf 'single-attempt gate attempt 1 starting at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          Tools/CI/run-simulator-navigation.sh \
+            --app "$app" \
+            --runtime "$runtime" \
+            --device-type "$device_type" \
+            --attempt 1 \
+            --output "$evidence/attempts" \
+            --url "$smoke_url" \
+            --navigation-seconds 300
+          python3 Tools/CI/check-single-attempt-gate.py \
+            --input "$evidence/attempts/attempt-01.json"
+          printf 'single-attempt navigation gate passed at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          # GNU seq counts down when the start exceeds the end (seq 2 1 ->
+          # "2 1"), which would run an extra attempt for single-attempt gates
+          # and break the summarizer contract (attempts must be exactly 1..N).
+          # Guard the loop so a single-attempt gate runs exactly one attempt.
+          if (( attempts > 1 )); then
+            for attempt in $(seq 2 "$attempts"); do
+              printf 'gate attempt %s/%s starting at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+              Tools/CI/run-simulator-navigation.sh \
+                --app "$app" \
+                --runtime "$runtime" \
+                --device-type "$device_type" \
+                --attempt "$attempt" \
+                --output "$evidence/attempts" \
+                --url "$smoke_url" \
+                --navigation-seconds 300
+              printf 'gate attempt %s/%s finished at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            done
           fi
-          run_with_timeout 300 xcrun simctl install "$udid" "$app"
-          start_output="$(run_with_timeout 180 xcrun simctl launch "$udid" com.vulpra.browser)"
-          printf '%s\n' "$start_output" | tee simulator-start-page-launch.log
-          start_pid="${start_output##*: }"
-          sleep 8
-          if ! /bin/kill -0 "$start_pid"; then
-            echo "Vulpra exited before the start-page screenshot" >&2
-            exit 1
-          fi
-          run_with_timeout 60 xcrun simctl io "$udid" screenshot simulator-start-page.png
-          test -s simulator-start-page.png
-          run_with_timeout 30 xcrun simctl terminate "$udid" com.vulpra.browser | tee simulator-start-page-terminate.log || true
-          run_with_timeout 60 xcrun simctl shutdown "$udid"
-          run_with_timeout 60 xcrun simctl delete "$udid"
-          udid="$(xcrun simctl create "Vulpra-Navigation-$GITHUB_RUN_ID" "$device_type" "$runtime")"
-          printf 'navigation_udid=%s\n' "$udid" | tee -a simulator-device.log
-          xcrun simctl boot "$udid"
-          run_with_timeout 180 xcrun simctl bootstatus "$udid" -b
-          xcrun simctl spawn "$udid" defaults write NSGlobalDomain AppleLanguages -array zh-Hans
-          xcrun simctl spawn "$udid" defaults write NSGlobalDomain AppleLocale -string zh_CN
-          run_with_timeout 300 xcrun simctl install "$udid" "$app"
-          xcrun simctl spawn "$udid" log stream --style compact --info --debug \
-            --predicate 'process == "Vulpra" OR process CONTAINS[c] "Vulpra Engine" OR senderImagePath CONTAINS[c] "Vulpra" OR eventMessage CONTAINS[c] "Vulpra"' \
-            > simulator-system.log 2>&1 &
-          system_log_pid=$!
-          sleep 2
-          launch_output="$(SIMCTL_CHILD_VULPRA_SMOKE_URL="$smoke_url" \
-            run_with_timeout 180 xcrun simctl launch "$udid" com.vulpra.browser)"
-          printf '%s\n' "$launch_output" | tee simulator-launch.log
-          app_pid="${launch_output##*: }"
-          sleep 8
-          app_alive=1
-          if ! /bin/kill -0 "$app_pid"; then
-            app_alive=0
-            echo "Vulpra exited before navigation" | tee simulator-survival.log
-          else
-            echo "Vulpra initial navigation requested: $smoke_url" \
-              | tee simulator-navigation.log
-          fi
-          sleep 60
-          if ! /bin/kill -0 "$app_pid"; then
-            app_alive=0
-            echo "Vulpra exited after navigation" | tee -a simulator-survival.log
-          else
-            echo "Vulpra survived launch and navigation" | tee -a simulator-survival.log
-          fi
-          run_with_timeout 60 xcrun simctl io "$udid" screenshot simulator-navigation.png
-          kill "$system_log_pid" >/dev/null 2>&1 || true
-          wait "$system_log_pid" >/dev/null 2>&1 || true
-          : > simulator-crash-paths.log
-          for crash_root in \
-            "$HOME/Library/Logs/DiagnosticReports" \
-            "$HOME/Library/Developer/CoreSimulator/Devices/$udid/data"; do
-            test -d "$crash_root" || continue
-            find "$crash_root" -type f \
-              \( -name 'Vulpra*.crash' -o -name 'Vulpra*.ips' \) -mmin -10 \
-              -print -exec cp {} . \; 2>/dev/null \
-              | tee -a simulator-crash-paths.log || true
-          done
-          run_with_timeout 30 xcrun simctl terminate "$udid" com.vulpra.browser | tee simulator-terminate.log || true
-          swift - simulator-navigation.png <<'SWIFT' | tee simulator-rendering.log
-          import CoreGraphics
-          import Darwin
-          import Foundation
-          import ImageIO
+          python3 Tools/CI/summarize-r0-engine-gate.py \
+            --attempts "$attempts" \
+            --input "$evidence/attempts" \
+            --output "$evidence/summary.json" \
+            | tee simulator-r0-summary.log
 
-          let path = CommandLine.arguments[1]
-          guard let source = CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
-                let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else {
-              fputs("unable to decode simulator screenshot\n", stderr)
-              exit(1)
+      - name: Run A2 cold-start single-attempt gate
+        if: ${{ inputs.a2_cold_start_attempts != 0 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          attempts='${{ inputs.a2_cold_start_attempts }}'
+          [[ "$attempts" =~ ^[1-9][0-9]*$ ]] && (( attempts <= 20 ))
+          fixture_dir="$(mktemp -d)"
+          printf '%s\n' \
+            '<!doctype html><html><head><meta charset="utf-8"><title>Vulpra Engine Fixture</title>' \
+            '<style>html,body{margin:0;min-height:100%;background:#fff}body{display:grid;place-items:center;min-height:100vh}' \
+            'main{width:72vw;height:36vh;display:grid;place-items:center;background:#102a24;color:#fff;font:700 28px system-ui}</style></head>' \
+            '<body><main data-vulpra-engine-fixture>Vulpra Engine Ready</main></body></html>' \
+            > "$fixture_dir/index.html"
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory "$fixture_dir" \
+            > simulator-a2-fixture.log 2>&1 &
+          fixture_pid=$!
+          cleanup_fixture() {
+            kill "$fixture_pid" >/dev/null 2>&1 || true
+            wait "$fixture_pid" >/dev/null 2>&1 || true
+            rm -rf "$fixture_dir"
           }
-          let width = image.width
-          let height = image.height
-          var pixels = [UInt8](repeating: 255, count: width * height * 4)
-          let drewImage = pixels.withUnsafeMutableBytes { buffer -> Bool in
-              guard let context = CGContext(
-                  data: buffer.baseAddress, width: width, height: height,
-                  bitsPerComponent: 8, bytesPerRow: width * 4,
-                  space: CGColorSpaceCreateDeviceRGB(),
-                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-              ) else { return false }
-              context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
-              return true
-          }
-          guard drewImage else {
-              fputs("unable to inspect simulator screenshot\n", stderr)
-              exit(1)
-          }
-          var darkPixels = 0
-          for y in (height / 12)..<(height / 8) {
-              for x in 0..<width {
-                  let offset = (y * width + x) * 4
-                  if pixels[offset] < 220 && pixels[offset + 1] < 220 && pixels[offset + 2] < 220 {
-                      darkPixels += 1
-                  }
-              }
-          }
-          print("rendered_dark_pixels=\(darkPixels)")
-          guard darkPixels >= 1_000 else {
-              fputs("simulator page content is visually blank\n", stderr)
-              exit(1)
-          }
-          SWIFT
-          test -s simulator-navigation.png
-          if find . -maxdepth 1 -type f \( -name 'Vulpra*.crash' -o -name 'Vulpra*.ips' \) | grep -q .; then
-            echo "Vulpra produced a Simulator crash report" >&2
-            exit 1
+          trap cleanup_fixture EXIT
+          smoke_url='http://127.0.0.1:8765/'
+          for _ in {1..25}; do
+            curl --max-time 2 --fail --silent "$smoke_url" >/dev/null 2>&1 && break
+            sleep 0.2
+          done
+          curl --max-time 2 --fail --silent "$smoke_url" >/dev/null
+          app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          if [[ '${{ inputs.isolate_engine_process }}' == 'true' ]]; then
+            rm -rf "$app/PlugIns/OpenIn.appex"
           fi
-          test "$app_alive" -eq 1
-          grep -Fq "Engine location: $smoke_url" simulator-system.log
-          grep -Fq 'Engine page completed: true' simulator-system.log
-          grep -Fq 'Vulpra Engine Process connected' simulator-system.log
-          grep -Fq 'Engine view attached' simulator-system.log
+          runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'
+          device_type="$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["devicetypes"]
+                    if item.get("name", "").startswith("iPhone")]
+          if not values: raise SystemExit("no iPhone Simulator type")
+          preferred = [item for item in values if "Pro" in item["name"]]
+          print((preferred or values)[-1]["identifier"])
+          ')"
+          # A fresh single-attempt cold-start pass must come before the
+          # repeated loop (same user rule as the R0 navigation gate).
+          evidence='.build/a2-cold-start-gate'
+          rm -rf "$evidence"
+          mkdir -p "$evidence/attempts"
+          printf 'A2 single-attempt gate attempt 1 starting at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          Tools/CI/run-simulator-cold-start.sh \
+            --app "$app" \
+            --runtime "$runtime" \
+            --device-type "$device_type" \
+            --attempt 1 \
+            --output "$evidence/attempts" \
+            --url "$smoke_url" \
+            --cold-start-seconds 240
+          python3 Tools/CI/check-single-attempt-cold-start-gate.py \
+            --input "$evidence/attempts/attempt-01.json"
+          printf 'A2 single-attempt cold-start gate passed at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          if (( attempts > 1 )); then
+            for attempt in $(seq 2 "$attempts"); do
+              printf 'A2 gate attempt %s/%s starting at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+              Tools/CI/run-simulator-cold-start.sh \
+                --app "$app" \
+                --runtime "$runtime" \
+                --device-type "$device_type" \
+                --attempt "$attempt" \
+                --output "$evidence/attempts" \
+                --url "$smoke_url" \
+                --cold-start-seconds 240
+            done
+          fi
+          python3 Tools/CI/summarize-cold-start-gate.py \
+            --attempts "$attempts" \
+            --input "$evidence/attempts" \
+            --output "$evidence/summary.json" \
+            | tee a2-cold-start-summary.log
+
+      - name: Run Simulator scroll gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          attempts='${{ inputs.scroll_attempts }}'
+          [[ "$attempts" =~ ^[1-9][0-9]*$ ]] && (( attempts <= 20 ))
+          fixture_dir="$(mktemp -d)"
+          printf '%s\n' \
+            '<!doctype html><html><head><meta charset="utf-8"><title>Vulpra Scroll Fixture</title>' \
+            '<style>html,body{margin:0;background:#fff}body{min-height:15000px}' \
+            'main{position:fixed;top:32vh;left:14vw;width:72vw;height:36vh;background:#102a24;color:#fff;font:700 28px system-ui;display:grid;place-items:center}</style></head>' \
+            '<body><main data-vulpra-scroll-fixture>Vulpra Scroll Fixture</main>' \
+            '<script>let y=0;function step(){y+=40;if(y>12000)y=0;window.scrollTo(0,y);requestAnimationFrame(step)}requestAnimationFrame(step)</script>' \
+            '</body></html>' \
+            > "$fixture_dir/index.html"
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory "$fixture_dir" \
+            > simulator-scroll-fixture.log 2>&1 &
+          fixture_pid=$!
+          cleanup_fixture() {
+            kill "$fixture_pid" >/dev/null 2>&1 || true
+            wait "$fixture_pid" >/dev/null 2>&1 || true
+            rm -rf "$fixture_dir"
+          }
+          trap cleanup_fixture EXIT
+          smoke_url='http://127.0.0.1:8765/'
+          for _ in {1..25}; do
+            curl --max-time 2 --fail --silent "$smoke_url" >/dev/null 2>&1 && break
+            sleep 0.2
+          done
+          curl --max-time 2 --fail --silent "$smoke_url" >/dev/null
+          app="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/Vulpra.app"
+          if [[ '${{ inputs.isolate_engine_process }}' == 'true' ]]; then
+            rm -rf "$app/PlugIns/OpenIn.appex"
+          fi
+          runtime='com.apple.CoreSimulator.SimRuntime.iOS-26-4'
+          xcrun simctl list runtimes -j | python3 -c '
+          import json, sys
+          requested = sys.argv[1]
+          values = [item for item in json.load(sys.stdin)["runtimes"]
+                    if item.get("isAvailable") and item.get("identifier") == requested]
+          if not values: raise SystemExit(f"requested Simulator runtime is unavailable: {requested}")
+          ' "$runtime"
+          device_type="$(xcrun simctl list devicetypes -j | python3 -c '
+          import json, sys
+          values = [item for item in json.load(sys.stdin)["devicetypes"]
+                    if item.get("name", "").startswith("iPhone")]
+          if not values: raise SystemExit("no iPhone Simulator type")
+          preferred = [item for item in values if "Pro" in item["name"]]
+          print((preferred or values)[-1]["identifier"])
+          ')"
+          evidence='.build/scroll-gate'
+          rm -rf "$evidence"
+          mkdir -p "$evidence/attempts"
+          # A fresh single scroll attempt must pass before the repeated loop
+          # (same user rule as the R0 navigation and A2 cold-start gates).
+          printf 'scroll single-attempt gate attempt 1 starting at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          Tools/CI/run-simulator-scroll.sh \
+            --app "$app" \
+            --runtime "$runtime" \
+            --device-type "$device_type" \
+            --attempt 1 \
+            --output "$evidence/attempts" \
+            --url "$smoke_url" \
+            --scroll-seconds 12
+          python3 Tools/CI/summarize-scroll-gate.py \
+            --attempts 1 \
+            --input "$evidence/attempts" \
+            --output "$evidence/summary.json"
+          printf 'scroll single-attempt gate passed at %s\n' \
+            "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          if (( attempts > 1 )); then
+            for attempt in $(seq 2 "$attempts"); do
+              printf 'scroll gate attempt %s/%s starting at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+              Tools/CI/run-simulator-scroll.sh \
+                --app "$app" \
+                --runtime "$runtime" \
+                --device-type "$device_type" \
+                --attempt "$attempt" \
+                --output "$evidence/attempts" \
+                --url "$smoke_url" \
+                --scroll-seconds 12
+              printf 'scroll gate attempt %s/%s finished at %s\n' \
+                "$attempt" "$attempts" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            done
+          fi
+          python3 Tools/CI/summarize-scroll-gate.py \
+            --attempts "$attempts" \
+            --input "$evidence/attempts" \
+            --output "$evidence/summary.json" \
+            | tee scroll-gate-summary.log
+
+      - name: Upload reusable Simulator App bundle
+        if: ${{ inputs.app_bundle_run_id == '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-simulator-app
+          path: ${{ github.workspace }}/.build/simulator-derived/Build/Products/Debug-iphonesimulator/Vulpra.app
+          retention-days: 14
+
+      - name: Upload R0 engine gate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r0-engine-gate
+          path: .build/r0-engine-gate/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload A2 cold-start gate
+        if: ${{ always() && inputs.a2_cold_start_attempts != 0 }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2-cold-start-gate
+          path: .build/a2-cold-start-gate/
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload scroll gate
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scroll-gate
+          path: .build/scroll-gate/
+          if-no-files-found: warn
+          retention-days: 30
 
       - name: Upload Simulator evidence
         if: always()
