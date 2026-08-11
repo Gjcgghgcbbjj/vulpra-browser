@@ -392,3 +392,17 @@ launchctl unsetenv VULPRA_ENABLE_JIT
     sha 74bfd809…）
   - 对应 .ipa（-auto-0.2.0-8 / -mainproc-0.2.0-9）+ 说明 txt（内容已同步文件名）
 - 以后每轮打包按同一规则命名（build 号取自 build-identity.json 的 buildVersion）。
+
+## 更新（2026-08-11 第十二轮）：v8 首启回报 = 符合设计
+
+- 用户回报 v8 首启：第一行 `CS_DEBUGGED(主进程) appex探针未就绪 -> 解释器模式(流畅)`，
+  第二行 `appex: 尚未启动`，Speedometer 5.3。这正是 v8 首启设计态（探针未写时
+  安全走解释器）；主进程 CS_DEBUGGED 再次确认。
+- 关键判读：用户随后跑了 Speedometer（5.3）→ 扩展进程必然启动 → 探针必然已写
+  （beginRequest 先于 JS::Init）。"尚未启动"是首启查看时刻的状态，回起始页
+  （2s 自动刷新）即可读到 `appex: flags=… mapjit=…`。
+- 探针可写性字节级确认：v8 TIPA 的 appex 签名 DER entitlements 含
+  `com.apple.private.security.no-sandbox`、`get-task-allow`、IOKit user clients
+  （与 create-ipa.sh 断言一致）→ /var/mobile/Documents 与 /tmp 写入不被沙箱拦截。
+- 待用户回报：回起始页后的第二行 appex 探针。mapjit=ok → 重启 App 自动切 JIT；
+  mapjit=fail → 装 v9 mainproc 主进程 JIT。
