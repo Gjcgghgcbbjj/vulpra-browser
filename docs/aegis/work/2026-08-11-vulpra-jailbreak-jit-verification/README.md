@@ -370,3 +370,14 @@ launchctl unsetenv VULPRA_ENABLE_JIT
   (b) App 内 task_for_pid/ptrace 附加（ADR-0004/0005 明令禁止 ptrace 生产者，
       需要用户明确授权 + ADR 修订）——用户此前问过"可以内置自动执行吗"，
       若 (a)(v9) 都失败则需用户在授权后推进。
+
+## 交付约定（2026-08-11，用户指定）
+
+- **Win 桌面固定交付目录：`/mnt/c/Users/niting/Desktop/Vulpra安装包/`**，
+  以后所有新安装包一律放这里（根目录放当前版本，旧版本归入
+  `Vulpra安装包/历史版本/`）。
+- 当前根目录：`Vulpra-TrollStore-jailbreak-jit-auto.tipa`（v8 主测，
+  sha bf567ea8…）+ `Vulpra-TrollStore-jailbreak-jit-mainproc.tipa`（v9 实验，
+  sha 74bfd809…）+ 对应 .ipa + `Vulpra-JIT自动开启版说明.txt`。
+- 历史版本/：v7 备份 TIPA/IPA、旧 jailbreak-jit.tipa、旧 Vulpra/ 交付目录。
+- 桌面根目录保持只有一个 `Vulpra安装包` 文件夹。
