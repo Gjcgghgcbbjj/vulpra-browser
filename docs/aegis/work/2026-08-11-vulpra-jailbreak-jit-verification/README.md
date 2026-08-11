@@ -174,3 +174,19 @@ launchctl unsetenv VULPRA_ENABLE_JIT
     修复方向：让 appex 获得调试标记（Dopamine 注入范围/每扩展开关）、
     或把网页 JS 挪回主进程（关 Fission/e10s + 关 main_process_disable_jit pref）。
   - appex debugged=yes / mapjit=ok 但卡 → 查编译压力/内存/渲染，非 MAP_JIT。
+
+## 更新（2026-08-11 第六轮）：自适应 v7 - appex 探针驱动的模式选择
+
+- 用户尚未回报 v6 探针结果；趁等待产出 v7（75f8c5e，TIPA sha 5c5cba63，build 7）：
+  - `App/main.swift` 启动时读 appex 探针文件：`mapjit`/`mprotect` 含 "fail"
+    → 不设 VULPRA_ENABLE_JIT（解释器模式，保证流畅，~5.5）；否则照常开 JIT。
+    探针文件每次 appex 启动重写 → 模式自愈（将来 appex 可 JIT 后自动恢复）。
+  - JIT 模式下进程池缩减：`dom.ipc.processPrelaunch.fission.number=0` +
+    `dom.ipc.processCount=2`（避免多实例 JIT 进程内存压力/jetsam 重启）；
+    解释器模式维持 2/4 基线。已避开 `processPrelaunch.enabled`
+    （不在 pref 契约快照内，fission.number 即真实旋钮）。
+  - 起始页第一行直接显示所选模式（JIT开启 / 解释器回退+原因）。
+- 待用户回报：v6/v7 起始页两行 + 机型/iOS 版本 + Speedometer。
+- 若确认 appex 无法 MAP_JIT（mapjit=fail）：推进"网页 JS 跑在主进程"方案
+  （主进程已确认 CS_DEBUGGED；需关 e10s/Fission 可行性核实 + 翻
+  main_process_disable_jit pref）。
