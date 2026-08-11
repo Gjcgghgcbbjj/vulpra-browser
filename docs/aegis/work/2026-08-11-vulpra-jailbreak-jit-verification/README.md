@@ -271,3 +271,53 @@ launchctl unsetenv VULPRA_ENABLE_JIT
 - 待用户回报：v8 起始页两行（重点 appex 探针）+ 机型/iOS + Speedometer。
 - 分支判读（沿用第六/七轮口径）：mapjit=fail → 主进程路线（需引擎重编，
   调研结论见第七轮）；mapjit=ok 但卡 → 内存/编译压力分支；mapjit=ok 且 ~9 → 收尾。
+
+## 更新（2026-08-11 第九轮）：v9 主进程 JIT 路线（免重编引擎）
+
+### 源码级证据：主进程路线可以不改引擎
+
+- **关 e10s 只认 env**：`BrowserTabsRemoteAutostart()`（nsAppRunner.cpp:557-600）
+  父进程侧仅 `MOZ_FORCE_DISABLE_E10S=1` 可关（且本工程 mozconfig **未设**
+  `MOZILLA_OFFICIAL` → `allowDisablingE10s` 恒 true，无需
+  `AreNonLocalConnectionsDisabled`）。关后 `FissionAutostart()` 同步 false
+  （nsAppRunner.cpp:940-947）→ 网页 JS 进主进程。
+- **主进程 JIT 门（nsXPConnect.cpp:99-118）**：`XRE_IsParentProcess() &&
+  StaticPrefs::javascript_options_main_process_disable_jit()` 才
+  `DisableJitBackend()`；iOS 默认 true（StaticPrefList.yaml:9946），
+  `mirror:always` → 只要默认值被文件覆盖即可。`else if (IsLockdownModeEnabled())`
+  → **iOS 16+ 若开锁定模式，仍会禁用主进程 JIT（用户侧检查项）**。
+- **默认 pref 注入点（免重编）**：`Preferences::InitInitialObjects`
+  （Preferences.cpp:5118+）在 XRE_main 早期由 `GetInstanceForService` 触发；
+  顺序证据 nsAppRunner.cpp:5722-5737：`mDirProvider.InitializeUserPrefs()` 之后、
+  `xpc::InitializeJSContext()`（= InitJSEngine）**之前**，注释明示
+  "AutoConfig files can't override JS engine start-up prefs"。
+  `NS_APP_PREF_DEFAULTS_50_DIR = mGREDir/defaults/pref`（nsXREDirProvider.cpp:401-407），
+  iOS 的 mGREDir = `Frameworks/VulpraEngineRuntime/Frameworks`（nsAppRunner 补丁
+  order 248）→ 打包时在该目录放 `defaults/pref/vulpra-main-jit.js` 即可。
+- **Swift 层不依赖子进程渲染**：`VulpraEngineSession` 只经 ABI
+  `engineABIWindowView` 拿 UIView，不引用 RemoteLayerTree/子进程 PID → e10s 关
+  在 Swift 层成立。
+
+### v9 改动（commit d0d565e，build 9）
+
+- `App/main.swift`：主进程 CS_DEBUGGED 时 `setenv("MOZ_FORCE_DISABLE_E10S","1")`
+  → e10s 关 + 主进程 JIT；不设 VULPRA_ENABLE_JIT（无内容子进程，辅助进程保持
+  解释器安全）。起始页第一行 `主进程JIT模式(e10s关)`，第二行显示主进程模式说明。
+- `Tools/Release/package-app.sh`：向 staged app 的
+  `VulpraEngineRuntime/Frameworks/defaults/pref/vulpra-main-jit.js` 写入
+  `pref("javascript.options.main_process_disable_jit", false);`（IPA/TIPA 共用
+  打包核心，两产物自动携带；确定性校验通过）。
+- `Tools/Engine/validate-ipa.py`：强制校验该 pref 文件存在且含 override 标记。
+- 测试：RuntimeShell（含新 unzip 断言，files=12→13）、Browser、IndependentEngine
+  三套全绿。
+- 打包 run 31486220694（head d0d565e）。
+
+### v9 风险与判读
+
+- **进程内渲染路径未在真机验证**（本平台补丁以远端渲染为主）；
+  若 v9 网页空白/崩溃 → e10s 关渲染链不可行，回到引擎重编路线
+  （Route A' 懒 MAP_JIT + appex 附加，见 ADR-0005 / 2026-08-10 README）。
+- 若 v9 正常且快 → 主进程 JIT 成立，配合 CS_DEBUGGED 达到 ~9 目标。
+- 用户侧检查：iOS 16+ 锁定模式（设置→隐私与安全性→锁定模式）须关闭。
+- 桌面布局：v8（auto）保持为主测包；v9（mainproc）作为 appex 无法 JIT 时的
+  实验备选包。
