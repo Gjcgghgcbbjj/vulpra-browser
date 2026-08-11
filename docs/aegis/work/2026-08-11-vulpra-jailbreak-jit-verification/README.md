@@ -435,3 +435,25 @@ launchctl unsetenv VULPRA_ENABLE_JIT
       查 appex 崩溃（launches 计数、jit-probe 日志）。
     - 自检 =err → 系统隔离成立 → 改用 XPC 直传探针
       （ExtensionBootstrapPing 已有 ping 协议，可扩展为带 probe 字典返回）。
+
+## 更新（2026-08-11 第十四轮）：v10 闪退根因 = 误含 v9 主进程模式，v11 回退
+
+- 用户装 v10 回报"直接闪退"。排查结论（二进制级证据）：
+  - v10 构建于分支最新提交（含 v9 commit d0d565e 的 App/main.swift 改动）之上，
+    所以交付的 "-auto-0.2.0-10" 实际等于 v9 主进程模式
+    （MOZ_FORCE_DISABLE_E10S=1 + main_process_disable_jit=false），
+    不是 v8 appex 路线。主进程 JIT 模式在此设备闪退，正是摘要预期
+    "v9 若失败（空白/闪退）→ Route A'" 的失败分支。
+  - 证据：v10 与 v8 的 XUL 完全一致（256033488 字节，引擎未变）；主 App
+    二进制仅探针/identity 差异；appex 二进制仅探针代码差异（114416→131344B）。
+- v11（commit 582fcf5，build 11，fingerprint porcelain-zh-v4-jit-appex-v11）：
+  - App/main.swift 恢复 v8 appex 门控逻辑（appex 探针证明 MAP_JIT 才开 JIT，
+    否则解释器模式），相对 v8 仅多一行 VulpraCrashReporter.install()。
+  - 启动路径 JIT 判定只读共享路径（同 v8），不碰容器扫描/自检。
+  - 容器扫描结果缓存（只扫一次）；App 自检首次同步 + 3s 后后台刷新，
+    footer 2s 刷新不再阻塞主线程。
+  - VulpraCrashReporter：NSSetUncaughtExceptionHandler + SIGABRT/BUS/FPE/
+    ILL/SEGV/TRAP 面包屑写 /var/mobile/Documents/vulpra-crash.json
+    （signal 路径用预开 fd + POSIX write/snprintf），footer 显示"上次崩溃"。
+  - 判读：v11 正常 → 闪退= v9 主进程模式（结论坐实）；仍闪 → footer 增强
+    代码（自检/容器扫描）嫌疑，靠崩溃面包屑定位。
