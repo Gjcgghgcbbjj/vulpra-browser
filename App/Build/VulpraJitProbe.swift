@@ -230,6 +230,9 @@ enum VulpraCrashReporter {
                 + "\"reason\":\"\(exception.reason ?? "")\"}"
             try? text.write(toFile: sharedPath, atomically: true, encoding: .utf8)
         }
+        // Force eager initialization of the breadcrumb arrays in normal
+        // context so the signal handler never allocates.
+        _ = msgAbort; _ = msgBus; _ = msgFpe; _ = msgIll; _ = msgSegv; _ = msgTrap; _ = msgOther
         signal(SIGABRT, crashHandler)
         signal(SIGBUS, crashHandler)
         signal(SIGFPE, crashHandler)
@@ -238,19 +241,33 @@ enum VulpraCrashReporter {
         signal(SIGTRAP, crashHandler)
     }
 
+    // Pre-formatted breadcrumbs (UTF-8, NUL-terminated). Touched in install()
+    // so they are initialized in normal context; the signal handler only
+    // reads them and writes bytes - no allocation, no variadic C calls.
+    private static let msgAbort: [CChar] = Array("{\"type\":\"signal\",\"signal\":6}\n".utf8CString)
+    private static let msgBus: [CChar] = Array("{\"type\":\"signal\",\"signal\":10}\n".utf8CString)
+    private static let msgFpe: [CChar] = Array("{\"type\":\"signal\",\"signal\":8}\n".utf8CString)
+    private static let msgIll: [CChar] = Array("{\"type\":\"signal\",\"signal\":4}\n".utf8CString)
+    private static let msgSegv: [CChar] = Array("{\"type\":\"signal\",\"signal\":11}\n".utf8CString)
+    private static let msgTrap: [CChar] = Array("{\"type\":\"signal\",\"signal\":5}\n".utf8CString)
+    private static let msgOther: [CChar] = Array("{\"type\":\"signal\",\"signal\":0}\n".utf8CString)
+
     private static let crashHandler: @convention(c) (Int32) -> Void = { sig in
-        // Inline and POSIX-only: signal context must not allocate or call
-        // Foundation. buf is heap-allocated by Swift before the handler runs
-        // (the closure body is compiled normally); snprintf/write are used
-        // because they are the safest available primitives here.
-        var buf = [CChar](repeating: 0, count: 128)
-        let n = buf.withUnsafeMutableBufferPointer { bp -> Int32 in
-            snprintf(bp.baseAddress, bp.count, "{\"type\":\"signal\",\"signal\":%d}\n", sig)
+        let msg: [CChar]
+        switch sig {
+        case SIGABRT: msg = VulpraCrashReporter.msgAbort
+        case SIGBUS: msg = VulpraCrashReporter.msgBus
+        case SIGFPE: msg = VulpraCrashReporter.msgFpe
+        case SIGILL: msg = VulpraCrashReporter.msgIll
+        case SIGSEGV: msg = VulpraCrashReporter.msgSegv
+        case SIGTRAP: msg = VulpraCrashReporter.msgTrap
+        default: msg = VulpraCrashReporter.msgOther
         }
+        let len = msg.count - 1  // strip the trailing NUL
         if signalFD >= 0 {
-            _ = write(signalFD, buf, Int(n))
+            _ = write(signalFD, msg, len)
         }
-        _ = write(2, buf, Int(n))
+        _ = write(2, msg, len)
         signal(sig, SIG_DFL)
         raise(sig)
     }
