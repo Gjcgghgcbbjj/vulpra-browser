@@ -340,3 +340,33 @@ launchctl unsetenv VULPRA_ENABLE_JIT
   - 本地副本：/root/Vulpra-d0d565e-jit-mainproc.tipa / .ipa
 - 用户侧待回报：v8 两行 → 分支；若 appex 无法 JIT → v9 主进程模式结果
   （网页正常+~9 = 路线成立；空白/闪退 = 回引擎重编 Route A'）。
+
+## 更新（2026-08-11 第十一轮）：Route A' 引擎重编配方验证（备用路线）
+
+若 v9 主进程路线失败（e10s 关的进程内渲染不可行），唯一剩余 JIT 路 = 引擎重编
+（Route A' 懒 MAP_JIT + 附加窗口放宽）。本轮把重编配方验证到可直接开工：
+
+- **组合配方（实测 git apply 干净）**，以固定上游 27b462b2 + v5 平台补丁为底：
+  1. order 249 `Engine/GeckoPatches/v5/platform/real-device-jit/route-jailbreak-jit.patch`
+     （GeckoChildProcessHost argv 注入 + IOSBootstrap `-enable-jit` 门控）→ 已实测
+     `git apply --check` 干净，应用后 IOSBootstrap.mm:153 出现 argv 扫描。
+  2. Route A' 懒 MAP_JIT 两段（**注意：只取 JitContext.cpp +
+     ProcessExecutableMemory.cpp 两段**，见
+     `docs/aegis/work/2026-08-10-vulpra-real-device-jit/route-a-prime-lazy-jit-argv-trigger.patch`
+     ——其 IOSBootstrap.mm 段与 order 249 完全相同，不能重复应用）→ 已实测在
+     order 249 之上 `git apply --check` 干净，应用后 JitContext.cpp:140 /
+     ProcessExecutableMemory.cpp:782 出现 Route A' 注释。
+- **部分编译成果保留机制（对应"编译失败也保留成果"要求）**：
+  `produce-gecko-v5.yml` 已设 `SCCACHE_DIR` + `SCCACHE_CACHE_SIZE=8G`，post-step
+  对失败/部分构建也保存 sccache（上限 8G < GitHub 10G 条目上限，不会静默失败）；
+  重编可从 sccache 增量恢复，不必全量重来。
+- 重编流水线：改补丁/系列 → push（produce-gecko-v5.yml 自动触发，matrix
+  iphoneos+iphonesimulator）→ promote-gecko-v5.yml → 更新
+  `Configuration/engine-artifact-lock.json` 的 releaseTag → build-ios-packages.yml
+  以新引擎重打包 TIPA。
+- **Route A' 只有配合"附加机制"才有 JIT 收益**（它只把 JS::Init 崩溃改成解释器
+  软降级 + 首次分配重试）。可选附加机制：
+  (a) Dopamine 注入设置修复（appex 拿到 CS_DEBUGGED）——v8/v9 探针直接给答案；
+  (b) App 内 task_for_pid/ptrace 附加（ADR-0004/0005 明令禁止 ptrace 生产者，
+      需要用户明确授权 + ADR 修订）——用户此前问过"可以内置自动执行吗"，
+      若 (a)(v9) 都失败则需用户在授权后推进。
