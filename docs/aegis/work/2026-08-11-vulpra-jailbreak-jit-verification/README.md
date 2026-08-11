@@ -457,3 +457,20 @@ launchctl unsetenv VULPRA_ENABLE_JIT
     （signal 路径用预开 fd + POSIX write/snprintf），footer 显示"上次崩溃"。
   - 判读：v11 正常 → 闪退= v9 主进程模式（结论坐实）；仍闪 → footer 增强
     代码（自检/容器扫描）嫌疑，靠崩溃面包屑定位。
+
+## 更新（2026-08-11 第十五轮）：v11 交付 + 编译修复记录
+
+- v11 构建中两次编译失败及修复（记录供后续参考）：
+  1. `snprintf` 是 C 变参函数，Swift 不可调用 → 改为预格式化
+     [CChar] 面包屑数组（install() 时 eager 初始化）+ 纯 switch 分派，
+     handler 内只有 write/signal/raise。
+  2. `NSSetUncaughtExceptionHandler` 的闭包被判定捕获上下文（C 函数指针
+     不能由捕获闭包形成）→ 改为文件作用域全局函数
+     vulpraCrashExceptionHandler。
+- v11 最终 run 31494905371 成功；TIPA sha b022c176…（build 11）。
+  字节级验证：主 App 二进制含 VULPRA_ENABLE_JIT（v8 路线恢复）、
+  不含 MOZ_FORCE_DISABLE_E10S（v9 已移除）、含 vulpra-crash.json 崩溃记录、
+  探针字段与 MCMMetadataIdentifier 扫描；XUL -enable-jit count=2；appex
+  含三通道探针 + no-sandbox。
+- 桌面：Vulpra安装包/ 根目录 = v11（-auto-0.2.0-11），v10 已入历史版本/。
+- 待用户回报：v11 是否不再闪退 + 两行探针（[写:… 读自:…] 与 自检:…）。
