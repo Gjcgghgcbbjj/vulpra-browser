@@ -225,11 +225,7 @@ enum VulpraCrashReporter {
         signalFD = sharedPath.withCString {
             open($0, O_WRONLY | O_CREAT | O_APPEND, 0o644)
         }
-        NSSetUncaughtExceptionHandler { exception in
-            let text = "{\"type\":\"exception\",\"name\":\"\(exception.name.rawValue)\","
-                + "\"reason\":\"\(exception.reason ?? "")\"}"
-            try? text.write(toFile: sharedPath, atomically: true, encoding: .utf8)
-        }
+        NSSetUncaughtExceptionHandler(vulpraCrashExceptionHandler)
         // Force eager initialization of the breadcrumb arrays in normal
         // context so the signal handler never allocates.
         _ = msgAbort; _ = msgBus; _ = msgFpe; _ = msgIll; _ = msgSegv; _ = msgTrap; _ = msgOther
@@ -287,4 +283,12 @@ enum VulpraCrashReporter {
         }
         return nil
     }
+}
+
+/// Global (non-capturing) handler for NSSetUncaughtExceptionHandler: a C
+/// function pointer cannot be formed from a capturing closure.
+private func vulpraCrashExceptionHandler(_ exception: NSException) {
+    let text = "{\"type\":\"exception\",\"name\":\"\(exception.name.rawValue)\","
+        + "\"reason\":\"\(exception.reason ?? "")\"}"
+    try? text.write(toFile: VulpraCrashReporter.sharedPath, atomically: true, encoding: .utf8)
 }
