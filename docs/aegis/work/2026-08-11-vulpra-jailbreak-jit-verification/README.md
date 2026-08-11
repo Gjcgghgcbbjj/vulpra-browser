@@ -190,3 +190,63 @@ launchctl unsetenv VULPRA_ENABLE_JIT
 - 若确认 appex 无法 MAP_JIT（mapjit=fail）：推进"网页 JS 跑在主进程"方案
   （主进程已确认 CS_DEBUGGED；需关 e10s/Fission 可行性核实 + 翻
   main_process_disable_jit pref）。
+
+## 更新（2026-08-11 第七轮）：v8 探针正证门控 + 主进程路线可行性调研
+
+### v8（ba52e6f，build 8）：探针必须"正证可 JIT"才开
+
+- v7 的缺陷：探针文件不存在时（v5 直升 v7、或首次安装后首启）默认开 JIT——
+  若该机 appex 无法 MAP_JIT，首启仍会进入"卡到基本用不了"的崩溃循环，直到
+  用户杀掉重开第二次才自愈。对"最终交付流畅版"不可接受。
+- v8 反转门控（`App/Build/VulpraJitProbe.swift` `appexJITAvailable()`）：
+  JIT 仅在探针**同时满足 mapjit=="ok" && mprotect=="ok"** 时开启；探针缺失
+  或含 fail → 解释器模式（流畅 ~5.5），起始页第一行显示原因
+  （`appex探针未就绪(首启解释器,重启后自动评估JIT)` 或
+  `appex无法JIT(mapjit=.. mprotect=..)`）。探针每次 appex 启动重写 →
+  设备一旦证明可 JIT，下次启动自动升级。三个分支（fail/ok-但卡/成功）下
+  该改动均严格更优，不依赖待测数据。
+- 验证：三套 portable gate 全绿（Browser / RuntimeShell / IndependentEngine）；
+  `generate-build-identity.py --check` 通过；build identity 0.2.0 (8)
+  fingerprint `porcelain-zh-v4-jit-probe-required-20260811`。
+- 打包 run 31483222670（head ba52e6f）。桌面交付时 v7 保留为备份文件名，
+  `Vulpra-TrollStore-jailbreak-jit-auto.tipa` = v8。
+- 真机判读口径不变：起始页第二行 appex 探针
+  （flags/debugged/mapjit/mprotect/launches/pid）是决策依据。
+
+### 主进程路线（分支 1 后备）源码级可行性调研结论
+
+若 v6/v7/v8 探针确认 appex debugged=NO/mapjit=fail，把网页 JS 挪回主进程
+需要同时满足以下三条件，**均不成立或需重编引擎**：
+
+1. **关 e10s**：`BrowserTabsRemoteAutostart()`（nsAppRunner.cpp:557-600）在
+   父进程只认 `MOZ_FORCE_DISABLE_E10S=1` env（MOZILLA_OFFICIAL 下还需
+   `xpc::AreNonLocalConnectionsDisabled()`=true，独立浏览器成立）；关后
+   FissionAutostart 同步强制 false（nsAppRunner.cpp:940-947）→ 网页 JS 进
+   主进程。主进程读 env 可靠（v5 已证），可在 main.swift setenv。**但**：
+2. **关 `javascript.options.main_process_disable_jit`**（StaticPrefList.yaml:9946，
+   XP_IOS 默认 true，mirror:always）：主进程 `nsXPConnect::InitJSContext →
+   InitJSEngine` 在启动早期读取该静态 pref，一旦 `DisableJitBackend()` 执行
+   便单向不可逆；运行时 `GeckoView:Preferences:SetPref`（markReady 阶段）
+   太晚。需启动前注入（引擎 patch / app 内 defaults pref 机制，均需验证）。
+3. **非 e10s 渲染路径**：本 iOS 平台补丁围绕远端渲染构建
+   （widget/uikit + RemoteLayerTreeOwner + CompositorBridgeChild 等）；进程内
+   渲染（InProcessCompositorWidget 补丁存在但覆盖面未验证）整链路无人跑过，
+   风险高。
+
+结论：主进程路线 = 引擎重编（patch main_process_disable_jit 的 iOS 默认 /
+   加启动前 pref 注入）+ 全新渲染路径真机验证，成本高、风险大，**作为最后手段**；
+   优先在 appex 侧找 CS_DEBUGGED（Dopamine 每 App tweak 注入开关/Choicy 对
+   Vulpra 的注入状态、重启 SpringBoard 后重测），因为 v6/v7 探针可直接给出
+   appex 真实 CS 状态。
+
+### Dopamine 源码复核（appex 应继承 CS_DEBUGGED）
+
+- `launchdhook/src/jbserver/jbdomain_systemwide.c:213-226`：check-in 按
+  进程自身 `procPath` 前缀（`/private/var/containers/Bundle/Application` 或
+  `/var/jb/Applications`）+ `jbsetting(markAppsAsDebugged)` 置
+  `fullyDebugged` → `cs_allow_invalid`。appex 路径在前缀内。
+- `systemhook/src/common/common.c` spawn hook 对全部 spawn 注入
+  `DYLD_INSERT_LIBRARIES`（除非 Choicy 对该 app 关注入）。
+- 因此主 App 显示 CS_DEBUGGED 时 appex **大概率同样 debugged**（v6 探针直接
+  验证）。若 appex 显示 NO：先查 Dopamine → Vulpra 的 tweak 注入开关 /
+  Choicy 设置 / 重启 SpringBoard 后再测，再考虑主进程路线。
