@@ -173,6 +173,11 @@
     return NO;
 }
 
+- (BOOL)preflightJITProviderWithError:(NSError **)error {
+    DeviceProvider *provider = [self getProvider:error];
+    return provider != NULL;
+}
+
 - (void)detachAllJITSessions {
     resetJITEndpointMonitor();
     dispatch_sync(debugSessionStateQueue(), ^{

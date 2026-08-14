@@ -43,12 +43,14 @@ def main() -> None:
     require(GECKO_HEADER.is_file(), "missing GeckoView.h")
 
     source = COORDINATOR.read_text(encoding="utf-8")
-    require(len(source.splitlines()) < 220, "RuntimeJITCoordinator exceeds 220-line budget")
+    require(len(source.splitlines()) < 300, "RuntimeJITCoordinator exceeds 300-line budget")
     require("static let shared = RuntimeJITCoordinator()" in source, "missing single coordinator instance")
-    require(len(re.findall(r"DispatchQueue\s*\(", source)) == 2, "coordinator must own exactly two queues")
+    require(len(re.findall(r"DispatchQueue\s*\(", source)) == 3, "coordinator must own exactly three queues")
     require("private let attachQueue" in source, "missing attach queue")
     require("private let stateQueue" in source, "missing state queue")
-    require("deadline: .now() + 4.5" in source, "JIT deadline must be 4.5 seconds")
+    require("private let preflightQueue" in source, "missing DDI preflight queue")
+    require("readinessDeadlineSeconds: TimeInterval = 5.0" in source, "JIT deadline must align with the engine 5 s window")
+    require("deadline: .now() + Self.readinessDeadlineSeconds" in source, "deadline must use the shared readiness constant")
     require('Notification.Name("GeckoRuntime.ChildProcessDidStart")' in source, "wrong Gecko notification")
     require("private var pendingPIDs: Set<Int32>" in source, "missing pending PID owner")
     require("private var completedPIDs: Set<Int32>" in source, "missing completed PID suppression")
@@ -56,8 +58,11 @@ def main() -> None:
     require("guard pid > 0" in source, "positive PID validation is missing")
     require("trimmingCharacters(in: .whitespacesAndNewlines).lowercased()" in source, "process type normalization is missing")
     require('processType == "tab"' in source, "only tab children may attach")
-    require("enableJIT(forPID: pid, hasTXMSupport: false)" in source, "initial TXM policy must be false")
-    require("hasTXMSupport: 0" in source, "reported TXM runtime flag must be false")
+    require("private func hasTXMSupport() -> Bool" in source, "missing TXM hardware detection")
+    require("enableJIT(forPID: pid, hasTXMSupport: hasTXMSupport())" in source, "attach must use the detected TXM support")
+    require("hasTXMSupport: hasTXMSupport() ? 1 : 0" in source, "reported TXM runtime flag must reflect the detected support")
+    require("preflightJITProvider()" in source, "missing DDI provider preflight")
+    require("usePtraceJIT()" in source, "missing ptrace entitlement detection")
 
     finish = re.search(
         r"private func finish\(pid: Int32, enabled: Bool, reason: String\) \{(?P<body>.*?)\n    \}",
@@ -92,7 +97,6 @@ def main() -> None:
         "FailureView",
         "UIAlertController",
         "UserDefaults",
-        "hasTXMSupport()",
     ):
         require(forbidden not in source, f"coordinator contains excluded policy/UI token: {forbidden}")
 
