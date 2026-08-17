@@ -1,7 +1,8 @@
 // Simulator-only stub for Gecko symbols that exist only in patched Gecko
 // builds. The pre-compiled simulator runtime does not include Vulpra's
 // Gecko patches, so we provide no-op stubs to satisfy the linker.
-#if targetEnvironment(simulator)
+#include <TargetConditionals.h>
+#if TARGET_OS_SIMULATOR
 
 #include <stdint.h>
 
