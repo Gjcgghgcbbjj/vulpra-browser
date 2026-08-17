@@ -26,8 +26,8 @@ import sys
 root = Path(sys.argv[1])
 module_root = root / "Modules/VulpraRuntime"
 files = {p.relative_to(root).as_posix() for p in module_root.rglob("*") if p.is_file()}
-if len(files) != 17:
-    raise SystemExit(f"FAIL: expected 17 low-level JIT/native files, found {len(files)}")
+if len(files) != 18:
+    raise SystemExit(f"FAIL: expected 18 low-level JIT/native files, found {len(files)}")
 
 for forbidden in ("JITController.swift", "JITFailure.swift", "libidevice_ffi.a"):
     if any(Path(path).name == forbidden for path in files):
@@ -36,7 +36,7 @@ for forbidden in ("JITController.swift", "JITFailure.swift", "libidevice_ffi.a")
 with (root / "docs/provenance/import-manifest.tsv").open(newline="", encoding="utf-8") as source:
     rows = list(csv.DictReader(source, delimiter="\t"))
 module_rows = [row for row in rows if row["target_path"].startswith("Modules/")]
-if len(module_rows) != 17 or {row["target_path"] for row in module_rows} != files:
+if len(module_rows) != 18 or {row["target_path"] for row in module_rows} != files:
     raise SystemExit("FAIL: JIT/native manifest coverage mismatch")
 
 for row in module_rows:
