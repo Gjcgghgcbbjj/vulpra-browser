@@ -98,6 +98,15 @@ jobs:
           widget/uikit/GeckoViewRuntimeSupport.h GeckoViewRuntimeSupport.h
           EOF
 
+          # Also copy patched headers into the source tree so Xcode's
+          # PBXFileSystemSynchronizedGroup can see them as public headers
+          # of the GeckoView framework target.
+          runtime_headers=Extensions/GeckoView/Runtime
+          mkdir -p "$runtime_headers"
+          for h in IOSBootstrap.h GeckoViewSwiftSupport.h GeckoViewRuntimeSupport.h; do
+            cp "$include/$h" "$runtime_headers/$h"
+          done
+
           theme=Vendor/firefox/toolkit/mozapps/extensions/default-theme
           mkdir -p "$theme"
           for name in icon.svg manifest.json preview.svg; do
