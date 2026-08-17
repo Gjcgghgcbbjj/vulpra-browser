@@ -4,8 +4,15 @@ set -eu
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 DEFAULT_ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)
 ROOT_DIR=${VULPRA_ROOT_DIR:-$DEFAULT_ROOT}
-GECKO_DIST="$ROOT_DIR/Vendor/firefox/obj-aarch64-apple-ios/dist"
-IDEVICE_ARCHIVE="$ROOT_DIR/.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a"
+
+# Select dist path based on target platform (simulator vs device).
+if [ "${PLATFORM_NAME:-}" = "iphonesimulator" ]; then
+	GECKO_DIST="$ROOT_DIR/Vendor/firefox/obj-aarch64-apple-ios-sim/dist"
+	IDEVICE_ARCHIVE="$ROOT_DIR/.build/idevice/aarch64-apple-ios-sim/release/libidevice_ffi.a"
+else
+	GECKO_DIST="$ROOT_DIR/Vendor/firefox/obj-aarch64-apple-ios/dist"
+	IDEVICE_ARCHIVE="$ROOT_DIR/.build/idevice/aarch64-apple-ios/release/libidevice_ffi.a"
+fi
 DEFAULT_THEME="$ROOT_DIR/Vendor/firefox/toolkit/mozapps/extensions/default-theme"
 
 missing=0
