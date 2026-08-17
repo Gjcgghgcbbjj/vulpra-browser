@@ -54,16 +54,18 @@ jobs:
         run: |
           set -e
           cd Vendor/firefox
-          applied=0
-          skipped=0
+          # Initialize git so patches can be applied with git apply --3way
+          git init -q 2>/dev/null || true
+          git add -A 2>/dev/null || true
+          git -c user.name="CI" -c user.email="ci@vulpra" commit -q -m "pre-patch baseline" 2>/dev/null || true
+          applied=0; skipped=0; failed=0
           for patch in ../../Patches/*/*/*; do
             [[ -f "$patch" ]] || continue
-            if patch -p1 --dry-run < "$patch" >/dev/null 2>&1; then
-              patch -p1 < "$patch"
+            if git apply --3way --whitespace=nowarn "$patch" 2>/dev/null; then
               echo "Applied: $patch"
               applied=$((applied + 1))
             else
-              echo "Skip (already applied or conflict): $patch"
+              echo "Skip: $patch"
               skipped=$((skipped + 1))
             fi
           done
@@ -76,37 +78,18 @@ jobs:
       - name: Build Simulator Gecko
         id: build
         continue-on-error: ${{ inputs.continue_on_failure }}
-        env:
-          CCACHE_DIR: ${{ github.workspace }}/.ccache
         run: |
-          cd Vendor/firefox
-          export MOZ_UPLOAD_SYMBOL_SYMBOLS=0
-          # Write mozconfig for iOS Simulator target.
-          printf '%s\n' \
-            'mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-aarch64-apple-ios-sim' \
-            'ac_add_options --enable-application=mobile/ios' \
-            'ac_add_options --target=aarch64-apple-ios-sim' \
-            'ac_add_options --enable-ios-target=15.0' \
-            'ac_add_options --disable-webrtc' \
-            'ac_add_options --enable-optimize' \
-            'ac_add_options --disable-debug' \
-            'ac_add_options --disable-tests' \
-            > .mozconfig
-          # Our patches modify Cargo.toml adding new deps (core-text, etc).
-          # mach build uses --frozen with vendored crates, so we must vendor
-          # the new deps first. --ignore-modified allows vendoring with
-          # uncommitted patches in the working tree.
-          ./mach vendor rust --ignore-modified 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log || true
+          export CCACHE_DIR="${{ github.workspace }}/.ccache"
           env -u MOZ_AUTOMATION \
             MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
             IPHONESIMULATOR_SDK_DIR="$(xcrun --sdk iphonesimulator --show-sdk-path)" \
-            ./mach build 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log
+            ./Tools/Gecko/build-gecko-simulator.sh 2>&1 | tee ${{ github.workspace }}/gecko-build.log
           echo "build_status=success" >> $GITHUB_OUTPUT
 
       - name: Package runtime (if build succeeded)
         if: steps.build.outputs.build_status == 'success'
         run: |
-          tar -C Vendor/firefox -czf gecko-simulator-runtime.tar.gz \
+          tar -C Vendor/firefox -cLzf gecko-simulator-runtime.tar.gz \
             obj-aarch64-apple-ios-sim/dist
 
       - name: Package partial objdir (if build failed)
