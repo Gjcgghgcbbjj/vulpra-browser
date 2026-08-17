@@ -64,8 +64,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          firefox_sha="$(git ls-tree HEAD Vendor/firefox | awk '{print $3}')"
+          # Try git submodule ref first; fall back to the pinned release tag.
+          firefox_sha="$(git ls-tree HEAD Vendor/firefox 2>/dev/null | awk '{print $3}')"
+          if [ -z "$firefox_sha" ]; then
+            firefox_sha="$(cat Vendor/firefox-release.txt 2>/dev/null || echo '27b462b22705a8860f7ab0d33aa5b4b658ae5932')"
+          fi
           test -n "$firefox_sha"
+          echo "Using Firefox ref: $firefox_sha"
           source_tree="$(mktemp -d)"
           mkdir -p "$source_tree/toolkit/xre" "$source_tree/widget/uikit"
           curl --fail --location --retry 4 --silent --show-error \
