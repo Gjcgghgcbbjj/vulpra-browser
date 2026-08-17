@@ -54,12 +54,20 @@ jobs:
         run: |
           set -e
           cd Vendor/firefox
+          applied=0
+          skipped=0
           for patch in ../../Patches/*/*/*; do
             [[ -f "$patch" ]] || continue
-            echo "Applying: $patch"
-            git apply --check "$patch" 2>/dev/null && git apply "$patch" || \
-              echo "  (already applied or skip: $patch)"
+            if patch -p1 --dry-run < "$patch" >/dev/null 2>&1; then
+              patch -p1 < "$patch"
+              echo "Applied: $patch"
+              applied=$((applied + 1))
+            else
+              echo "Skip (already applied or conflict): $patch"
+              skipped=$((skipped + 1))
+            fi
           done
+          echo "Patches: $applied applied, $skipped skipped"
 
       - name: Bootstrap Gecko
         continue-on-error: ${{ inputs.continue_on_failure }}

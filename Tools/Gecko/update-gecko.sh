@@ -29,31 +29,23 @@ if git rev-parse "HEAD:$SUBMODULE_PATH" >/dev/null 2>&1; then
 	echo "Resolved pinned commit from submodule gitlink: $PINNED_COMMIT"
 fi
 if [[ -z "$PINNED_COMMIT" ]]; then
-	echo "No submodule gitlink (orphan commit). Fetching release tag $RELEASE_TAG..."
-	if [[ ! -d "$SUBMODULE_PATH/.git" ]]; then
-		git clone --depth 1 "$FIREFOX_URL" "$SUBMODULE_PATH"
-	fi
-	PINNED_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse "refs/tags/$RELEASE_TAG^{commit}" 2>/dev/null || true)"
-	if [[ -z "$PINNED_COMMIT" ]]; then
-		git -C "$SUBMODULE_PATH" fetch --depth 1 origin "tag $RELEASE_TAG"
-		PINNED_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse "$RELEASE_TAG^{commit}")"
-	fi
+	echo "No submodule gitlink (orphan commit). Cloning from release tag $RELEASE_TAG..."
+	rm -rf "$SUBMODULE_PATH"
+	git clone --depth 1 --branch "$RELEASE_TAG" "$FIREFOX_URL" "$SUBMODULE_PATH"
+	PINNED_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse HEAD)"
 	echo "Resolved pinned commit from release tag: $PINNED_COMMIT"
 fi
 
-TAG_REF="refs/tags/$RELEASE_TAG"
+echo "Using Firefox commit: $PINNED_COMMIT"
 
-echo "Updating existing submodule at $SUBMODULE_PATH"
-if [ -d "$SUBMODULE_PATH/.git" ]; then
-	git -C "$SUBMODULE_PATH" fetch --depth 1 origin "$PINNED_COMMIT" 2>/dev/null || \
-		git -C "$SUBMODULE_PATH" fetch --depth 1 origin "tag $RELEASE_TAG"
-else
+echo "Ensuring checkout at $PINNED_COMMIT"
+if [ ! -d "$SUBMODULE_PATH/.git" ]; then
 	git clone --depth 1 "$FIREFOX_URL" "$SUBMODULE_PATH"
-	if [ "$PINNED_COMMIT" != "$(git -C "$SUBMODULE_PATH" rev-parse HEAD)" ]; then
-		git -C "$SUBMODULE_PATH" fetch --depth 1 origin "$PINNED_COMMIT"
-	fi
 fi
-
+# Fetch the exact commit if not present (shallow clone may not have it).
+if ! git -C "$SUBMODULE_PATH" cat-file -e "$PINNED_COMMIT" 2>/dev/null; then
+	git -C "$SUBMODULE_PATH" fetch --depth 1 origin "$PINNED_COMMIT"
+fi
 git -C "$SUBMODULE_PATH" checkout --detach "$PINNED_COMMIT"
 HEAD_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse HEAD)"
 
