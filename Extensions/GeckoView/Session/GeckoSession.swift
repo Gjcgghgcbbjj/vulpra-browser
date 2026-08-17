@@ -21,7 +21,7 @@ public enum GeckoSessionLoadFlags {
 public class GeckoSession {
     // MARK: - State
 
-    let dispatcher: GeckoEventDispatcherWrapper = GeckoEventDispatcherWrapper()
+    public let dispatcher: GeckoEventDispatcherWrapper = GeckoEventDispatcherWrapper()
     var window: GeckoViewWindow?
     var id: String?
     public let isAddonPopup: Bool
