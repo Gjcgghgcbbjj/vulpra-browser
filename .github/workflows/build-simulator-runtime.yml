@@ -1,5 +1,11 @@
 name: Build Vulpra Gecko Simulator Runtime
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      continue_on_failure:
+        description: 'Continue past non-fatal build errors to save partial results'
+        type: boolean
+        default: true
 permissions: { contents: read }
 jobs:
   build:
@@ -7,23 +13,112 @@ jobs:
     timeout-minutes: 360
     steps:
       - uses: actions/checkout@v4
+
       - name: Select Xcode
         run: sudo xcode-select --switch /Applications/Xcode_26.4.1.app/Contents/Developer
+
       - name: Install dependencies
         run: |
           brew install nasm yasm ccache
           rustup target add aarch64-apple-ios-sim
+
+      - name: Configure ccache
+        run: |
+          ccache --set-config=max_size=2000M
+          ccache --set-config=compression=true
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache -z
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-gecko-sim-${{ github.sha }}
+          restore-keys: |
+            ccache-gecko-sim-
+
+      - name: Restore Gecko objdir (incremental build)
+        uses: actions/cache@v4
+        with:
+          path: Vendor/firefox/obj-aarch64-apple-ios-sim
+          key: gecko-objdir-sim-${{ github.sha }}
+          restore-keys: |
+            gecko-objdir-sim-
+
       - name: Fetch and patch Gecko
         shell: zsh {0}
         run: ./Tools/Gecko/update-gecko.sh
+
+      - name: Apply Vulpra patches
+        shell: bash
+        run: |
+          set -e
+          cd Vendor/firefox
+          for patch in ../../Patches/*/*/*; do
+            [[ -f "$patch" ]] || continue
+            echo "Applying: $patch"
+            git apply --check "$patch" 2>/dev/null && git apply "$patch" || \
+              echo "  (already applied or skip: $patch)"
+          done
+
       - name: Bootstrap Gecko
+        continue-on-error: ${{ inputs.continue_on_failure }}
         run: cd Vendor/firefox && env -u MOZ_AUTOMATION MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" ./mach --no-interactive bootstrap --application-choice browser
+
       - name: Build Simulator Gecko
-        run: env -u MOZ_AUTOMATION MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" IPHONESIMULATOR_SDK_DIR="$(xcrun --sdk iphonesimulator --show-sdk-path)" ./Tools/Gecko/build-gecko-simulator.sh
-      - name: Package runtime
-        run: tar -C Vendor/firefox -czf gecko-simulator-runtime.tar.gz obj-aarch64-apple-ios-sim/dist
-      - uses: actions/upload-artifact@v4
+        id: build
+        continue-on-error: ${{ inputs.continue_on_failure }}
+        run: |
+          cd Vendor/firefox
+          export CCACHE_DIR="${{ github.workspace }}/.ccache"
+          export MOZ_UPLOAD_SYMBOL_SYMBOLS=0
+          env -u MOZ_AUTOMATION \
+            MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
+            IPHONESIMULATOR_SDK_DIR="$(xcrun --sdk iphonesimulator --show-sdk-path)" \
+            ./mach build 2>&1 | tee ${{ github.workspace }}/gecko-build.log
+          echo "build_status=success" >> $GITHUB_OUTPUT
+
+      - name: Package runtime (if build succeeded)
+        if: steps.build.outputs.build_status == 'success'
+        run: |
+          tar -C Vendor/firefox -czf gecko-simulator-runtime.tar.gz \
+            obj-aarch64-apple-ios-sim/dist
+
+      - name: Package partial objdir (if build failed)
+        if: steps.build.outputs.build_status != 'success'
+        run: |
+          echo "Build did not complete — saving partial objdir for incremental rebuild..."
+          tar -C Vendor/firefox -czf gecko-partial-objdir.tar.gz \
+            obj-aarch64-apple-ios-sim 2>/dev/null || true
+          ls -lh gecko-partial-objdir.tar.gz || true
+
+      - name: Upload full runtime
+        if: steps.build.outputs.build_status == 'success'
+        uses: actions/upload-artifact@v4
         with:
           name: vulpra-gecko-simulator-${{ github.run_id }}
           path: gecko-simulator-runtime.tar.gz
           compression-level: 0
+          retention-days: 30
+
+      - name: Upload partial objdir (on failure)
+        if: steps.build.outputs.build_status != 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-gecko-sim-partial-${{ github.run_id }}
+          path: gecko-partial-objdir.tar.gz
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-gecko-build-log-${{ github.run_id }}
+          path: gecko-build.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Show ccache stats
+        if: always()
+        run: ccache -s

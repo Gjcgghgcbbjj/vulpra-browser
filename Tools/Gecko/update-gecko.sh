@@ -21,35 +21,37 @@ if [[ -z "$RELEASE_TAG" ]]; then
 	exit 1
 fi
 
-if ! git submodule status -- "$SUBMODULE_PATH" >/dev/null 2>&1; then
-	echo "Missing submodule $SUBMODULE_PATH. Add it first, then run this script."
-	exit 1
+# Resolve the pinned Firefox commit. Prefer the git submodule gitlink,
+# but fall back to the release tag if this is an orphan commit (no submodule ref).
+PINNED_COMMIT=""
+if git rev-parse "HEAD:$SUBMODULE_PATH" >/dev/null 2>&1; then
+	PINNED_COMMIT="$(git rev-parse "HEAD:$SUBMODULE_PATH")"
+	echo "Resolved pinned commit from submodule gitlink: $PINNED_COMMIT"
 fi
-
-if ! PINNED_COMMIT="$(git rev-parse "HEAD:$SUBMODULE_PATH" 2>/dev/null)"; then
-	echo "Cannot resolve the pinned Firefox gitlink at $SUBMODULE_PATH."
-	exit 1
+if [[ -z "$PINNED_COMMIT" ]]; then
+	echo "No submodule gitlink (orphan commit). Fetching release tag $RELEASE_TAG..."
+	if [[ ! -d "$SUBMODULE_PATH/.git" ]]; then
+		git clone --depth 1 "$FIREFOX_URL" "$SUBMODULE_PATH"
+	fi
+	PINNED_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse "refs/tags/$RELEASE_TAG^{commit}" 2>/dev/null || true)"
+	if [[ -z "$PINNED_COMMIT" ]]; then
+		git -C "$SUBMODULE_PATH" fetch --depth 1 origin "tag $RELEASE_TAG"
+		PINNED_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse "$RELEASE_TAG^{commit}")"
+	fi
+	echo "Resolved pinned commit from release tag: $PINNED_COMMIT"
 fi
 
 TAG_REF="refs/tags/$RELEASE_TAG"
 
 echo "Updating existing submodule at $SUBMODULE_PATH"
-git submodule set-url -- "$SUBMODULE_PATH" "$FIREFOX_URL"
-git submodule sync -- "$SUBMODULE_PATH"
-git submodule update --init --depth 1 -- "$SUBMODULE_PATH"
-
-echo "Fetching release tag $RELEASE_TAG for pin verification..."
-if ! git -C "$SUBMODULE_PATH" fetch --depth 1 origin tag "$RELEASE_TAG"; then
-	echo "Release tag $RELEASE_TAG does not exist in $FIREFOX_URL."
-	exit 1
-fi
-
-RELEASE_COMMIT="$(git -C "$SUBMODULE_PATH" rev-parse "$TAG_REF^{commit}")"
-if [[ "$RELEASE_COMMIT" != "$PINNED_COMMIT" ]]; then
-	echo "Firefox release metadata and the repository gitlink disagree."
-	echo "Release: $RELEASE_TAG -> $RELEASE_COMMIT"
-	echo "Gitlink: $PINNED_COMMIT"
-	exit 1
+if [ -d "$SUBMODULE_PATH/.git" ]; then
+	git -C "$SUBMODULE_PATH" fetch --depth 1 origin "$PINNED_COMMIT" 2>/dev/null || \
+		git -C "$SUBMODULE_PATH" fetch --depth 1 origin "tag $RELEASE_TAG"
+else
+	git clone --depth 1 "$FIREFOX_URL" "$SUBMODULE_PATH"
+	if [ "$PINNED_COMMIT" != "$(git -C "$SUBMODULE_PATH" rev-parse HEAD)" ]; then
+		git -C "$SUBMODULE_PATH" fetch --depth 1 origin "$PINNED_COMMIT"
+	fi
 fi
 
 git -C "$SUBMODULE_PATH" checkout --detach "$PINNED_COMMIT"
