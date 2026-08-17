@@ -80,8 +80,9 @@ public class GeckoEventDispatcherWrapper: NSObject, SwiftEventDispatcher {
             // #10: Cap the pre-activation queue to prevent unbounded growth
             // if gecko never attaches. 512 events is generous — anything beyond
             // is almost certainly a bug or tight dispatch loop.
-            if let q = queue, q.count < 512 {
+            if var q = queue, q.count < 512 {
                 q.append(QueuedMessage(type: type, message: message, callback: callback))
+                queue = q
             }
         } else {
             gecko?.dispatch(toGecko: type, message: message, callback: callback)
