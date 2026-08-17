@@ -81,11 +81,22 @@ jobs:
         run: |
           cd Vendor/firefox
           export MOZ_UPLOAD_SYMBOL_SYMBOLS=0
+          # Write mozconfig for iOS Simulator target.
+          printf '%s\n' \
+            'mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-aarch64-apple-ios-sim' \
+            'ac_add_options --enable-application=mobile/ios' \
+            'ac_add_options --target=aarch64-apple-ios-sim' \
+            'ac_add_options --enable-ios-target=15.0' \
+            'ac_add_options --disable-webrtc' \
+            'ac_add_options --enable-optimize' \
+            'ac_add_options --disable-debug' \
+            'ac_add_options --disable-tests' \
+            > .mozconfig
           # Our patches modify Cargo.toml adding new deps (core-text, etc).
           # mach build uses --frozen with vendored crates, so we must vendor
           # the new deps first. --ignore-modified allows vendoring with
           # uncommitted patches in the working tree.
-          ./mach vendor rust --ignore-modified --no-vet 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log
+          ./mach vendor rust --ignore-modified 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log || true
           env -u MOZ_AUTOMATION \
             MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
             IPHONESIMULATOR_SDK_DIR="$(xcrun --sdk iphonesimulator --show-sdk-path)" \
