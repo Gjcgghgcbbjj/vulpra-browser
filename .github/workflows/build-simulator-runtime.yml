@@ -76,14 +76,18 @@ jobs:
       - name: Build Simulator Gecko
         id: build
         continue-on-error: ${{ inputs.continue_on_failure }}
+        env:
+          CCACHE_DIR: ${{ github.workspace }}/.ccache
         run: |
           cd Vendor/firefox
-          export CCACHE_DIR="${{ github.workspace }}/.ccache"
           export MOZ_UPLOAD_SYMBOL_SYMBOLS=0
+          # Pre-update Cargo.lock so --frozen doesn't fail on dep mismatch.
+          # Our patches modify Cargo.toml; the lock must reflect those changes.
+          cargo generate-lockfile 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log
           env -u MOZ_AUTOMATION \
             MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
             IPHONESIMULATOR_SDK_DIR="$(xcrun --sdk iphonesimulator --show-sdk-path)" \
-            ./mach build 2>&1 | tee ${{ github.workspace }}/gecko-build.log
+            ./mach build 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log
           echo "build_status=success" >> $GITHUB_OUTPUT
 
       - name: Package runtime (if build succeeded)
