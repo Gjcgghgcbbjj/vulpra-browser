@@ -158,7 +158,7 @@ final class RuntimeJITCoordinator {
         // TXM (threaded eXecution Memory) writable→exec alias support exists
         // only on iOS 26+. Pre-iOS-26 uses direct mprotect on the executable
         // mapping; both paths enable JIT, they are not mutually exclusive.
-        let hasTXMSupport: Bool = version.majorVersion >= 26
+        let hasTXMSupport: UInt8 = version.majorVersion >= 26 ? 1 : 0
         return JITRuntimeInfo(
             hasTXMSupport: hasTXMSupport,
             deviceOSVersion: DeviceOSVersion(
