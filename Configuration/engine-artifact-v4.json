@@ -1,0 +1,47 @@
+{
+  "formatVersion": 4,
+  "artifactKind": "vulpra-gecko-kernel",
+  "platform": "iphoneos",
+  "architecture": "arm64",
+  "abiVersion": "vulpra-gecko-abi-v1",
+  "manifestFile": "manifest.json",
+  "allowedRoots": [
+    "runtime/bin",
+    "runtime/lib",
+    "runtime/include",
+    "runtime/resources",
+    "licenses"
+  ],
+  "requiredFiles": [
+    "runtime/bin/XUL"
+  ],
+  "requiredKinds": {
+    "runtime/lib": "dylib",
+    "runtime/include": "header",
+    "runtime/resources": "resource",
+    "licenses": "notice"
+  },
+  "forbiddenPathTokens": [
+    "GeckoView.framework",
+    "Helper",
+    "JIT",
+    "Patches",
+    "patches",
+    "source",
+    "Sources",
+    "App",
+    "UIKit",
+    "Browser"
+  ],
+  "forbiddenExtensions": [
+    ".swift",
+    ".m",
+    ".mm",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".xcodeproj",
+    ".appex",
+    ".app"
+  ]
+}

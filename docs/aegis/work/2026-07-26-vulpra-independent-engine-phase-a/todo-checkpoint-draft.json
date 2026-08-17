@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-26-vulpra-independent-engine-phase-a",
+  "currentTodo": "Write and validate the Phase A implementation plan.",
+  "completedTodos": [],
+  "activeSlice": "Planning and long-task initialization.",
+  "evidenceRefs": [],
+  "blockedOn": null,
+  "nextStep": "Inspect exact graph/test owners, save the plan, then execute ownership-map RED/GREEN.",
+  "updatedAt": "2026-07-26"
+}

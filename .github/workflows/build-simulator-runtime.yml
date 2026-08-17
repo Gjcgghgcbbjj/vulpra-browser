@@ -1,0 +1,29 @@
+name: Build Vulpra Gecko Simulator Runtime
+on: workflow_dispatch
+permissions: { contents: read }
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 360
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: sudo xcode-select --switch /Applications/Xcode_26.4.1.app/Contents/Developer
+      - name: Install dependencies
+        run: |
+          brew install nasm yasm ccache
+          rustup target add aarch64-apple-ios-sim
+      - name: Fetch and patch Gecko
+        shell: zsh {0}
+        run: ./Tools/Gecko/update-gecko.sh
+      - name: Bootstrap Gecko
+        run: cd Vendor/firefox && env -u MOZ_AUTOMATION MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" ./mach --no-interactive bootstrap --application-choice browser
+      - name: Build Simulator Gecko
+        run: env -u MOZ_AUTOMATION MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" IPHONESIMULATOR_SDK_DIR="$(xcrun --sdk iphonesimulator --show-sdk-path)" ./Tools/Gecko/build-gecko-simulator.sh
+      - name: Package runtime
+        run: tar -C Vendor/firefox -czf gecko-simulator-runtime.tar.gz obj-aarch64-apple-ios-sim/dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-gecko-simulator-${{ github.run_id }}
+          path: gecko-simulator-runtime.tar.gz
+          compression-level: 0

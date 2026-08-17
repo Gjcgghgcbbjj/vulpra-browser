@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task2-artifact",
+  "type": "fixture-contract",
+  "source": "Tests/IndependentEngine/test_artifact_contract.py",
+  "summary": "v4 manifest and verifier validate identity, paths, checksums, required payload classes, and reject inherited content.",
+  "verifier": "python3 Tests/IndependentEngine/test_artifact_contract.py"
+}

@@ -1,0 +1,8 @@
+#include "Base.xcconfig"
+PRODUCT_NAME = Vulpra Engine Process
+PRODUCT_BUNDLE_IDENTIFIER = com.vulpra.browser.engine-process
+INFOPLIST_FILE = Engine/VulpraEngineProcess/Info.plist
+APPLICATION_EXTENSION_API_ONLY = YES
+SKIP_INSTALL = YES
+GENERATE_INFOPLIST_FILE = NO
+SWIFT_INSTALL_OBJC_HEADER = NO

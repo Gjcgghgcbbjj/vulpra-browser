@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-22-vulpra-runtime-shell",
+  "taskIntentRef": "docs/aegis/work/2026-07-22-vulpra-runtime-shell/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md"
+  ],
+  "scopeStatus": "All Phase 1A planned source/project/tool/test/documentation tasks are complete; tabs/data/final UI were not started.",
+  "compatStatus": "Portable contracts align with iOS 15 arm64 TrollStore-first requirements, but Apple-platform acceptance is unverified.",
+  "retirementStatus": "All named old/duplicate paths remain retired; RuntimeShellViewController retains its future browser-UI replacement trigger.",
+  "newRiskSignals": [
+    "Only the already-recorded Mac/device/performance/publication evidence gap remains."
+  ],
+  "decision": "needs-verification"
+}

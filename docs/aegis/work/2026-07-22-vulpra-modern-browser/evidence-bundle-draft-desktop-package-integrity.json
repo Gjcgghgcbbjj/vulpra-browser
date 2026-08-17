@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "desktop-package-integrity",
+  "type": "local-verification",
+  "source": "/root/Desktop/Vulpra-Test",
+  "summary": "Published SHA256SUMS matched IPA/TIPA and unzip integrity passed for both packages.",
+  "verifier": "sha256sum -c SHA256SUMS and unzip -t."
+}

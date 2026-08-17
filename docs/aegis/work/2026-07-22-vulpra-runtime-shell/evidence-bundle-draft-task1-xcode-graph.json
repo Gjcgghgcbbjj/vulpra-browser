@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task1-xcode-graph",
+  "type": "portable-verification",
+  "source": "Tests/RuntimeShell/test-xcode-graph.py; Vulpra.xcodeproj/project.pbxproj; Configuration/*.xcconfig; Vulpra.xcscheme",
+  "summary": "Portable graph contract passed: exactly four targets, app dependencies and embeds, ordered artifact/copy phases, objectVersion 77 synchronized groups, 24-character IDs, five xcconfigs, iOS 15 arm64 settings, one XML-valid shared scheme, no signing identity, active identity pass; pbxproj 259 lines and all Task 1 files below 800.",
+  "verifier": "root"
+}

@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-22-vulpra-modern-browser",
+  "currentTodo": "Source and installable-package scope is closed; collect physical-device validation separately.",
+  "completedTodos": [
+    "Implemented all approved Phases 2A-2D browser client surfaces.",
+    "Built and verified the exact Gecko/idevice runtime substrate artifact.",
+    "Archived, packaged, uploaded, downloaded, and integrity-checked IPA/TIPA outputs.",
+    "Closed README, ADR, baseline, evidence, and complexity records."
+  ],
+  "activeSlice": "Completion candidate; only physical-device evidence remains uncovered.",
+  "evidenceRefs": [
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/29856427149",
+    "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/29877342036",
+    "docs/aegis/baseline/2026-07-22-modern-browser-package-baseline.md",
+    "/root/Desktop/Vulpra-Test/SHA256SUMS"
+  ],
+  "blockedOn": "Physical iOS 15.8 and 16.7 devices for launch, JIT, feature, and performance evidence.",
+  "nextStep": "Install and exercise the TIPA/IPA on iOS 15.8 and 16.7 devices.",
+  "updatedAt": "2026-07-22"
+}

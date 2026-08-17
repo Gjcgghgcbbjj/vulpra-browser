@@ -1,0 +1,56 @@
+name: Build Vulpra native diagnostic IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode_version:
+        required: true
+        default: Xcode_26.4.1.app
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-26
+    timeout-minutes: 120
+    env:
+      XCODE_APP: ${{ inputs.xcode_version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch "/Applications/$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+      - name: Build tiny native diagnostic app
+        run: |
+          set -euo pipefail
+          mkdir -p dist/diagnostic/Payload/Vulpra.app
+          cat > /tmp/main.swift <<'EOF'
+          import UIKit
+          final class AppDelegate: UIResponder, UIApplicationDelegate {
+              var window: UIWindow?
+              func application(_ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+                  let w = UIWindow(frame: UIScreen.main.bounds)
+                  w.rootViewController = UIViewController()
+                  w.backgroundColor = .systemBackground
+                  w.makeKeyAndVisible(); window = w
+                  return true
+              }
+          }
+          UIApplicationMain(CommandLine.argc, CommandLine.unsafeArgv, nil, NSStringFromClass(AppDelegate.self))
+          EOF
+          xcrun --sdk iphoneos swiftc -target arm64-apple-ios15.0 -O /tmp/main.swift -o dist/diagnostic/Payload/Vulpra.app/Vulpra -framework UIKit
+          chmod 0755 dist/diagnostic/Payload/Vulpra.app/Vulpra
+          cat > dist/diagnostic/Payload/Vulpra.app/Info.plist <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>CFBundleExecutable</key><string>Vulpra</string><key>CFBundleIdentifier</key><string>com.vulpra.browser</string><key>CFBundleName</key><string>Vulpra</string><key>CFBundlePackageType</key><string>APPL</string><key>CFBundleVersion</key><string>1</string><key>CFBundleShortVersionString</key><string>0.0.1</string><key>LSRequiresIPhoneOS</key><true/><key>MinimumOSVersion</key><string>15.0</string></dict></plist>
+          EOF
+          cd dist/diagnostic; zip -qry ../Vulpra-Native-Diagnostic.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-native-diagnostic-${{ github.run_id }}
+          path: |
+            dist/Vulpra-Native-Diagnostic.ipa
+            diagnostic-build.log
+          retention-days: 14

@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task6-runtime-artifacts",
+  "type": "portable-verification",
+  "source": "Tests/RuntimeShell/test-runtime-artifacts.sh; Tools/Runtime; Tools/Gecko; Tools/Build/AddGecko.sh; docs/provenance/import-manifest.tsv",
+  "summary": "Runtime artifact RED/GREEN passed: Gecko and idevice deploy at 15.0; Cargo output is .build/idevice/aarch64-apple-ios/release/libidevice_ffi.a with no Modules write; format v3 keys include Xcode and SDK builds, Firefox/patch/build inputs, reject stale format/SDK, and require IOSBootstrap/GeckoViewSwiftSupport/XUL/dylibs/theme; non-Darwin prerequisite exits 78 needs-macos; orchestrator orders submodules, patching, idevice, Gecko, pack, verify; AddGecko verifies and uses repository-root paths. All scripts under 250 lines and no generated output appeared.",
+  "verifier": "root"
+}

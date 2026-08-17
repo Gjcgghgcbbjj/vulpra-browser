@@ -1,0 +1,7 @@
+[submodule "Vendor/firefox"]
+	path = Vendor/firefox
+	url = https://github.com/mozilla-firefox/firefox
+	ignore = dirty
+[submodule "Vendor/idevice"]
+	path = Vendor/idevice
+	url = https://github.com/jkcoxson/idevice

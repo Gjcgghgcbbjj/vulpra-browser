@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "phase1a-implementation-plan",
+  "type": "implementation-plan",
+  "source": "docs/aegis/plans/2026-07-22-vulpra-runtime-shell.md",
+  "summary": "Approved ten-task inline Phase 1A plan defines fresh Xcode graph, runtime owners, JIT contract, artifact/package producers, portable gate, baseline closeout, and explicit Phase 1B deferral.",
+  "verifier": "root"
+}

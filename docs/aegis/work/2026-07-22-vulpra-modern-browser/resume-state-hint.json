@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-22-vulpra-modern-browser",
+  "lastCheckpointRef": "docs/aegis/work/2026-07-22-vulpra-modern-browser/todo-checkpoint-draft.json",
+  "resumeInstruction": "Do not rebuild Gecko unless runtime identity changes; use the downloaded package and record physical-device evidence.",
+  "knownPartialWork": [
+    "Physical-device validation only."
+  ],
+  "mustReadBeforeContinuing": [
+    "docs/aegis/work/2026-07-22-vulpra-modern-browser/10-intent.md",
+    "docs/aegis/work/2026-07-22-vulpra-modern-browser/20-checkpoint.md",
+    "docs/aegis/baseline/2026-07-22-modern-browser-package-baseline.md"
+  ],
+  "unsafeToAssume": [
+    "A successful archive/package proves device launch, JIT, OpenIn, media, download, addon, privacy, or performance behavior."
+  ]
+}

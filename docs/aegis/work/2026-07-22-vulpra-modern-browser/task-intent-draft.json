@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "requestedOutcome": "Implement all approved Vulpra modern browser Phases 2A-2D, build the runtime and installable packages on GitHub, and download a test IPA to the desktop.",
+  "goal": "Deliver a bounded iOS 15+ Gecko browser client and reproducible runtime/package evidence without restoring the inherited client or adding dependency bloat.",
+  "successEvidence": [
+    "Portable suites pass, browser owners remain within complexity budgets, GitHub runtime and package workflows succeed, and downloaded IPA/TIPA checksums and ZIP integrity pass."
+  ],
+  "stopCondition": "Done when source and package evidence are complete; needs-verification when only physical-device behavior and performance remain; blocked on external credentials or runners; scope-exceeded if Phase 3 services or inherited-client compatibility enter the task.",
+  "nonGoals": [
+    "Phase 3 service-backed sync, translation, cloud accounts, inherited-client compatibility, public distribution clearance, or fabricated physical-device evidence."
+  ],
+  "scope": "Modern browser client, local feature state, native UI and animation, runtime/package GitHub workflows, documentation, and release evidence.",
+  "changeKinds": [
+    "architecture",
+    "feature",
+    "distribution"
+  ],
+  "riskHints": [
+    "Gecko runtime size and build time, Xcode 26 Swift/Objective-C module boundaries, iOS 15 compatibility, package metadata, and physical-device-only JIT/performance evidence."
+  ]
+}

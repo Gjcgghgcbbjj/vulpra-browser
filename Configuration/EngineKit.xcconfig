@@ -1,0 +1,8 @@
+#include "Base.xcconfig"
+PRODUCT_NAME = VulpraEngineKit
+PRODUCT_BUNDLE_IDENTIFIER = com.vulpra.browser.enginekit
+DEFINES_MODULE = YES
+SKIP_INSTALL = YES
+GENERATE_INFOPLIST_FILE = YES
+SWIFT_INSTALL_OBJC_HEADER = NO
+LD_RUNPATH_SEARCH_PATHS = $(inherited) @rpath

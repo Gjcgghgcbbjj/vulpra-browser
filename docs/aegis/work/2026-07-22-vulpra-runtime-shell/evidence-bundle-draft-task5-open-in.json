@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task5-open-in",
+  "type": "portable-verification",
+  "source": "Tests/RuntimeShell/test-open-in.py; Extensions/OpenIn/Info.plist; Extensions/OpenIn/OpenInViewController.swift",
+  "summary": "OpenIn RED/GREEN passed: exactly one web-URL activation rule, Vulpra principal/error identities, UTType URL extraction, URLComponents-encoded vulpra://open query, one NSExtensionContext.open call, one MainActor completion gate, one complete and one cancel path, no private workspace/responder API, and a 104-line owner.",
+  "verifier": "root"
+}

@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-22-vulpra-modern-browser",
+  "requiredBaselineRefs": [
+    "docs/aegis/specs/2026-07-22-vulpra-modern-browser-product-design.md",
+    "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md",
+    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md",
+    "docs/aegis/policies/efficiency-complexity-governance.md"
+  ],
+  "deliveredContextRefs": [],
+  "acknowledgedBeforePlanRefs": [
+    "docs/aegis/specs/2026-07-22-vulpra-modern-browser-product-design.md",
+    "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md",
+    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md",
+    "docs/aegis/policies/efficiency-complexity-governance.md"
+  ],
+  "citedInPlanRefs": [
+    "docs/aegis/plans/2026-07-22-vulpra-modern-browser-phases-2a-2d.md",
+    "docs/aegis/adr/ADR-0003-modern-browser-ownership-and-github-distribution.md",
+    "docs/aegis/baseline/2026-07-22-modern-browser-package-baseline.md"
+  ],
+  "missingRefs": [],
+  "decision": "needs-verification"
+}

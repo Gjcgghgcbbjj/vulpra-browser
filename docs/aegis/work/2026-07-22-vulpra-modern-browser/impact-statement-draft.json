@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "affectedLayers": [
+    "BrowserRoot",
+    "TabLifecycle",
+    "FeatureStores",
+    "GeckoViewModule",
+    "RuntimeArtifacts",
+    "GitHubDistribution"
+  ],
+  "owners": [
+    "BrowserViewController owns the application browser composition; TabManager owns BrowserTab lifecycle; feature stores own local state; RuntimeJITCoordinator owns JIT readiness; GitHub Actions orchestrates canonical shell producers."
+  ],
+  "invariants": [
+    "No inherited client, duplicate tab owner, third-party UI framework, in-package Gecko rebuild, or private OpenIn/JIT fallback enters the main path."
+  ],
+  "compatBoundary": "iOS 15.0+, arm64 iPhone/iPad, TrollStore-first, four products, exactly-once JIT, public OpenIn, and device evidence separated from package-build evidence.",
+  "nonGoals": [
+    "Phase 3 services, old-client/data compatibility, public release clearance, or physical-device claims without device evidence."
+  ]
+}

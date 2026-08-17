@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "phase1a-design-self-review",
+  "type": "review",
+  "source": "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md",
+  "summary": "Self-review passed placeholder, internal consistency, scope, ambiguity, owner, falsifier, compatibility, retirement, ADR-signal, line-pressure, and Aegis workspace checks; written user review remains pending.",
+  "verifier": "root"
+}

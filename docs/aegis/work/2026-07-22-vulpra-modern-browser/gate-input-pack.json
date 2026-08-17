@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "baselineRefs": [
+    "docs/aegis/baseline/2026-07-22-modern-browser-package-baseline.md"
+  ],
+  "impactStatement": "docs/aegis/work/2026-07-22-vulpra-modern-browser/impact-statement-draft.json",
+  "compatPlan": "iOS 15.0+, arm64 iPhone/iPad, TrollStore-first, four products, exactly-once JIT, public OpenIn, and device evidence separated from package-build evidence.",
+  "retirementPlan": "Runtime shell, duplicate/fallback owners, and in-package Gecko rebuild remain retired.",
+  "evidenceBundle": [
+    "docs/aegis/work/2026-07-22-vulpra-modern-browser/evidence-bundle-draft-desktop-package-integrity.json",
+    "docs/aegis/work/2026-07-22-vulpra-modern-browser/evidence-bundle-draft-github-package-29877342036.json",
+    "docs/aegis/work/2026-07-22-vulpra-modern-browser/evidence-bundle-draft-github-runtime-29856427149.json"
+  ]
+}

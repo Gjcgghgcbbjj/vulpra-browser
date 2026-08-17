@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "task8-portable-gate",
+  "type": "portable-verification",
+  "source": ".github/workflows/bootstrap-core.yml; Tests/RuntimeShell/run-portable.sh; Tests/Bootstrap/test-repository-shape.sh",
+  "summary": "Canonical portable gate passed: existing ubuntu-latest workflow keeps submodules false and no package installs, runs all six Bootstrap tests then one RuntimeShell runner; runner executes graph/product/runtime/JIT/OpenIn/artifact/package fixtures, Gecko artifact regression, interpreter-aware shell syntax, plist/scheme parsing, and diff check. Nested Git-root regression and Aegis workspace check pass.",
+  "verifier": "root"
+}

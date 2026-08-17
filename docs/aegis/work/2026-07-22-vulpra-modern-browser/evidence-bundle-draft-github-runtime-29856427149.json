@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "github-runtime-29856427149",
+  "type": "github-workflow",
+  "source": "https://github.com/Gjcgghgcbbjj/vulpra-browser/actions/runs/29856427149",
+  "summary": "Runtime substrate workflow succeeded and uploaded exact keyed Gecko/idevice artifact 8512456239.",
+  "verifier": "GitHub Actions conclusion success and artifact metadata query."
+}

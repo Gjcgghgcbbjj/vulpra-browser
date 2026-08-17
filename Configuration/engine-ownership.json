@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "state": "staged",
+  "transition": {
+    "allowed": ["staged", "atomic-cutover", "independent"],
+    "cutover": {
+      "from": "staged",
+      "to": "atomic-cutover",
+      "requiresSingleActiveAdapter": true,
+      "rejectAppFallback": true,
+      "requiresOldOwnerRemoval": true
+    }
+  },
+  "externalArtifact": {
+    "kind": "checksum-pinned-gecko-kernel",
+    "root": ".build/engine",
+    "allowedClasses": ["runtime", "licenses", "manifest"]
+  },
+  "ownedRoots": [
+    "Engine/VulpraEngineKit",
+    "Engine/VulpraEngineProcess",
+    "Engine/VulpraExecution",
+    "App",
+    "Extensions/OpenIn",
+    "Configuration",
+    "Tools/Engine",
+    "Tests/IndependentEngine"
+  ],
+  "retiredRoots": [
+    "Extensions/GeckoView",
+    "Extensions/Helper",
+    "Modules/VulpraRuntime",
+    "Patches",
+    "Vendor/firefox",
+    "Vendor/idevice",
+    "Tools/Gecko",
+    "Tools/Runtime",
+    "docs/provenance/import-manifest.tsv"
+  ],
+  "preservedOwners": [
+    "TabManager",
+    "BrowserTab",
+    "BrowserViewController",
+    "OpenIn",
+    "VulpraPersistence"
+  ],
+  "activeAdapter": {
+    "staged": "Extensions/GeckoView",
+    "atomic-cutover": "Engine/VulpraEngineKit",
+    "independent": "Engine/VulpraEngineKit"
+  },
+  "rules": [
+    "App has exactly one active engine adapter.",
+    "The staged adapter is temporary and cannot be used as a runtime fallback after cutover.",
+    "The precompiled Gecko kernel is the only external compatibility carrier.",
+    "All configured paths are repository-relative, normalized, and unique."
+  ]
+}

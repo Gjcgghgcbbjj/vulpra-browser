@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "taskId": "2026-07-26-vulpra-independent-engine-phase-a",
+  "taskIntentRef": "docs/aegis/work/2026-07-26-vulpra-independent-engine-phase-a/task-intent-draft.json",
+  "baselineRefs": [
+    "docs/aegis/specs/2026-07-26-vulpra-independent-engine-product-design.md",
+    "docs/aegis/specs/2026-07-26-vulpra-client-experience-design.md",
+    "docs/provenance/substrate-boundary.md",
+    "docs/aegis/adr/ADR-0001-phase-0-substrate-ownership-boundary.md",
+    "docs/aegis/adr/ADR-0002-runtime-shell-ownership-and-evidence-boundary.md",
+    "docs/aegis/adr/ADR-0003-modern-browser-ownership-and-github-distribution.md",
+    "docs/aegis/baseline/2026-07-22-runtime-shell-portable-baseline.md",
+    "docs/aegis/baseline/2026-07-22-modern-browser-package-baseline.md",
+    "docs/aegis/policies/efficiency-complexity-governance.md"
+  ],
+  "scopeStatus": "not-yet-verified",
+  "compatStatus": "not-yet-verified",
+  "retirementStatus": "not-yet-verified",
+  "newRiskSignals": [
+    "High: replaces engine ownership and Xcode target boundaries; Linux cannot prove Xcode linkage or device behavior."
+  ],
+  "decision": "needs-baseline-readback"
+}

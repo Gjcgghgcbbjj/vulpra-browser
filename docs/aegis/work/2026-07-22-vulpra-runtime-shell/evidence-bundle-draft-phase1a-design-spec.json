@@ -1,0 +1,8 @@
+{
+  "schemaVersion": "aegis.schema.v0",
+  "artifactKey": "phase1a-design-spec",
+  "type": "design-spec",
+  "source": "docs/aegis/specs/2026-07-22-vulpra-runtime-shell-design.md",
+  "summary": "Written design pins the fresh four-target native Xcode graph, iOS 15.0 identities, six new runtime owners, 4.5-second exactly-once JIT readiness contract, generated artifact boundaries, unsigned packaging contract, portable/Mac evidence split, and complexity budgets.",
+  "verifier": "root"
+}
