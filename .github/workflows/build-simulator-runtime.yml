@@ -81,8 +81,10 @@ jobs:
         run: |
           cd Vendor/firefox
           export MOZ_UPLOAD_SYMBOL_SYMBOLS=0
-          # Pre-update Cargo.lock so --frozen doesn't fail on dep mismatch.
-          # Our patches modify Cargo.toml; the lock must reflect those changes.
+          # Our patches modify Cargo.toml adding new deps (core-text, etc).
+          # mach build uses --frozen with vendored crates, so we must vendor
+          # the new deps first, then regenerate the lock to match.
+          ./mach vendor rust 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log
           cargo generate-lockfile 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log
           env -u MOZ_AUTOMATION \
             MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
