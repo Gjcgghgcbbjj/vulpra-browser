@@ -30,9 +30,7 @@ index c851ccb66a90..eb4029623fe7 100644
    LookAndFeel::EnsureInit();
    InitSharedUASheets(std::move(aSharedUASheetHandle), aSharedUASheetAddress);
    InitXPCOM(aXPCOMInit, aInitialData, aIsReadyForBackgroundProcessing);
-+#if defined(XP_IOS)
 +  CubebUtils::InitAudioIPCConnection();
-+#endif
    InitGraphicsDeviceData(aXPCOMInit.contentDeviceData());
    RefPtr<net::ChildDNSService> dnsServiceChild =
        dont_AddRef(net::ChildDNSService::GetSingleton());

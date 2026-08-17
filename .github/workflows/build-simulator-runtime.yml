@@ -74,6 +74,7 @@ jobs:
       - name: Build Simulator Gecko
         id: build
         run: |
+          set -o pipefail
           export CCACHE_DIR="${{ github.workspace }}/.ccache"
           env -u MOZ_AUTOMATION \
             MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
