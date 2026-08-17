@@ -54,18 +54,14 @@ jobs:
         run: |
           set -e
           cd Vendor/firefox
-          # Initialize git so patches can be applied with git apply --3way
-          git init -q 2>/dev/null || true
-          git add -A 2>/dev/null || true
-          git -c user.name="CI" -c user.email="ci@vulpra" commit -q -m "pre-patch baseline" 2>/dev/null || true
-          applied=0; skipped=0; failed=0
+          applied=0; skipped=0
           for patch in $(find ../../Patches -name "*.patch" -type f | sort); do
-            [[ -f "$patch" ]] || continue
-            if git apply --3way --whitespace=nowarn "$patch" 2>/dev/null; then
+            if patch -p1 --dry-run < "$patch" >/dev/null 2>&1; then
+              patch -p1 < "$patch"
               echo "Applied: $patch"
               applied=$((applied + 1))
             else
-              echo "Skip: $patch"
+              echo "Skip (already applied or conflict): $patch"
               skipped=$((skipped + 1))
             fi
           done
@@ -77,7 +73,6 @@ jobs:
 
       - name: Build Simulator Gecko
         id: build
-        continue-on-error: ${{ inputs.continue_on_failure }}
         run: |
           export CCACHE_DIR="${{ github.workspace }}/.ccache"
           env -u MOZ_AUTOMATION \
