@@ -111,7 +111,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git submodule update --init --depth 1 Vendor/idevice
+          # Fallback: if git submodule ref is missing (orphan commit), clone directly.
+          if ! git submodule update --init --depth 1 Vendor/idevice 2>/dev/null; then
+            echo "Submodule ref missing, cloning idevice directly..."
+            git clone --depth 1 https://github.com/jkcoxson/idevice.git Vendor/idevice
+          fi
           ./Tools/Gecko/build-idevice.sh aarch64-apple-ios-sim 2>&1 | tee simulator-idevice.log
           PLATFORM_NAME=iphonesimulator ./Tools/Runtime/verify-runtime-artifacts.sh | tee simulator-runtime-verification.log
           PLATFORM_NAME=iphonesimulator ./Tools/Runtime/prepare-runtime-headers.sh | tee simulator-runtime-headers.log
