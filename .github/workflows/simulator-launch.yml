@@ -107,6 +107,15 @@ jobs:
             cp "$include/$h" "$runtime_headers/$h"
           done
 
+          # The pbxproj PBXFileSystemSynchronizedRootGroup for "Gecko Runtime
+          # Headers" points at the device dist path. Mirror headers there too
+          # so Xcode can find them when building for simulator.
+          device_include=Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView
+          mkdir -p "$device_include"
+          for h in IOSBootstrap.h GeckoViewSwiftSupport.h GeckoViewRuntimeSupport.h; do
+            cp "$include/$h" "$device_include/$h"
+          done
+
           theme=Vendor/firefox/toolkit/mozapps/extensions/default-theme
           mkdir -p "$theme"
           for name in icon.svg manifest.json preview.svg; do
