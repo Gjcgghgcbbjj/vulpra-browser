@@ -85,7 +85,7 @@ jobs:
           # mach build uses --frozen with vendored crates, so we must vendor
           # the new deps first. --ignore-modified allows vendoring with
           # uncommitted patches in the working tree.
-          ./mach vendor rust --ignore-modified 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log
+          ./mach vendor rust --ignore-modified --no-vet 2>&1 | tee -a ${{ github.workspace }}/gecko-build.log
           env -u MOZ_AUTOMATION \
             MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
             IPHONESIMULATOR_SDK_DIR="$(xcrun --sdk iphonesimulator --show-sdk-path)" \

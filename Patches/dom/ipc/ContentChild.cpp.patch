@@ -2,13 +2,11 @@ diff --git a/dom/ipc/ContentChild.cpp b/dom/ipc/ContentChild.cpp
 index c851ccb66a90..eb4029623fe7 100644
 --- a/dom/ipc/ContentChild.cpp
 +++ b/dom/ipc/ContentChild.cpp
-@@ -144,6 +144,10 @@
+@@ -144,6 +144,8 @@
  #include "nsRefreshDriver.h"
  #include "nsSandboxFlags.h"
  
-+#if defined(XP_IOS)
-+#  include "CubebUtils.h"
-+#endif
++#include "../media/CubebUtils.h"
 +
  #if defined(MOZ_SANDBOX)
  #  if defined(XP_WIN)
@@ -30,7 +28,9 @@ index c851ccb66a90..eb4029623fe7 100644
    LookAndFeel::EnsureInit();
    InitSharedUASheets(std::move(aSharedUASheetHandle), aSharedUASheetAddress);
    InitXPCOM(aXPCOMInit, aInitialData, aIsReadyForBackgroundProcessing);
++#ifdef MOZ_CUBEB_REMOTING
 +  CubebUtils::InitAudioIPCConnection();
++#endif
    InitGraphicsDeviceData(aXPCOMInit.contentDeviceData());
    RefPtr<net::ChildDNSService> dnsServiceChild =
        dont_AddRef(net::ChildDNSService::GetSingleton());
