@@ -52,16 +52,14 @@ jobs:
       - name: Apply Vulpra patches
         shell: bash
         run: |
-          set -e
           cd Vendor/firefox
           applied=0; skipped=0
           for patch in $(find ../../Patches -name "*.patch" -type f | sort); do
-            if patch -p1 --dry-run < "$patch" >/dev/null 2>&1; then
-              patch -p1 < "$patch"
+            if patch -p1 --fuzz=3 < "$patch" >/dev/null 2>&1; then
               echo "Applied: $patch"
               applied=$((applied + 1))
             else
-              echo "Skip (already applied or conflict): $patch"
+              echo "Skip (conflict): $patch"
               skipped=$((skipped + 1))
             fi
           done

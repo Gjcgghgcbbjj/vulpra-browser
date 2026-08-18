@@ -13,19 +13,6 @@ index c851ccb66a90..eb4029623fe7 100644
  #if defined(MOZ_SANDBOX)
  #  if defined(XP_WIN)
  #    include "mozilla/sandboxTarget.h"
-@@ -639,9 +643,9 @@ ContentChild::ContentChild()
- 
- #ifdef _MSC_VER
- #  pragma warning(push)
--#  pragma warning(                                                  \
--      disable : 4722) /* Silence "destructor never returns" warning \
--                       */
-+#  pragma warning(disable                                               \
-+                  : 4722) /* Silence "destructor never returns" warning \
-+                           */
- #endif
- 
- ContentChild::~ContentChild() {
 @@ -681,6 +685,7 @@ mozilla::ipc::IPCResult ContentChild::RecvSetXPCOMProcessAttributes(
    LookAndFeel::EnsureInit();
    InitSharedUASheets(std::move(aSharedUASheetHandle), aSharedUASheetAddress);
