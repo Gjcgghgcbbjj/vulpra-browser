@@ -27,7 +27,7 @@ index 264320aed775..2fc51beabfae 100644
  static id<SwiftGeckoViewRuntime> gRuntime;
  
  id<SwiftGeckoViewRuntime> mozilla::widget::GetSwiftRuntime() {
-@@ -22,11 +33,77 @@
+@@ -22,11 +33,81 @@
  }
  
  static id<GeckoProcessExtension> gCurrentProcessExtension;
@@ -121,7 +121,7 @@ index 264320aed775..2fc51beabfae 100644
  static int ChildProcessInitImpl(int aArgc, char** aArgv) {
    auto bootstrap = mozilla::GetBootstrap();
    if (bootstrap.isErr()) {
-@@ -111,12 +193,79 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+@@ -111,12 +193,86 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
        /* aRandomizeSmall */ !XRE_IsContentProcess());
  #endif
  
@@ -220,7 +220,7 @@ index 264320aed775..2fc51beabfae 100644
    // Immediately send a reply with our pid
    auto reply = mozilla::AdoptDarwinObject(xpc_dictionary_create_reply(aEvent));
    xpc_dictionary_set_int64(reply.get(), "pid", getpid());
-@@ -198,6 +352,18 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
+@@ -198,7 +352,19 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
    }
    argv[argc] = nullptr;
  
