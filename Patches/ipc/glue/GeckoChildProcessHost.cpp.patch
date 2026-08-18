@@ -311,7 +311,7 @@ index 8bfc08afb169..785a90cc36a8 100644
              return;
            }
  
-@@ -1515,10 +1605,34 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1515,11 +1605,34 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
            // this point, so we should be able to trust it.
            pid_t pid =
                static_cast<pid_t>(xpc_dictionary_get_int64(reply, "pid"));
@@ -332,12 +332,12 @@ index 8bfc08afb169..785a90cc36a8 100644
 +          mozilla::widget::NotifyChildProcessStarted(static_cast<int32_t>(pid),
 +                                                     processType);
 +
- -          CHROMIUM_LOG(INFO) << "ExtensionKit process started, pid: " << pid;
- +          CHROMIUM_LOG(INFO) << "Extension process started, pid: " << pid;
- +          fprintf(stderr,
- +                  "VULPRA_DEBUG: Extension process started, pid=%d, type=%s\n",
- +                  static_cast<int>(pid), processType);
- +          fflush(stderr);
+-          CHROMIUM_LOG(INFO) << "ExtensionKit process started, pid: " << pid;
++          CHROMIUM_LOG(INFO) << "Extension process started, pid: " << pid;
++          fprintf(stderr,
++                  "VULPRA_DEBUG: Extension process started, pid=%d, type=%s\n",
++                  static_cast<int>(pid), processType);
++          fflush(stderr);
  
            self->mResults.mHandle = pid;
 -          promise->Resolve(std::move(self->mResults), __func__);
