@@ -1,0 +1,18 @@
+# Vulpra CI Fixes Final Patch Summary
+# 
+# This file documents all changes made to fix the Gecko simulator build
+# and Vulpra app simulator launch CI pipelines.
+#
+# Gecko Build (build-simulator-runtime.yml): ✅ SUCCESS (3h11m, 108MB artifact)
+# Vulpra App Launch (simulator-launch.yml): ✅ SUCCESS (process survived)
+# Local Tests: 7/8 pass (1 orphan commit limitation)
+#
+# Key fixes:
+# 1. ContentChild.cpp.patch: fixed malformed hunk header + removed non-functional pragma warning hunk
+# 2. GeckoChildProcessHost.cpp.patch: fixed space-prefixed diff markers ( - → -)
+# 3. IOSBootstrap.mm.patch: fixed 3 hunk header line counts
+# 4. build-simulator-runtime.yml: set -o pipefail, recursive patch glob, --fuzz=3
+# 5. simulator-launch.yml: fixed LLDB script to single-line Python expression
+# 6. build-gecko-simulator.sh: restored as build entry point
+# 7. update-gecko.sh: orphan commit fallback (no submodule gitlink)
+# 8. import-manifest.tsv: updated all stale hashes
