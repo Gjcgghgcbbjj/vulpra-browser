@@ -59,7 +59,9 @@ jobs:
               echo "Applied: $patch"
               applied=$((applied + 1))
             else
-              echo "Skip (conflict): $patch"
+              echo "=== SKIP: $patch ==="
+              patch -p1 --fuzz=3 < "$patch" 2>&1 | head -20
+              echo "=== END SKIP ==="
               skipped=$((skipped + 1))
             fi
           done
