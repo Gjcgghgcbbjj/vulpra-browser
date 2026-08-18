@@ -8,6 +8,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 # Accept target arg: aarch64-apple-ios (device) or aarch64-apple-ios-sim (simulator)
 BUILD_TARGET="${1:-aarch64-apple-ios}"
 RUST_TARGET="$BUILD_TARGET"
+# Canonical output: .build/idevice/aarch64-apple-ios/release/libidevice_ffi.a
 OUTPUT_LIB="$REPO_ROOT/.build/idevice/$RUST_TARGET/release/libidevice_ffi.a"
 CARGO_TARGET_DIR="$REPO_ROOT/.build/idevice"
 DEPLOYMENT_TARGET="15.0"
