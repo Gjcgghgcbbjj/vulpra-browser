@@ -1,0 +1,145 @@
+name: Build Vulpra Simulator IPA
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode_version:
+        description: Xcode application
+        required: true
+        default: Xcode_26.4.1.app
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  build:
+    name: Build Vulpra Simulator IPA
+    runs-on: macos-26
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      XCODE_APP: ${{ inputs.xcode_version }}
+      DERIVED_DATA: ${{ github.workspace }}/.build/sim-ipa-derived
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch "/Applications/${XCODE_APP}/Contents/Developer"
+          xcodebuild -version | tee build-environment.log
+
+      - name: Install dependencies
+        run: |
+          brew install ldid nasm yasm ccache
+          rustup target add aarch64-apple-ios-sim
+
+      - name: Restore latest matching Gecko Simulator runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact_id="$(gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.expired == false) | [.created_at, .id, .name] | @tsv' \
+            | awk -F $'\t' '$3 ~ /^vulpra-gecko-simulator-/ {print}' | LC_ALL=C sort -r | sed -n '1p' | cut -f 2)"
+          test -n "$artifact_id" || { echo "::error::No Gecko simulator runtime artifact found"; exit 1; }
+          stage="$(mktemp -d)"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$stage/artifact.zip"
+          unzip -q "$stage/artifact.zip" -d "$stage/payload"
+          echo "artifact_id=$artifact_id"
+          echo "artifact_name=$(cat $stage/payload/*.tar.gz | head -c0; ls $stage/payload/)"
+          mkdir -p Vendor/firefox
+          tar -xzf "$stage/payload/gecko-simulator-runtime.tar.gz" -C Vendor/firefox
+          test -s Vendor/firefox/obj-aarch64-apple-ios-sim/dist/bin/XUL
+
+      - name: Materialize pinned Gecko headers and default theme
+        shell: bash
+        run: |
+          set -euo pipefail
+          firefox_sha="$(cat Vendor/firefox-release.txt | tr -d '\000\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          include="Vendor/firefox/obj-aarch64-apple-ios-sim/dist/include/GeckoView"
+          test -d "$include" || { echo "::error::GeckoView headers missing from runtime"; exit 1; }
+
+          runtime_headers="Extensions/GeckoView/Runtime"
+          mkdir -p "$runtime_headers"
+          for h in IOSBootstrap.h GeckoViewSwiftSupport.h GeckoViewRuntimeSupport.h; do
+            cp "$include/$h" "$runtime_headers/$h"
+          done
+
+          device_include="Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView"
+          mkdir -p "$device_include"
+          for h in IOSBootstrap.h GeckoViewSwiftSupport.h GeckoViewRuntimeSupport.h; do
+            cp "$include/$h" "$device_include/$h"
+          done
+
+          theme="Vendor/firefox/toolkit/mozapps/extensions/default-theme"
+          mkdir -p "$theme"
+          for name in icon.svg manifest.json preview.svg; do
+            curl --fail --location --retry 4 --silent --show-error \
+              "https://raw.githubusercontent.com/mozilla-firefox/firefox/$firefox_sha/toolkit/mozapps/extensions/default-theme/$name" \
+              --output "$theme/$name"
+            test -s "$theme/$name"
+          done
+
+      - name: Build idevice for Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git submodule update --init --depth 1 Vendor/idevice 2>/dev/null; then
+            git clone --depth 1 https://github.com/jkcoxson/idevice.git Vendor/idevice
+          fi
+          ./Tools/Gecko/build-idevice.sh aarch64-apple-ios-sim 2>&1 | tee simulator-idevice.log
+
+      - name: Build Vulpra archive for Simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          xcodebuild \
+            -project Vulpra.xcodeproj \
+            -scheme Vulpra \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$DERIVED_DATA" \
+            -archivePath "$GITHUB_WORKSPACE/dist/Vulpra.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive 2>&1 | tee build-archive.log
+
+      - name: Create IPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          app="$DERIVED_DATA/Build/Products/Release-iphonesimulator/Vulpra.app"
+          test -d "$app" || { echo "::error::Vulpra.app not found"; exit 1; }
+          mkdir -p dist/Payload
+          cp -R "$app" dist/Payload/Vulpra.app
+          cd dist
+          zip -qry ../Vulpra-Simulator.ipa Payload
+          cd ..
+          test -s Vulpra-Simulator.ipa
+          shasum -a 256 Vulpra-Simulator.ipa | tee SHA256SUMS
+
+      - name: Upload Simulator IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-simulator-ipa-${{ github.run_id }}
+          path: |
+            Vulpra-Simulator.ipa
+            SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-sim-ipa-logs-${{ github.run_id }}
+          path: |
+            *.log
+          if-no-files-found: warn
+          retention-days: 14

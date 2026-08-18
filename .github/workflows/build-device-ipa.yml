@@ -1,0 +1,206 @@
+name: Build Vulpra Device IPA (TrollStore)
+
+on:
+  workflow_dispatch:
+    inputs:
+      xcode_version:
+        description: Xcode application
+        required: true
+        default: Xcode_26.4.1.app
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  build:
+    name: Build Gecko device runtime + Vulpra IPA
+    runs-on: macos-26
+    timeout-minutes: 360
+    env:
+      GH_TOKEN: ${{ github.token }}
+      XCODE_APP: ${{ inputs.xcode_version }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select --switch "/Applications/${XCODE_APP}/Contents/Developer"
+          xcodebuild -version | tee build-environment.log
+
+      - name: Install dependencies
+        run: |
+          brew install nasm yasm ccache ldid
+          rustup target add aarch64-apple-ios
+
+      - name: Configure ccache
+        run: |
+          ccache --set-config=max_size=2000M
+          ccache --set-config=compression=true
+          ccache --set-config=cache_dir=${{ github.workspace }}/.ccache
+          ccache -z
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: .ccache
+          key: ccache-gecko-dev-${{ github.sha }}
+          restore-keys: |
+            ccache-gecko-dev-
+
+      - name: Fetch and patch Gecko
+        shell: zsh {0}
+        run: ./Tools/Gecko/update-gecko.sh
+
+      - name: Apply Vulpra patches
+        shell: bash
+        run: |
+          cd Vendor/firefox
+          applied=0; skipped=0
+          for patch in $(find ../../Patches -name "*.patch" -type f | sort); do
+            if patch -p1 --fuzz=3 < "$patch" >/dev/null 2>&1; then
+              echo "Applied: $patch"
+              applied=$((applied + 1))
+            else
+              echo "Skip (conflict): $patch"
+              skipped=$((skipped + 1))
+            fi
+          done
+          echo "Patches: $applied applied, $skipped skipped"
+
+      - name: Bootstrap Gecko
+        run: cd Vendor/firefox && env -u MOZ_AUTOMATION MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" ./mach --no-interactive bootstrap --application-choice browser
+
+      - name: Build Gecko for device (aarch64-apple-ios)
+        id: gecko
+        run: |
+          set -o pipefail
+          export CCACHE_DIR="${{ github.workspace }}/.ccache"
+          # Write device mozconfig
+          cd Vendor/firefox
+          cat > .mozconfig << 'MCFG'
+          . "$topsrcdir/browser/config/mozconfigs/macosx64-aarch64/oss"
+          ac_add_options --enable-application=mobile/ios
+          ac_add_options --target=aarch64-apple-ios
+          ac_add_options --enable-ios-target=15.0
+          ac_add_options --disable-webrtc
+          ac_add_options --disable-crashreporter
+          ac_add_options --with-macos-sdk="$(xcrun --sdk macosx --show-sdk-path)"
+          ac_add_options --with-iphonesimulator-sdk="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-aarch64-apple-ios
+          MCFG
+          env -u MOZ_AUTOMATION \
+            MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
+            ./mach build 2>&1 | tee ${{ github.workspace }}/gecko-device-build.log
+          echo "gecko_status=success" >> $GITHUB_OUTPUT
+
+      - name: Package device runtime
+        if: steps.gecko.outputs.gecko_status == 'success'
+        run: |
+          tar -C Vendor/firefox -cLzf gecko-device-runtime.tar.gz \
+            obj-aarch64-apple-ios/dist
+          test -s gecko-device-runtime.tar.gz
+
+      - name: Build idevice for device
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git submodule update --init --depth 1 Vendor/idevice 2>/dev/null; then
+            git clone --depth 1 https://github.com/jkcoxson/idevice.git Vendor/idevice
+          fi
+          ./Tools/Gecko/build-idevice.sh aarch64-apple-ios 2>&1 | tee device-idevice.log
+          PLATFORM_NAME=iphoneos ./Tools/Runtime/verify-runtime-artifacts.sh
+
+      - name: Materialize Gecko headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          include="Vendor/firefox/obj-aarch64-apple-ios/dist/include/GeckoView"
+          test -d "$include" || { echo "::error::GeckoView headers missing"; exit 1; }
+          runtime_headers="Extensions/GeckoView/Runtime"
+          mkdir -p "$runtime_headers"
+          for h in IOSBootstrap.h GeckoViewSwiftSupport.h GeckoViewRuntimeSupport.h; do
+            cp "$include/$h" "$runtime_headers/$h"
+          done
+          firefox_sha="$(cat Vendor/firefox-release.txt | tr -d '\000\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+          theme="Vendor/firefox/toolkit/mozapps/extensions/default-theme"
+          mkdir -p "$theme"
+          for name in icon.svg manifest.json preview.svg; do
+            curl --fail --location --retry 4 --silent --show-error \
+              "https://raw.githubusercontent.com/mozilla-firefox/firefox/$firefox_sha/toolkit/mozapps/extensions/default-theme/$name" \
+              --output "$theme/$name"
+          done
+
+      - name: Build Vulpra device archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          xcodebuild \
+            -project Vulpra.xcodeproj \
+            -scheme Vulpra \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$GITHUB_WORKSPACE/dist/Vulpra.xcarchive" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive 2>&1 | tee build-archive.log
+
+      - name: Create IPA and TIPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$GITHUB_WORKSPACE/dist/Vulpra.xcarchive"
+          app="$archive/Products/Applications/Vulpra.app"
+          test -d "$app" || { echo "::error::Archive app missing"; exit 1; }
+          mkdir -p "$GITHUB_WORKSPACE/dist/stage-ipa"
+          ./Tools/Release/package-app.sh "$archive" Products/Applications/Vulpra.app \
+            "$GITHUB_WORKSPACE/dist/stage-ipa" "$GITHUB_WORKSPACE/dist/Vulpra.ipa"
+          test -s "$GITHUB_WORKSPACE/dist/Vulpra.ipa"
+          # Create TrollStore TIPA
+          work=$(mktemp -d)
+          mkdir -p "$work/Products/Applications"
+          cp -R "$app" "$work/Products/Applications/Vulpra.app"
+          ./Tools/Release/package-app.sh "$work" Products/Applications/Vulpra.app \
+            "$GITHUB_WORKSPACE/dist/stage-tipa" "$GITHUB_WORKSPACE/dist/Vulpra-TrollStore.tipa"
+          test -s "$GITHUB_WORKSPACE/dist/Vulpra-TrollStore.tipa"
+          cd "$GITHUB_WORKSPACE/dist"
+          shasum -a 256 Vulpra.ipa Vulpra-TrollStore.tipa | tee SHA256SUMS
+
+      - name: Upload IPA and TIPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-ipa-${{ github.run_id }}
+          path: |
+            dist/Vulpra.ipa
+            dist/Vulpra-TrollStore.tipa
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload device runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-gecko-device-${{ github.run_id }}
+          path: gecko-device-runtime.tar.gz
+          compression-level: 0
+          retention-days: 30
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulpra-ipa-logs-${{ github.run_id }}
+          path: |
+            *.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Show ccache stats
+        if: always()
+        run: ccache -s
