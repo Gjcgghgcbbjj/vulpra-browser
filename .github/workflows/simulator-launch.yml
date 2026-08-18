@@ -197,29 +197,7 @@ jobs:
             -o "process handle -s true -n true -p false SIGABRT" \
             -o 'script import lldb; lldb.debugger.SetAsync(True)' \
             -o "continue" \
-            -o 'script
-          import lldb, time
-          time.sleep(20)
-          process = lldb.debugger.GetSelectedTarget().GetProcess()
-          state = process.GetState()
-          running = state == lldb.eStateRunning
-          stopped = state == lldb.eStateStopped
-          print(f"VULPRA_LLDB_WAS_RUNNING={int(running)}", flush=True)
-          if stopped:
-              print("VULPRA_LLDB_STOPPED=1", flush=True)
-              thread = process.GetSelectedThread()
-              if thread:
-                  print(f"VULPRA_LLDB_STOP_REASON={thread.GetStopDescription(200)}", flush=True)
-                  for i in range(min(20, process.GetSelectedThread().GetNumFrames())):
-                      frame = thread.GetFrameAtIndex(i)
-                      print(f"VULPRA_LLDB_FRAME_{i}={frame}", flush=True)
-          if running:
-              process.SendAsyncInterrupt()
-              for _ in range(50):
-                  time.sleep(0.1)
-                  if process.GetState() != lldb.eStateRunning:
-                      break
-          ' \
+            -o 'script import lldb, time; time.sleep(20); p = lldb.debugger.GetSelectedTarget().GetProcess(); s = p.GetState(); r = s == lldb.eStateRunning; st = s == lldb.eStateStopped; print(f"VULPRA_LLDB_WAS_RUNNING={int(r)}", flush=True); print(f"VULPRA_LLDB_STOPPED={int(st)}", flush=True) if st else None; t = p.GetSelectedThread() if st else None; print(f"VULPRA_LLDB_STOP_REASON={t.GetStopDescription(200)}", flush=True) if t else None; [print(f"VULPRA_LLDB_FRAME_{i}={t.GetFrameAtIndex(i)}", flush=True) for i in range(min(20, t.GetNumFrames()))] if t else None; p.SendAsyncInterrupt() if r else None; [time.sleep(0.1) for _ in range(50) if p.GetState() == lldb.eStateRunning] if r else None' \
             -o "process detach" \
             2>&1 | tee simulator-lldb.log
           lldb_status=${PIPESTATUS[0]}
