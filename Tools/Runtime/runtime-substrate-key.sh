@@ -11,8 +11,12 @@ VULPRA_SDK_BUILD=${VULPRA_SDK_BUILD:-$(xcrun --sdk iphoneos --show-sdk-build-ver
 export VULPRA_XCODE_BUILD VULPRA_SDK_BUILD
 
 gecko_key=$($ROOT_DIR/Tools/Gecko/gecko-artifact.sh key "$XCODE_APP")
-firefox_commit=$(git -C "$ROOT_DIR" rev-parse HEAD:Vendor/firefox)
-idevice_commit=$(git -C "$ROOT_DIR" rev-parse HEAD:Vendor/idevice)
+firefox_commit=$(git -C "$ROOT_DIR" rev-parse HEAD:Vendor/firefox 2>/dev/null) ||
+	firefox_commit=$(git -C "$ROOT_DIR/Vendor/firefox" rev-parse HEAD 2>/dev/null) ||
+	firefox_commit=orphan
+idevice_commit=$(git -C "$ROOT_DIR" rev-parse HEAD:Vendor/idevice 2>/dev/null) ||
+	idevice_commit=$(git -C "$ROOT_DIR/Vendor/idevice" rev-parse HEAD 2>/dev/null) ||
+	idevice_commit=orphan
 digest=$({
     printf 'gecko=%s\n' "$gecko_key"
     printf 'firefox=%s\n' "$firefox_commit"

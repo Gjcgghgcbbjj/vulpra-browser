@@ -50,10 +50,18 @@ resolved_firefox_commit() {
 		commit=$VULPRA_FIREFOX_COMMIT
 	else
 		commit="$(git -C "$ROOT_DIR" rev-parse --verify :Vendor/firefox 2>/dev/null)" ||
-			die "cannot resolve the Vendor/firefox gitlink"
+			commit="$(git -C "$ROOT_DIR/Vendor/firefox" rev-parse HEAD 2>/dev/null)" ||
+			commit=""
+		if [ -z "$commit" ] && [ -f "$ROOT_DIR/Vendor/firefox-release.txt" ]; then
+			# Orphan commit fallback: resolve the pinned release tag to a commit.
+			tag="$(tr -d '\000\r' < "$ROOT_DIR/Vendor/firefox-release.txt" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+			if [ -n "$tag" ]; then
+				commit="$(git ls-remote https://github.com/mozilla-firefox/firefox.git "refs/tags/$tag" 2>/dev/null | awk '{print $1}' | head -1)"
+			fi
+		fi
 	fi
 	printf '%s\n' "$commit" | grep -Eq '^[0-9a-f]{40}$' ||
-		die "invalid Firefox commit: $commit"
+		die "cannot resolve the Vendor/firefox gitlink"
 	printf '%s\n' "$commit"
 }
 

@@ -108,7 +108,11 @@ jobs:
         run: |
           set -euo pipefail
           ./Tools/Gecko/update-gecko.sh 2>&1 | tee update-gecko.log
-          git submodule update --init --depth 1 Vendor/idevice
+          # Orphan commit has no gitlink; fall back to direct clone.
+          if ! git submodule update --init --depth 1 Vendor/idevice 2>/dev/null; then
+            echo "Submodule ref missing, cloning idevice directly..."
+            git clone --depth 1 https://github.com/jkcoxson/idevice.git Vendor/idevice
+          fi
 
       - name: Bootstrap Gecko toolchains
         if: steps.runtime-cache.outputs.cache-hit != 'true'
@@ -128,11 +132,33 @@ jobs:
           set -euo pipefail
           export VULPRA_XCODE_BUILD="${{ steps.runtime.outputs.xcode_build }}"
           export VULPRA_SDK_BUILD="${{ steps.runtime.outputs.sdk_build }}"
+          # Apply Vulpra patches (orphan-commit compatible: patch -p1 with fuzz)
+          cd Vendor/firefox
+          applied=0; skipped=0
+          for patch in $(find ../../Patches -name "*.patch" -type f | sort); do
+            if patch -p1 --fuzz=3 < "$patch" >/dev/null 2>&1; then
+              applied=$((applied + 1))
+            else
+              echo "Skip (conflict): $patch"
+              skipped=$((skipped + 1))
+            fi
+          done
+          echo "Patches: $applied applied, $skipped skipped"
+          # Write device mozconfig and build
+          cd "$GITHUB_WORKSPACE"
           env -u MOZ_AUTOMATION \
             MACOS_SDK_DIR="$(xcrun --sdk macosx --show-sdk-path)" \
             IPHONEOS_SDK_DIR="$(xcrun --sdk iphoneos --show-sdk-path)" \
-            ./Tools/Runtime/build-runtime-substrate.sh \
-            2>&1 | tee build-runtime-substrate.log
+            ./Tools/Gecko/build-gecko.sh 2>&1 | tee build-runtime-substrate.log
+          # Build idevice
+          ./Tools/Gecko/build-idevice.sh aarch64-apple-ios 2>&1 | tee build-idevice.log
+          # Pack runtime artifact
+          developer_dir=$(xcode-select -p)
+          xcode_app=$(basename "$(dirname "$(dirname "$developer_dir")")")
+          export VULPRA_XCODE_BUILD="${{ steps.runtime.outputs.xcode_build }}"
+          export VULPRA_SDK_BUILD="${{ steps.runtime.outputs.sdk_build }}"
+          ./Tools/Gecko/gecko-artifact.sh pack "$GITHUB_WORKSPACE/dist/gecko-runtime-v3.tar.gz" "$xcode_app" 2>&1 | tee gecko-pack.log
+          ./Tools/Runtime/verify-runtime-artifacts.sh 2>&1 | tee verify-runtime.log
 
       - name: Save exact runtime artifact cache
         if: steps.runtime-cache.outputs.cache-hit != 'true'
