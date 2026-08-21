@@ -9,25 +9,27 @@ protocol PageToolsControllerDelegate: AnyObject {
     func pageToolsDidRequestQRScanner(_ controller: PageToolsController)
     func pageToolsDidRequestPictureInPicture(_ controller: PageToolsController)
     func pageToolsDidRequestReaderMode(_ controller: PageToolsController)
+    func pageToolsDidRequestImmersiveMode(_ controller: PageToolsController)
 }
 
 final class PageToolsController {
     weak var delegate: PageToolsControllerDelegate?
 
     func present(from presenter: UIViewController, sourceView: UIView?, url: URL?) {
-        let menu = UIAlertController(title: url?.host ?? "Page Tools", message: nil, preferredStyle: .actionSheet)
-        menu.addAction(UIAlertAction(title: "Share", style: .default) { _ in self.delegate?.pageToolsDidRequestShare(self) })
-        menu.addAction(UIAlertAction(title: "Add Bookmark", style: .default) { _ in self.delegate?.pageToolsDidRequestBookmark(self) })
-        menu.addAction(UIAlertAction(title: "Find in Page", style: .default) { _ in self.askFind(from: presenter) })
-        menu.addAction(UIAlertAction(title: "Request Desktop Site", style: .default) { _ in self.delegate?.pageToolsDidRequestDesktopMode(self) })
-        menu.addAction(UIAlertAction(title: "Page Zoom", style: .default) { _ in self.askZoom(from: presenter) })
-        menu.addAction(UIAlertAction(title: "Picture in Picture", style: .default) { _ in self.delegate?.pageToolsDidRequestPictureInPicture(self) })
-        menu.addAction(UIAlertAction(title: "Reader Mode", style: .default) { _ in self.delegate?.pageToolsDidRequestReaderMode(self) })
-        menu.addAction(UIAlertAction(title: "Scan QR Code", style: .default) { _ in self.delegate?.pageToolsDidRequestQRScanner(self) })
+        let menu = UIAlertController(title: url?.host ?? L10n.tr("Page Tools", "页面工具"), message: nil, preferredStyle: .actionSheet)
+        menu.addAction(UIAlertAction(title: L10n.tr("Share", "分享"), style: .default) { _ in self.delegate?.pageToolsDidRequestShare(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Add Bookmark", "添加书签"), style: .default) { _ in self.delegate?.pageToolsDidRequestBookmark(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Find in Page", "页面内查找"), style: .default) { _ in self.askFind(from: presenter) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Request Desktop Site", "请求桌面版网站"), style: .default) { _ in self.delegate?.pageToolsDidRequestDesktopMode(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Page Zoom", "页面缩放"), style: .default) { _ in self.askZoom(from: presenter) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Immersive Mode", "沉浸式阅读"), style: .default) { _ in self.delegate?.pageToolsDidRequestImmersiveMode(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Picture in Picture", "画中画"), style: .default) { _ in self.delegate?.pageToolsDidRequestPictureInPicture(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Reader Mode", "阅读模式"), style: .default) { _ in self.delegate?.pageToolsDidRequestReaderMode(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Scan QR Code", "扫描二维码"), style: .default) { _ in self.delegate?.pageToolsDidRequestQRScanner(self) })
         if let url {
-            menu.addAction(UIAlertAction(title: "Copy Link", style: .default) { _ in UIPasteboard.general.url = url })
+            menu.addAction(UIAlertAction(title: L10n.tr("Copy Link", "拷贝链接", style: .default) { _ in UIPasteboard.general.url = url })
         }
-        menu.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        menu.addAction(UIAlertAction(title: L10n.tr("Cancel", "取消"), style: .cancel))
         menu.popoverPresentationController?.sourceView = sourceView ?? presenter.view
         presenter.present(menu, animated: true)
     }
@@ -38,7 +40,7 @@ final class PageToolsController {
         alert.addAction(UIAlertAction(title: "Find", style: .default) { _ in
             self.delegate?.pageTools(self, find: alert.textFields?.first?.text ?? "")
         })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.tr("Cancel", "取消"), style: .cancel))
         presenter.present(alert, animated: true)
     }
 
@@ -47,7 +49,7 @@ final class PageToolsController {
         [75, 90, 100, 110, 125, 150].forEach { level in
             alert.addAction(UIAlertAction(title: "\(level)%", style: .default) { _ in self.delegate?.pageTools(self, setZoom: level) })
         }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.tr("Cancel", "取消"), style: .cancel))
         alert.popoverPresentationController?.sourceView = presenter.view
         presenter.present(alert, animated: true)
     }
