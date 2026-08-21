@@ -136,7 +136,7 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
 
         for rowStart in stride(from: 0, to: unique.count, by: 4) {
             let rowItems = unique[rowStart..<min(rowStart + 4, unique.count)]
-            var cells: [UIButton] = []
+            var cells: [UIView] = []
             for (offset, item) in rowItems.enumerated() {
                 var cellConfiguration = configuration
                 cellConfiguration.title = item.0.isEmpty ? item.1.host ?? "—" : item.0
