@@ -9,11 +9,11 @@ final class BrowserPromptController: NSObject, PromptDelegate, UIDocumentPickerD
     func onPrompt(session: GeckoSession, request: PromptRequest) async -> PromptResponse? {
         // Like the new-window callback, prompts carry a return value so
         // GeckoView awaits them off-main; UIAlertController presentation is
-        // main-thread-only. Hop before touching any UI.
-        await MainActor.run { await handlePrompt(session: session, request: request) }
+        // main-thread-only. Awaiting a MainActor-isolated method hops there.
+        await handlePrompt(session: session, request: request)
     }
 
-    private func handlePrompt(session: GeckoSession, request: PromptRequest) async -> PromptResponse? {
+    @MainActor private func handlePrompt(session: GeckoSession, request: PromptRequest) async -> PromptResponse? {
         switch request {
         case .alert(let value):
             _ = await alert(title: value.title, message: value.message, fields: [], buttons: ["OK"])

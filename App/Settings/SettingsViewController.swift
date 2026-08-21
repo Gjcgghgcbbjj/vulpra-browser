@@ -54,7 +54,7 @@ final class SettingsViewController: UITableViewController {
         }
     }
 
-    private enum Section {
+    private struct Section {
         let header: String
         let footer: String?
         let rows: [Row]
