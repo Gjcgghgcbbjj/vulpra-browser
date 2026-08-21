@@ -62,4 +62,42 @@ enum SiteIcon {
             await MainActor.run { completion(image) }
         }
     }
+
+    /// Rounded square tile with the favicon aspect-FIT at its native size —
+    /// tiny 16px favicons are never upscaled, so no mosaic blur. Falls back
+    /// to the letter avatar when a site has no usable favicon.
+    static func tile(for url: URL?, size: CGFloat, cornerRadius: CGFloat) -> UIImage {
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = UIScreen.main.scale
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size), format: format)
+        return renderer.image { context in
+            let host = url?.host ?? ""
+            color(for: host.isEmpty ? "vulpra" : host).withAlphaComponent(0.16).setFill()
+            UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: size, height: size),
+                         cornerRadius: cornerRadius).fill()
+            guard let url else {
+                placeholder(for: url, size: size)
+                    .draw(in: CGRect(x: 0, y: 0, width: size, height: size))
+                return
+            }
+            if let raw = FaviconStore.shared.cachedFavicon(for: url), raw.size.width > 1 {
+                // Fit the favicon inside an inset box without ever enlarging it.
+                let inset = size * 0.18
+                let box = size - inset * 2
+                var drawSize = raw.size
+                if drawSize.width > box || drawSize.height > box {
+                    let scale = min(box / drawSize.width, box / drawSize.height)
+                    drawSize = CGSize(width: drawSize.width * scale, height: drawSize.height * scale)
+                }
+                let origin = CGPoint(x: (size - drawSize.width) / 2, y: (size - drawSize.height) / 2)
+                context.cgContext.interpolationQuality =
+                    drawSize.width >= raw.size.width ? .high : .none
+                raw.draw(in: CGRect(origin: origin, size: drawSize))
+            } else {
+                // Letter avatar centered on the tinted tile.
+                placeholder(for: url, size: size)
+                    .draw(in: CGRect(x: 0, y: 0, width: size, height: size))
+            }
+        }
+    }
 }

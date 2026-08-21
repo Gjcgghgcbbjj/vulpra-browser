@@ -9,14 +9,17 @@ protocol StartPageViewControllerDelegate: AnyObject {
     func startPageDidRequestSettings(_ controller: StartPageViewController)
 }
 
-/// Minimal start screen: one search field, one row of site icons, one row of
-/// quiet glyph actions. No titles, no tiles, no chrome — content first.
+/// Via-style start screen: centered search capsule, a compact grid of small
+/// labelled shortcut tiles (favorites only — history never clutters home),
+/// and one quiet glyph row. No thumbnails anywhere.
 final class StartPageViewController: UIViewController, UITextFieldDelegate {
     weak var delegate: StartPageViewControllerDelegate?
     private let searchField = UITextField()
-    private let quickRow = UIStackView()
+    private let gridStack = UIStackView()
     private let actionRow = UIStackView()
     private var quickURLs: [URL] = []
+    private let columns = 5
+    private let tileSize: CGFloat = 40
 
     override func viewWillAppear(_ animated: Bool) { super.viewWillAppear(animated); reloadQuickSites() }
 
@@ -26,7 +29,7 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
 
         searchField.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
         searchField.backgroundColor = .secondarySystemBackground
-        searchField.layer.cornerRadius = 14
+        searchField.layer.cornerRadius = 12
         searchField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 1))
         searchField.leftViewMode = .always
         searchField.clearButtonMode = .whileEditing
@@ -35,11 +38,11 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         searchField.autocapitalizationType = .none
         searchField.autocorrectionType = .no
         searchField.delegate = self
-        searchField.heightAnchor.constraint(equalToConstant: 50).isActive = true
+        searchField.heightAnchor.constraint(equalToConstant: 44).isActive = true
 
-        quickRow.axis = .horizontal
-        quickRow.distribution = .fillEqually
-        quickRow.spacing = 18
+        gridStack.axis = .vertical
+        gridStack.spacing = 18
+        gridStack.isHidden = true
 
         let actions: [(String, Selector)] = [
             ("star", #selector(bookmarks)),
@@ -60,9 +63,9 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         actionRow.axis = .horizontal
         actionRow.distribution = .equalSpacing
 
-        let stack = UIStackView(arrangedSubviews: [searchField, quickRow, actionRow])
+        let stack = UIStackView(arrangedSubviews: [searchField, gridStack, actionRow])
         stack.axis = .vertical
-        stack.spacing = 34
+        stack.spacing = 30
         stack.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stack)
         NSLayoutConstraint.activate([
@@ -78,47 +81,111 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         return true
     }
 
+    // MARK: - Shortcut grid (Via style)
+
+    /// Favorites only. Recent history stays out of the home screen on purpose:
+    /// short visits with missing favicons read as noise, not shortcuts.
     private func reloadQuickSites() {
         let settings = BrowserSettingsStore.shared.value
         var pairs: [(String, URL)] = []
         if settings.showFavorites {
-            pairs += BookmarkStore.shared.items.prefix(4).compactMap { item in
+            pairs += BookmarkStore.shared.items.prefix(columns * 2).compactMap { item in
                 guard !item.isFolder, let value = item.url, let url = URL(string: value) else { return nil }
-                return (item.title, url)
-            }
-        }
-        if settings.showRecentVisits {
-            pairs += HistoryStore.shared.visits.prefix(4).compactMap { visit in
-                URL(string: visit.url).map { (visit.title, $0) }
+                return (item.title.isEmpty ? (url.host ?? "") : item.title, url)
             }
         }
         var seen = Set<String>()
-        let unique = Array(pairs.filter { seen.insert($0.1.absoluteString).inserted }.prefix(6))
+        let unique = pairs.filter { seen.insert($0.1.absoluteString).inserted }
         quickURLs = unique.map { $0.1 }
 
-        quickRow.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        quickRow.isHidden = unique.isEmpty
+        gridStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        gridStack.isHidden = unique.isEmpty
         guard !unique.isEmpty else { return }
 
-        // One quiet row of circular site icons — no text labels.
-        for (index, item) in unique.enumerated() {
-            let button = UIButton(type: .custom)
-            button.setImage(SiteIcon.placeholder(for: item.1, size: 52), for: .normal)
-            button.imageView?.contentMode = .scaleAspectFill
-            button.layer.cornerRadius = 26
-            button.clipsToBounds = true
-            button.accessibilityLabel = item.0.isEmpty ? item.1.host : item.0
-            button.tag = index
-            button.addTarget(self, action: #selector(openQuickSite(_:)), for: .touchUpInside)
-            button.widthAnchor.constraint(equalToConstant: 52).isActive = true
-            button.heightAnchor.constraint(equalToConstant: 52).isActive = true
-            quickRow.addArrangedSubview(button)
-            SiteIcon.load(for: item.1) { [weak self, weak button] image in
-                guard let self, let button,
-                      self.quickURLs.indices.contains(button.tag),
-                      self.quickURLs[button.tag] == item.1 else { return }
-                button.setImage(image, for: .normal)
+        var index = 0
+        while index < unique.count {
+            let row = UIStackView()
+            row.axis = .horizontal
+            row.distribution = .fillEqually
+            for _ in 0..<columns {
+                if index < unique.count {
+                    row.addArrangedSubview(makeTile(title: unique[index].0, url: unique[index].1, tag: index))
+                } else {
+                    let filler = UIView()
+                    filler.isUserInteractionEnabled = false
+                    row.addArrangedSubview(filler)
+                }
+                index += 1
             }
+            gridStack.addArrangedSubview(row)
+        }
+    }
+
+    private func makeTile(title: String, url: URL, tag: Int) -> UIView {
+        let container = UIStackView()
+        container.axis = .vertical
+        container.alignment = .center
+        container.spacing = 5
+
+        let icon = UIImageView(image: SiteIcon.tile(for: url, size: tileSize, cornerRadius: 9))
+        icon.contentMode = .center
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.widthAnchor.constraint(equalToConstant: tileSize).isActive = true
+        icon.heightAnchor.constraint(equalToConstant: tileSize).isActive = true
+
+        let label = UILabel()
+        label.text = title
+        label.font = .systemFont(ofSize: 11)
+        label.textColor = .secondaryLabel
+        label.textAlignment = .center
+        label.lineBreakMode = .byTruncatingTail
+
+        container.addArrangedSubview(icon)
+        container.addArrangedSubview(label)
+
+        let button = UIButton(type: .custom)
+        button.accessibilityLabel = title
+        button.tag = tag
+        button.addTarget(self, action: #selector(openQuickSite(_:)), for: .touchUpInside)
+        button.addSubview(container)
+        container.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            container.topAnchor.constraint(equalTo: button.topAnchor),
+            container.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            container.leadingAnchor.constraint(greaterThanOrEqualTo: button.leadingAnchor, constant: 2),
+            container.trailingAnchor.constraint(lessThanOrEqualTo: button.trailingAnchor, constant: -2),
+            button.heightAnchor.constraint(equalToConstant: 64),
+        ])
+
+        // Refresh the tile once a real favicon arrives.
+        SiteIcon.load(for: url) { [weak self] image in
+            guard let self, self.quickURLs.indices.contains(tag), self.quickURLs[tag] == url else { return }
+            icon.image = Self.composed(image: image, size: tileSize, cornerRadius: 9, fallbackFor: url)
+        }
+        return button
+    }
+
+    private static func composed(image: UIImage, size: CGFloat, cornerRadius: CGFloat,
+                                 fallbackFor url: URL) -> UIImage {
+        // Re-run through the same fit-composition path as tile(for:) using the
+        // freshly fetched favicon instead of only the disk cache.
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = UIScreen.main.scale
+        return UIGraphicsImageRenderer(size: CGSize(width: size, height: size), format: format).image { context in
+            let host = url.host ?? ""
+            UIColor.secondarySystemBackground.setFill()
+            UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: size, height: size),
+                         cornerRadius: cornerRadius).fill()
+            let inset = size * 0.18
+            let box = size - inset * 2
+            var drawSize = image.size
+            if drawSize.width > box || drawSize.height > box {
+                let scale = min(box / drawSize.width, box / drawSize.height)
+                drawSize = CGSize(width: drawSize.width * scale, height: drawSize.height * scale)
+            }
+            let origin = CGPoint(x: (size - drawSize.width) / 2, y: (size - drawSize.height) / 2)
+            context.cgContext.interpolationQuality = drawSize.width >= image.size.width ? .high : .none
+            image.draw(in: CGRect(origin: origin, size: drawSize))
         }
     }
 

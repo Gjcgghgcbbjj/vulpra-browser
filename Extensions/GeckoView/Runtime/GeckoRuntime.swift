@@ -54,6 +54,26 @@ public class GeckoRuntime {
         }
     }
 
+    /// Set a live engine preference through the privileged preferences channel
+    /// (GeckoViewPreferences in the main process). Runs after the engine gate
+    /// opens; the dispatcher queues the call if the native side is not yet up.
+    public static func setEngineStringPreference(name: String, value: String) {
+        GeckoEngineGate.whenReady {
+            // PREF_STRING = Ci.nsIPrefBranch.PREF_STRING; branch "user" so the
+            // value lands on the user branch, not the default branch.
+            Task {
+                _ = try? await GeckoEventDispatcherWrapper.runtimeInstance.query(
+                    type: "GeckoView:Preferences:SetPref",
+                    message: [
+                        "prefs": [
+                            ["pref": name, "type": 32, "value": value, "branch": "user"]
+                        ]
+                    ]
+                )
+            }
+        }
+    }
+
     public static func main(
         argc: Int32,
         argv: UnsafeMutablePointer<UnsafeMutablePointer<Int8>?>

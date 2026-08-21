@@ -95,6 +95,15 @@ vulpraStartupMarker("jit-started")
 #endif
 GeckoEngineGate.armFromStartup()
 vulpraStartupMarker("engine-gate-armed")
+// Engine-level Safari identity: the per-session override covers tabs created
+// through BrowserSettings; this user-branch pref guarantees the whole engine
+// (redirects, popups, subresources) presents it too, from first boot.
+GeckoEngineGate.whenReady {
+    GeckoRuntime.setEngineStringPreference(
+        name: "general.useragent.override",
+        value: BrowserSettings.safariUserAgent
+    )
+}
 vulpraStartupMarker("gecko-main-enter")
 GeckoRuntime.main(argc: CommandLine.argc, argv: CommandLine.unsafeArgv)
 #endif
