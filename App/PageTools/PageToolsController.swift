@@ -27,7 +27,7 @@ final class PageToolsController {
         menu.addAction(UIAlertAction(title: L10n.tr("Reader Mode", "阅读模式"), style: .default) { _ in self.delegate?.pageToolsDidRequestReaderMode(self) })
         menu.addAction(UIAlertAction(title: L10n.tr("Scan QR Code", "扫描二维码"), style: .default) { _ in self.delegate?.pageToolsDidRequestQRScanner(self) })
         if let url {
-            menu.addAction(UIAlertAction(title: L10n.tr("Copy Link", "拷贝链接", style: .default) { _ in UIPasteboard.general.url = url })
+            menu.addAction(UIAlertAction(title: L10n.tr("Copy Link", "拷贝链接"), style: .default) { _ in UIPasteboard.general.url = url })
         }
         menu.addAction(UIAlertAction(title: L10n.tr("Cancel", "取消"), style: .cancel))
         menu.popoverPresentationController?.sourceView = sourceView ?? presenter.view
