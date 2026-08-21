@@ -8,6 +8,7 @@ final class SettingsViewController: UITableViewController {
         case darkAppearance, pageZoom
         case trackingProtection, httpsOnly, permissions
         case historyRetention, privacyData, addons
+        case engineDiagnostics
 
         var title: String {
             switch self {
@@ -22,6 +23,7 @@ final class SettingsViewController: UITableViewController {
             case .historyRetention: return L10n.tr("History Retention", "历史保留")
             case .privacyData: return L10n.tr("Clear Browsing Data", "清除浏览数据")
             case .addons: return L10n.tr("Extensions", "扩展")
+            case .engineDiagnostics: return L10n.tr("Engine Diagnostics", "引擎诊断")
             }
         }
 
@@ -38,6 +40,7 @@ final class SettingsViewController: UITableViewController {
             case .historyRetention: return "clock.arrow.circlepath"
             case .privacyData: return "trash"
             case .addons: return "puzzlepiece.extension"
+            case .engineDiagnostics: return "stethoscope"
             }
         }
 
@@ -50,6 +53,7 @@ final class SettingsViewController: UITableViewController {
             case .permissions: return .systemOrange
             case .historyRetention, .privacyData: return .systemRed
             case .addons: return .systemTeal
+            case .engineDiagnostics: return .systemGray
             }
         }
     }
@@ -70,6 +74,10 @@ final class SettingsViewController: UITableViewController {
                     rows: [.trackingProtection, .httpsOnly, .permissions]),
             Section(header: L10n.tr("Data & Extensions", "数据与扩展"), footer: nil,
                     rows: [.historyRetention, .privacyData, .addons]),
+            Section(header: L10n.tr("Diagnostics", "诊断"),
+                    footer: L10n.tr("Shows the user agent the engine reports. Tap to re-check and copy.",
+                                    "显示引擎当前上报的 User-Agent。点按可重新检测并复制。"),
+                    rows: [.engineDiagnostics]),
         ]
     }
 
@@ -133,6 +141,13 @@ final class SettingsViewController: UITableViewController {
             cell.accessoryType = .disclosureIndicator
         case .privacyData, .addons, .permissions:
             cell.accessoryType = .disclosureIndicator
+        case .engineDiagnostics:
+            if let ua = EngineDiagnostics.lastEngineUA {
+                content.secondaryText = String(ua.prefix(48))
+            } else {
+                content.secondaryText = L10n.tr("Tap to check", "点按检测")
+            }
+            cell.accessoryType = .disclosureIndicator
         }
         cell.contentConfiguration = content
         return cell
@@ -160,6 +175,20 @@ final class SettingsViewController: UITableViewController {
             navigationController?.pushViewController(AddonManagementViewController(), animated: true)
         case .permissions:
             navigationController?.pushViewController(SitePermissionsViewController(), animated: true)
+        case .engineDiagnostics:
+            EngineDiagnostics.probe { [weak self] in
+                DispatchQueue.main.async {
+                    UIPasteboard.general.string = EngineDiagnostics.diagText
+                    let alert = UIAlertController(
+                        title: L10n.tr("Engine UA", "引擎 UA"),
+                        message: (EngineDiagnostics.lastEngineUA ?? "<no answer>")
+                            + "\n\n" + L10n.tr("Copied full diagnostics to clipboard.",
+                                                "完整诊断已复制到剪贴板。"),
+                        preferredStyle: .alert)
+                    alert.addAction(UIAlertAction(title: L10n.tr("OK", "好"), style: .default))
+                    self?.present(alert, animated: true)
+                }
+            }
         default:
             break
         }

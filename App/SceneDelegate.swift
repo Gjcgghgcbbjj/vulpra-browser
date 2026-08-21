@@ -39,7 +39,10 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         browser?.open(url)
     }
 
-    func sceneDidBecomeActive(_ scene: UIScene) { browser?.setActive(true) }
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        browser?.setActive(true)
+        EngineDiagnostics.run()
+    }
     func sceneWillResignActive(_ scene: UIScene) { browser?.setActive(false) }
     func sceneDidEnterBackground(_ scene: UIScene) { browser?.setActive(false) }
     func sceneDidDisconnect(_ scene: UIScene) { browser?.closePrivateTabs() }

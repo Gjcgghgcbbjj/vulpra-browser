@@ -57,21 +57,57 @@ public class GeckoRuntime {
     /// Set a live engine preference through the privileged preferences channel
     /// (GeckoViewPreferences in the main process). Runs after the engine gate
     /// opens; the dispatcher queues the call if the native side is not yet up.
-    public static func setEngineStringPreference(name: String, value: String) {
+    /// `completion` receives whether the engine confirmed the write (isSet).
+    public static func setEngineStringPreference(
+        name: String,
+        value: String,
+        completion: ((Bool) -> Void)? = nil
+    ) {
         GeckoEngineGate.whenReady {
             // PREF_STRING = Ci.nsIPrefBranch.PREF_STRING; branch "user" so the
             // value lands on the user branch, not the default branch.
             Task {
-                _ = try? await GeckoEventDispatcherWrapper.runtimeInstance.query(
+                var accepted = false
+                if let result = try? await GeckoEventDispatcherWrapper.runtimeInstance.query(
                     type: "GeckoView:Preferences:SetPref",
                     message: [
                         "prefs": [
                             ["pref": name, "type": 32, "value": value, "branch": "user"]
                         ]
                     ]
-                )
+                ) {
+                    accepted = Self.extractIsSet(from: result, pref: name)
+                }
+                completion?(accepted)
             }
         }
+    }
+
+    /// Ask the engine which user agent it would present right now. The
+    /// GeckoViewSettings module answers customUserAgent ?? default.
+    public static func queryEngineUserAgent(completion: @escaping (String?) -> Void) {
+        GeckoEngineGate.whenReady {
+            Task {
+                let answer = try? await GeckoEventDispatcherWrapper.runtimeInstance.query(
+                    type: "GeckoView:GetUserAgent",
+                    message: [:]
+                )
+                completion(answer as? String)
+            }
+        }
+    }
+
+    /// Unbridge {prefs:[{pref,isSet}]} shapes coming back from the JS side.
+    private static func extractIsSet(from result: Any?, pref: String) -> Bool {
+        guard let dict = result as? [String: Any],
+              let list = dict["prefs"] as? [[String: Any]] else {
+            return false
+        }
+        for entry in list where (entry["pref"] as? String) == pref {
+            if let flag = entry["isSet"] as? Bool { return flag }
+            if let num = entry["isSet"] as? NSNumber { return num.boolValue }
+        }
+        return false
     }
 
     public static func main(
