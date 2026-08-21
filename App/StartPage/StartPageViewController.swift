@@ -40,11 +40,6 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         title.text = "Vulpra"
         title.font = .systemFont(ofSize: 40, weight: .bold)
         title.textAlignment = .center
-        let subtitle = UILabel()
-        subtitle.text = L10n.tr("Browse with Gecko", "Gecko 内核浏览器")
-        subtitle.font = .preferredFont(forTextStyle: .subheadline)
-        subtitle.textColor = .secondaryLabel
-        subtitle.textAlignment = .center
         searchField.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
         searchField.backgroundColor = .secondarySystemBackground
         searchField.layer.cornerRadius = 16
@@ -71,7 +66,7 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         actionStack.spacing = 8
         quickStack.axis = .vertical
         quickStack.spacing = 6
-        let stack = UIStackView(arrangedSubviews: [title, subtitle, searchField, quickStack, actionStack])
+        let stack = UIStackView(arrangedSubviews: [title, searchField, quickStack, actionStack])
         stack.setCustomSpacing(2, after: title)
         stack.setCustomSpacing(28, after: searchField)
         stack.axis = .vertical

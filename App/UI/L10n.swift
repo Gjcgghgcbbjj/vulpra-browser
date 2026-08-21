@@ -1,14 +1,10 @@
 import Foundation
 
-/// Minimal dual-language helper: picks Chinese strings when the system runs
-/// in Chinese, otherwise falls back to English. Kept dependency-free on
-/// purpose — no .strings tables, just paired literals at call sites.
+/// Minimal dual-language helper. Vulpra ships Chinese-first per product
+/// decision: every user-facing string resolves to the Chinese variant, with
+/// the English literal kept inline as documentation and future fallback.
 enum L10n {
-    static var isChinese: Bool {
-        Locale.preferredLanguages.first?.hasPrefix("zh") == true
-    }
-
     static func tr(_ en: String, _ zh: String) -> String {
-        isChinese ? zh : en
+        zh
     }
 }

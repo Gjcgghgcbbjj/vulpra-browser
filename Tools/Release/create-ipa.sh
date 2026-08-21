@@ -21,6 +21,16 @@ mkdir -p "$work/Products/Applications"
 cp -R "$ARCHIVE/$APP_RELATIVE" "$work/$APP_RELATIVE"
 app="$work/$APP_RELATIVE"
 
+# App icon: declared via Info.plist CFBundleIcons; the PNGs live in the repo
+# (App/Resources/Icons) because the app target has no asset catalog.
+icon_src="$(cd "$(dirname -- "$0")/../.." && pwd)/App/Resources/Icons"
+if [ -d "$icon_src" ]; then
+	for icon in "AppIcon60x60@2x.png" "AppIcon60x60@3x.png" \
+	            "AppIcon76x76@2x~ipad.png" "AppIcon83.5x83.5@2x~ipad.png"; do
+		[ -f "$icon_src/$icon" ] && cp "$icon_src/$icon" "$app/"
+	done
+fi
+
 # Pin canonical bundle identities into the tipa (working TrollStore baseline).
 # Use Python plistlib to set CFBundleIdentifier and .vulpra-bundle-id markers.
 python3 - "$app" <<'PY'

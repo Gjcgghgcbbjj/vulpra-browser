@@ -15,6 +15,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private let contextMenu = BrowserContextMenuController()
     private let contentContainer = UIView()
     private let chrome = BrowserChromeView()
+    private let chromeTogglePill = UIButton(type: .custom)
     private let startPage = StartPageViewController()
     private let suggestionsView = OmniboxSuggestionsView()
     private var attachedEngineView: UIView?
@@ -143,6 +144,23 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         // keyboard so suggestions stay visible (Safari-style).
         chromeKeyboardConstraint = chrome.bottomAnchor.constraint(
             equalTo: view.keyboardLayoutGuide.topAnchor, constant: -8)
+
+        // Immersive reading toggle: a subtle pill under the chrome. Tap hides
+        // the whole toolbar so the page gets the full screen; tap again to
+        // bring it back. No gesture conflicts with web content.
+        chromeTogglePill.backgroundColor = UIColor.tertiarySystemFill
+        chromeTogglePill.layer.cornerRadius = 2.5
+        chromeTogglePill.accessibilityLabel = L10n.tr("Toggle toolbar", "切换工具栏")
+        chromeTogglePill.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(chromeTogglePill)
+        chromeTogglePill.addTarget(self, action: #selector(toggleChrome), for: .touchUpInside)
+        NSLayoutConstraint.activate([
+            chromeTogglePill.centerXAnchor.constraint(equalTo: view.safeAreaLayoutGuide.centerXAnchor),
+            chromeTogglePill.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -3),
+            chromeTogglePill.widthAnchor.constraint(equalToConstant: 36),
+            chromeTogglePill.heightAnchor.constraint(equalToConstant: 5),
+        ])
+
         let backEdge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgeNavigation(_:)))
         backEdge.edges = .left
         contentContainer.addGestureRecognizer(backEdge)
@@ -260,8 +278,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     }
 
     /// Docks the chrome above the keyboard while editing the address field.
-    private func setChromeKeyboardRide(_ enabled: Bool) {
-        guard enabled != chromeRidesKeyboard,
+    private func setChromeKeyboardRide(_ enabled: Bool) {        guard enabled != chromeRidesKeyboard,
               let dock = chromeDockConstraint, let ride = chromeKeyboardConstraint else { return }
         chromeRidesKeyboard = enabled
         view.layoutIfNeeded()
@@ -272,6 +289,24 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         }
         if UIAccessibility.isReduceMotionEnabled { changes() }
         else { UIView.animate(withDuration: 0.25, animations: changes) }
+    }
+
+    /// Immersive mode: hide or restore the bottom toolbar. The pill stays
+    /// tappable so one tap always brings the chrome back.
+    @objc private func toggleChrome() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        if chrome.addressField.isFirstResponder { chrome.addressField.resignFirstResponder() }
+        let willHide = chrome.alpha > 0.5
+        suggestionsView.update([])
+        view.layoutIfNeeded()
+        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.92,
+                       initialSpringVelocity: 0.3, options: [.beginFromCurrentState]) {
+            self.chrome.alpha = willHide ? 0 : 1
+            self.chrome.transform = willHide
+                ? CGAffineTransform(translationX: 0, y: self.chrome.bounds.height + 20)
+                : .identity
+            self.view.layoutIfNeeded()
+        }
     }
 
     func browserChromeDidBeginEditing(_ chrome: BrowserChromeView) { setChromeKeyboardRide(true) }
