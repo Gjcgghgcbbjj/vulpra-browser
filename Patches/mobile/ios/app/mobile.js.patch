@@ -106,9 +106,15 @@ index e835b1c33d86..baafad54b83d 100644
  
  // Use software webrender on simulator due to missing APIs.
  #if TARGET_OS_SIMULATOR
-@@ -19,3 +111,5 @@ pref("security.sandbox.content.level", 1);
+@@ -19,3 +111,8 @@ pref("security.sandbox.content.level", 1);
  // 1 complete progressbar at DOMContentLoaded
  // 2 complete progressbar at first MozAfterPaint after DOMContentLoaded
  pref("page_load.progressbar_completion", 2);
 +
 +pref("toolkit.defaultChromeURI", "chrome://geckoview/content/geckoview.xhtml");
++
++// VULPRA: Identify as iOS Safari. Google refuses sign-in from unknown
++// browser identities ("browser may not be secure"), and an unrecognized
++// Gecko-on-iOS UA gets every site's worst-assumption fallback path.
++Safari's identity gives maximum page compatibility on this platform.
++pref("general.useragent.override", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1");
