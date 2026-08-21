@@ -101,6 +101,12 @@ jobs:
           test -s dist/Vulpra-TrollStore.tipa
           test -s dist/SHA256SUMS
 
+      - name: Device-compat audit of the TIPA
+        shell: bash
+        run: |
+          set -euo pipefail
+          ./Tools/Release/audit-tipa.sh dist/Vulpra-TrollStore.tipa 2>&1 | tee audit-tipa.log
+
       - name: Upload installable packages
         uses: actions/upload-artifact@v4
         with:

@@ -45,7 +45,7 @@ BOOL getEntitlementValue(NSString *key) {
 void updateJetsamControl(pid_t pid) {
     if (!getEntitlementValue(@"com.apple.private.memorystatus")) return;
 
-    // Restore the proven Reynard baseline: 75% of physical memory.
+    // Restore the upstream proven baseline: 75% of physical memory.
     // A fixed 1024MB limit killed the main process via jetsam within seconds
     // of Gecko startup on real devices (SIGKILL, uncatchable, invisible in
     // the simulator which has no jetsam). Gecko's main process legitimately
