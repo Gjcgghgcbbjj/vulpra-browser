@@ -53,9 +53,12 @@ ptrace_entitlements="$ROOT_DIR/Modules/VulpraRuntime/JIT/Unsandboxed/ptrace_jit.
 app_entitlements="$ROOT_DIR/App/Entitlements/Vulpra.private.entitlements"
 helper_entitlements="$ROOT_DIR/Extensions/Helper/Entitlements/Vulpra-Helper.private.entitlements"
 
-# Keep the established sign order: ptrace helper, frameworks, plugins, main.
+# Keep the established sign order: blanket adhoc pass first so every Mach-O
+# helper in the GRE (pingsender, plugin-container, certutil, ...) is signed —
+# unsigned helpers are rejected on device under platform-application — then
+# the entitlement-bearing passes overwrite the privileged binaries.
+find "$app" -type f \( -perm -111 -o -name '*.dylib' -o -name XUL \) -exec ldid -S {} \;
 ldid -S"$ptrace_entitlements" "$app/ptrace_jit"
-find "$app/Frameworks" -type f \( -name '*.dylib' -o -name XUL \) -exec ldid -S {} \;
 ldid -S "$app/Frameworks/GeckoView.framework/GeckoView"
 ldid -S"$helper_entitlements" "$app/PlugIns/Vulpra Helper.appex/Vulpra Helper"
 ldid -S "$app/PlugIns/OpenIn.appex/OpenIn"
