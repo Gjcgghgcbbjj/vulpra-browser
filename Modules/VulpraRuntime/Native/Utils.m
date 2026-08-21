@@ -45,11 +45,12 @@ BOOL getEntitlementValue(NSString *key) {
 void updateJetsamControl(pid_t pid) {
     if (!getEntitlementValue(@"com.apple.private.memorystatus")) return;
 
-    // #6: Use a reasonable per-process limit instead of 75% of physical memory.
-    // The old 75% value (e.g. 4500MB on a 6GB device) was so high that the
-    // system would kill other apps first, and Vulpra itself would hold too
-    // much memory. 1024MB is sufficient for Gecko's main + content processes.
-    int limit = 1024;
+    // Restore the proven Reynard baseline: 75% of physical memory.
+    // A fixed 1024MB limit killed the main process via jetsam within seconds
+    // of Gecko startup on real devices (SIGKILL, uncatchable, invisible in
+    // the simulator which has no jetsam). Gecko's main process legitimately
+    // exceeds 1GB footprint while mapping XUL and bringing up the JS engine.
+    int limit = (int)((NSProcessInfo.processInfo.physicalMemory >> 20) * 0.75);
     if (memorystatus_control(MEMORYSTATUS_CMD_SET_JETSAM_TASK_LIMIT, pid, limit, NULL, 0) == -1) {
         NSLog(@"Failed to set Jetsam task limit to %d MB for pid %d: error: %s", limit, pid, strerror(errno));
     } else {

@@ -70,9 +70,10 @@ static void vulpraWriteCrashLog(int signum) {
     if (!home) return;
 
     char path[512];
-    // Caches is at $HOME/Library/Caches for iOS apps
+    // Documents is exposed via iTunes/3uTools file sharing (UIFileSharingEnabled),
+    // so crash logs are retrievable over USB without jailbreak.
     int n = snprintf(path, sizeof(path),
-                     "%s/Library/Caches/crash-logs",
+                     "%s/Documents/crash-logs",
                      home);
     if (n <= 0 || (size_t)n >= sizeof(path)) return;
 
@@ -142,9 +143,9 @@ static void vulpraSignalHandler(int signum) {
 // ── NSException handler (not async-signal-safe; runs on the crashing thread) ──
 
 static NSString *crashLogsDirectory(void) {
-    NSString *caches = [NSFileManager.defaultManager URLsForDirectory:NSCachesDirectory
-                                                           inDomains:NSUserDomainMask].firstObject.path;
-    NSString *dir = [caches stringByAppendingPathComponent:@"crash-logs"];
+    NSArray<NSString *> *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documents = paths.firstObject;
+    NSString *dir = [documents stringByAppendingPathComponent:@"crash-logs"];
     [NSFileManager.defaultManager createDirectoryAtPath:dir
                             withIntermediateDirectories:YES
                                              attributes:nil

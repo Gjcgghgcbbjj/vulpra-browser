@@ -17,13 +17,14 @@ _ = GeckoRuntime.version
 #else
 // Architecture completion: install crash reporter FIRST, before any other code.
 // TrollStore apps have no system crash log service; this captures signal + NSException
-// crashes and writes structured logs to Caches/crash-logs/.
+// crashes and writes structured logs to Documents/crash-logs/.
 VulpraInstallCrashReporter()
 vulpraStartupMarker("crash-reporter-installed")
 
-/// Append a single line to Caches/vulpra-startup.log for device crash triage.
+/// Append a single line to Documents/vulpra-startup.log for device crash triage.
+/// Documents (not Caches) so the log is retrievable via USB file sharing.
 func vulpraStartupMarker(_ value: String) {
-    let url = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+    let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         .appendingPathComponent("vulpra-startup.log")
     let line = "\(Date().timeIntervalSince1970) \(value)\n"
     if let data = line.data(using: .utf8),
