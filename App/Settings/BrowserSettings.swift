@@ -45,16 +45,29 @@ struct BrowserSettings: Codable, Equatable {
     var showRecentlyClosed = true
 
     /// Google refuses sign-in from unknown browser identities ("browser may
-    /// not be secure"). Claiming the iOS Safari identity per session gives
-    /// maximum page compatibility — applied at the session-settings layer so
-    /// every tab presents it regardless of desktop-mode toggles.
+    /// not be secure"). Claiming iOS Safari did not clear Google's interstitial
+    /// — its anti-abuse cross-checks the claimed identity against deeper
+    /// fingerprints (TLS stack, header order), and a Gecko engine claiming
+    /// WebKit reads as inconsistent. Claiming stock Android Fenix instead:
+    /// this engine IS Firefox 152 (same NSS TLS stack, same header order as
+    /// real Fenix), so every checkable layer agrees, and Google never blocks
+    /// genuine-looking Firefox. Mobile token keeps responsive layouts.
+    static let spoofedUserAgent = "Mozilla/5.0 (Android 15; Mobile; rv:152.0) Gecko/152.0 Firefox/152.0"
+
+    /// Kept for the Settings diagnostics comparison view.
     static let safariUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+
+    /// Desktop-mode twin: same Firefox 152 identity, desktop platform token.
+    static let spoofedDesktopUserAgent =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:152.0) Gecko/20100101 Firefox/152.0"
 
     var geckoSettings: GeckoSessionSettings {
         GeckoSessionSettings(
             websiteMode: WebsiteModeSetting(
-                userAgentOverride: BrowserSettings.safariUserAgent,
-                userAgentMode: defaultDesktopMode ? 1 : 0,
+                userAgentOverride: defaultDesktopMode
+                    ? BrowserSettings.spoofedDesktopUserAgent
+                    : BrowserSettings.spoofedUserAgent,
+                userAgentMode: 0,
                 viewportMode: defaultDesktopMode ? 1 : 0
             ),
             pageZoom: PageZoomSetting(level: min(200, max(50, pageZoom))),

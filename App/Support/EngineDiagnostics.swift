@@ -6,7 +6,7 @@ import GeckoView
 /// engine ACTUALLY reports — no more guessing whether the UA pref landed.
 /// The Settings page surfaces the same values for on-device triage.
 enum EngineDiagnostics {
-    static let expectedUA = BrowserSettings.safariUserAgent
+    static let expectedUA = BrowserSettings.spoofedUserAgent
     private static var ranOnce = false
     static private(set) var lastPrefAccepted: Bool?
     static private(set) var lastEngineUA: String?

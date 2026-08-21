@@ -101,7 +101,7 @@ vulpraStartupMarker("engine-gate-armed")
 GeckoEngineGate.whenReady {
     GeckoRuntime.setEngineStringPreference(
         name: "general.useragent.override",
-        value: BrowserSettings.safariUserAgent
+        value: BrowserSettings.spoofedUserAgent
     )
 }
 vulpraStartupMarker("gecko-main-enter")
