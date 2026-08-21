@@ -2,7 +2,7 @@ diff --git a/mobile/ios/app/mobile.js b/mobile/ios/app/mobile.js
 index e835b1c33d86..baafad54b83d 100644
 --- a/mobile/ios/app/mobile.js
 +++ b/mobile/ios/app/mobile.js
-@@ -3,7 +3,99 @@
+@@ -3,7 +3,102 @@
  // License, v. 2.0. If a copy of the MPL was not distributed with this
  // file, You can obtain one at http://mozilla.org/MPL/2.0/.
  
@@ -14,7 +14,10 @@ index e835b1c33d86..baafad54b83d 100644
 +pref("dom.disable_open_during_load", true);
 +
 +// Enable prelaunching of content processes.
-+pref("dom.ipc.processPrelaunch.enabled", true);
++// VULPRA: Prelaunch races the Swift-side JIT attach coordinator — a
++// prelaunched content process can reach its JIT wait before the host
++// registered the attach path, degrading that process at startup.
++pref("dom.ipc.processPrelaunch.enabled", false);
 +
 +pref("dom.ipc.processCount.webIsolated", 1);
 +

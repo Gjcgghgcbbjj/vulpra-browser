@@ -26,6 +26,11 @@ rm -f "$FIREFOX_DIR/.mozconfig"
 	echo "ac_add_options --enable-optimize"
 	echo "ac_add_options --disable-debug"
 	echo "ac_add_options --disable-tests"
+	# Release hardening + ThinLTO: recovers the 10-20% codegen loss vs PGO'd
+	# stock browsers. Configure rejects unknown options fast, so a bad value
+	# fails the build in minutes rather than hours.
+	echo "ac_add_options --enable-release"
+	echo "ac_add_options --enable-lto=thin"
 } > "$FIREFOX_DIR/.mozconfig"
 
 if ! rustup target list | grep -q "^$TARGET (installed)"; then

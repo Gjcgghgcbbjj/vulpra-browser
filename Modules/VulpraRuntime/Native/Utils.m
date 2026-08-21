@@ -42,20 +42,38 @@ BOOL getEntitlementValue(NSString *key) {
     return hasValue;
 }
 
-void updateJetsamControl(pid_t pid) {
+static void updateJetsamControlWithLimit(pid_t pid, int limit) {
     if (!getEntitlementValue(@"com.apple.private.memorystatus")) return;
 
-    // Restore the upstream proven baseline: 75% of physical memory.
-    // A fixed 1024MB limit killed the main process via jetsam within seconds
-    // of Gecko startup on real devices (SIGKILL, uncatchable, invisible in
-    // the simulator which has no jetsam). Gecko's main process legitimately
-    // exceeds 1GB footprint while mapping XUL and bringing up the JS engine.
-    int limit = (int)((NSProcessInfo.processInfo.physicalMemory >> 20) * 0.75);
     if (memorystatus_control(MEMORYSTATUS_CMD_SET_JETSAM_TASK_LIMIT, pid, limit, NULL, 0) == -1) {
         NSLog(@"Failed to set Jetsam task limit to %d MB for pid %d: error: %s", limit, pid, strerror(errno));
     } else {
         NSLog(@"Successfully set Jetsam task limit to %d MB for pid %d", limit, pid);
     }
+}
+
+void updateJetsamControl(pid_t pid) {
+    // Upstream proven baseline: 75% of physical memory.
+    // A fixed 1024MB limit killed the main process via jetsam within seconds
+    // of Gecko startup on real devices (SIGKILL, uncatchable, invisible in
+    // the simulator which has no jetsam). Gecko's main process legitimately
+    // exceeds 1GB footprint while mapping XUL and bringing up the JS engine.
+    int limit = (int)((NSProcessInfo.processInfo.physicalMemory >> 20) * 0.75);
+    updateJetsamControlWithLimit(pid, limit);
+}
+
+void updateJetsamControlForChild(pid_t pid) {
+    // Content processes get their own bounded ceiling: 30% of physical memory
+    // with a 1024MB floor. Without this, every child inherited the 75%
+    // main-process share and aggregate memory was unmanaged — on low-RAM
+    // devices system-wide pressure made jetsam kill arbitrary processes,
+    // taking down every tab at once (single content-process mode).
+    // When a child does hit its own ceiling, only that content process dies
+    // and Gecko's restart machinery recovers just the affected tabs.
+    int physMB = (int)(NSProcessInfo.processInfo.physicalMemory >> 20);
+    int limit = (physMB * 30) / 100;
+    if (limit < 1024) limit = 1024;
+    updateJetsamControlWithLimit(pid, limit);
 }
 
 int spawnRoot(NSString *path, NSArray<NSString *> *args) {

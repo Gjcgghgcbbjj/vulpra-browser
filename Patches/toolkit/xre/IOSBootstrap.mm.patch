@@ -121,7 +121,7 @@ index 264320aed775..2fc51beabfae 100644
  static int ChildProcessInitImpl(int aArgc, char** aArgv) {
    auto bootstrap = mozilla::GetBootstrap();
    if (bootstrap.isErr()) {
-@@ -111,12 +193,86 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
+@@ -111,12 +193,84 @@ static int ChildProcessInitImpl(int aArgc, char** aArgv) {
        /* aRandomizeSmall */ !XRE_IsContentProcess());
  #endif
  
@@ -140,16 +140,14 @@ index 264320aed775..2fc51beabfae 100644
 +              status.runtimeInfo.deviceOSVersion.majorVersion);
 +      fflush(stderr);
 +    } else {
-+      // Phase 2: JIT is the only JS execution backend. No interpreter
-+      // fallback. A content process without JIT is useless and would
-+      // silently run JS 10-50x slower; crash instead so the Gecko
-+      // process-restart machinery can re-attempt a clean launch.
-+      fprintf(stderr, "[JIT]: FATAL pid=%d, txm=%u, major=%d — JIT unavailable, "
-+              "no interpreter fallback (Phase 2)\n", getpid(),
-+              unsigned(status.runtimeInfo.hasTXMSupport),
++      // VULPRA: A failed handshake must never take the browser down.
++      // Degrade this one content process to interpreter execution and let
++      // Gecko's process machinery relaunch a clean process on next use.
++      fprintf(stderr, "[JIT]: Degraded pid=%d, txm=%u, major=%d — handshake failed, continuing without JIT\n",
++              getpid(), unsigned(status.runtimeInfo.hasTXMSupport),
 +              status.runtimeInfo.deviceOSVersion.majorVersion);
 +      fflush(stderr);
-+      MOZ_CRASH("Vulpra requires JIT; interpreter fallback disabled (Phase 2)");
++      JS::DisableJitBackend();
 +    }
 +  } else {
 +    // Non-content processes (socket, GMPlugin, etc.) do not run user JS.
@@ -220,7 +218,7 @@ index 264320aed775..2fc51beabfae 100644
    // Immediately send a reply with our pid
    auto reply = mozilla::AdoptDarwinObject(xpc_dictionary_create_reply(aEvent));
    xpc_dictionary_set_int64(reply.get(), "pid", getpid());
-@@ -198,7 +352,19 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
+@@ -198,6 +352,18 @@ void HandleBootstrapMessage(xpc_object_t aEvent) {
    }
    argv[argc] = nullptr;
  

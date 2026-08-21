@@ -311,7 +311,7 @@ index 8bfc08afb169..785a90cc36a8 100644
              return;
            }
  
-@@ -1515,11 +1605,34 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
+@@ -1515,10 +1605,33 @@ RefPtr<ProcessLaunchPromise> IosProcessLauncher::DoLaunch() {
            // this point, so we should be able to trust it.
            pid_t pid =
                static_cast<pid_t>(xpc_dictionary_get_int64(reply, "pid"));

@@ -19,8 +19,10 @@ class GeckoRuntimeImpl: NSObject, SwiftGeckoViewRuntime {
 
     @objc(childProcessDidStartWithPID:processType:)
     func childProcessDidStart(withPID pid: Int32, processType: String) {
-        // Update jetsam limit for the child process
-        updateJetsamControl(pid)
+        // Bounded per-child ceiling (not the main-process share) so one runaway
+        // tab cannot starve the system; a child that exceeds it dies alone and
+        // Gecko restarts just that content process.
+        updateJetsamControlForChild(pid)
 
         NotificationCenter.default.post(
             name: Notification.Name("GeckoRuntime.ChildProcessDidStart"),
