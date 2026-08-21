@@ -201,7 +201,10 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
     func onKill(session: GeckoSession) { suspend(); observer?.browserTabSessionDidChange(self) }
 
     func onExternalResponse(session: GeckoSession, response: ExternalResponseInfo) async -> Bool {
-        await observer?.browserTab(self, requestedDownload: response) ?? false
+        // Same off-main hazard as onNewSession — downloads may present UI.
+        return await MainActor.run {
+            await observer?.browserTab(self, requestedDownload: response) ?? false
+        }
     }
 
     func onExternalResponseProgress(session: GeckoSession, localFilePath: String, bytesReceived: Int64) -> Bool {
