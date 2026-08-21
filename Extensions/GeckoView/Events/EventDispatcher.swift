@@ -85,7 +85,15 @@ public class GeckoEventDispatcherWrapper: NSObject, SwiftEventDispatcher {
                 queue = q
             }
         } else {
-            gecko?.dispatch(toGecko: type, message: message, callback: callback)
+            // VULPRA: Every gecko-bound dispatch crosses the engine gate.
+            // AutoJSAPI::Init segfaults on real devices when a query reaches
+            // the native dispatcher before main-process bootstrap armed the
+            // JS context (the simulator tolerates the early call). The gate
+            // also runs its body on the main queue, so work naturally waits
+            // until MainProcessInit returned to the runloop.
+            GeckoEngineGate.whenReady { [weak self] in
+                self?.gecko?.dispatch(toGecko: type, message: message, callback: callback)
+            }
         }
     }
 
@@ -132,8 +140,13 @@ public class GeckoEventDispatcherWrapper: NSObject, SwiftEventDispatcher {
     public func activate() {
         if let queue = self.queue {
             self.queue = nil
-            for event in queue {
-                gecko?.dispatch(toGecko: event.type, message: event.message, callback: event.callback)
+            // VULPRA: Flushed events also cross the engine gate — same
+            // AutoJSAPI hazard as the direct-dispatch path above.
+            GeckoEngineGate.whenReady { [weak self] in
+                guard let self, let gecko = self.gecko else { return }
+                for event in queue {
+                    gecko.dispatch(toGecko: event.type, message: event.message, callback: event.callback)
+                }
             }
         }
     }
