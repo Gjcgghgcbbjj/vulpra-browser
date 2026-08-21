@@ -35,7 +35,7 @@ done || exit 1
 echo "audit: $macho_count arm64 Mach-O binaries, all code-signed"
 
 # ── 2. mandatory entitlements on the three privileged binaries ───────────
-for required in com.apple.private.memorystatus com.apple.private.security.no-sandbox platform-application; do
+for required in com.apple.private.memorystatus com.apple.private.security.no-sandbox platform-application com.apple.developer.web-browser; do
     ldid -e "$APP/Vulpra" | grep -q "$required" ||
         fail "main binary lost $required"
 done
@@ -44,6 +44,19 @@ ldid -e "$APP/PlugIns/Vulpra Helper.appex/Vulpra Helper" | grep -q "platform-app
 ldid -e "$APP/ptrace_jit" | grep -q "platform-application" ||
     fail "ptrace_jit lost platform-application"
 echo "audit: privileged binaries carry mandatory entitlements"
+
+# ── 2b. default-browser candidacy ──────────────────────────────────────────
+# The picker only lists apps whose Info.plist registers the web schemes.
+python3 - "$app" <<'PY'
+import plistlib, sys
+from pathlib import Path
+app = Path(sys.argv[1])
+info = plistlib.loads((app / "Info.plist").read_bytes())
+schemes = {s.lower() for t in info.get("CFBundleURLTypes", []) for s in t.get("CFBundleURLSchemes", [])}
+missing = {"http", "https"} - schemes
+assert not missing, f"audit FAIL: default-browser schemes missing from Info.plist: {sorted(missing)}"
+print("audit: default-browser web schemes registered")
+PY
 
 # ── 3. file sharing keys for USB log retrieval ───────────────────────────
 plutil -extract UIFileSharingEnabled raw "$APP/Info.plist" | grep -q true ||
