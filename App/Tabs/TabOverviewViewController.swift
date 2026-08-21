@@ -5,6 +5,7 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
     private var collectionView: UICollectionView!
     private let privateControl = UISegmentedControl(items: [L10n.tr("Tabs", "标签页"), L10n.tr("Private", "隐私")])
     private var showingPrivate = false
+    private var undoToast: UIControl?
     var onDismiss: (() -> Void)?
 
     init(manager: TabManager) {
@@ -96,11 +97,76 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
 
     @objc private func closeTab(_ sender: UIButton) {
         guard visibleTabs.indices.contains(sender.tag) else { return }
+        let closedTitle = visibleTabs[sender.tag].title
         manager.close(visibleTabs[sender.tag])
         // #4: Use incremental update instead of reloadData — preserves cell
         // state and gives proper delete animation.
         collectionView.performBatchUpdates {
             collectionView.deleteItems(at: [IndexPath(item: sender.tag, section: 0)])
+        }
+        showToast(message: L10n.tr("Tab closed", "已关闭标签页"),
+                  detail: closedTitle.isEmpty ? nil : closedTitle)
+    }
+
+    /// firefox-ios style undo toast: dark capsule, tappable undo, auto-dismiss.
+    private func showToast(message: String, detail: String?) {
+        undoToast?.removeFromSuperview()
+        let toast = UIControl()
+        toast.backgroundColor = UIColor(white: 0.16, alpha: 0.96)
+        toast.layer.cornerRadius = 18
+        toast.translatesAutoresizingMaskIntoConstraints = false
+
+        var text = message
+        if let detail {
+            text += " · " + (detail.count > 24 ? String(detail.prefix(24)) + "…" : detail)
+        }
+        let label = UILabel()
+        label.text = text
+        label.textColor = .white
+        label.font = .preferredFont(forTextStyle: .footnote)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        toast.addSubview(label)
+
+        let undo = UIButton(type: .system)
+        undo.setTitle(L10n.tr("Undo", "撤销"), for: .normal)
+        undo.setTitleColor(UIColor(red: 0.45, green: 0.78, blue: 1.0, alpha: 1), for: .normal)
+        undo.titleLabel?.font = .preferredFont(forTextStyle: .footnote)
+        undo.addAction(UIAction { [weak self] _ in
+            self?.undoClose()
+            self?.undoToast?.removeFromSuperview()
+            self?.undoToast = nil
+        }, for: .touchUpInside)
+        undo.translatesAutoresizingMaskIntoConstraints = false
+        toast.addSubview(undo)
+
+        view.addSubview(toast)
+        NSLayoutConstraint.activate([
+            toast.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            toast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -14),
+            label.topAnchor.constraint(equalTo: toast.topAnchor, constant: 10),
+            label.leadingAnchor.constraint(equalTo: toast.leadingAnchor, constant: 16),
+            label.trailingAnchor.constraint(equalTo: undo.leadingAnchor, constant: -14),
+            undo.centerYAnchor.constraint(equalTo: toast.centerYAnchor),
+            undo.trailingAnchor.constraint(equalTo: toast.trailingAnchor, constant: -14),
+            undo.widthAnchor.constraint(greaterThanOrEqualToConstant: 32),
+            toast.topAnchor.constraint(equalTo: label.topAnchor, constant: -10),
+            toast.bottomAnchor.constraint(equalTo: label.bottomAnchor, constant: 10),
+        ])
+        toast.alpha = 0
+        toast.transform = CGAffineTransform(translationX: 0, y: 12)
+        UIView.animate(withDuration: 0.25) {
+            toast.alpha = 1; toast.transform = .identity
+        }
+        undoToast = toast
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self, weak toast] in
+            guard let toast, toast === self?.undoToast else { return }
+            UIView.animate(withDuration: 0.25, animations: {
+                toast.alpha = 0
+                toast.transform = CGAffineTransform(translationX: 0, y: 12)
+            }, completion: { _ in
+                toast.removeFromSuperview()
+                if self?.undoToast === toast { self?.undoToast = nil }
+            })
         }
     }
 

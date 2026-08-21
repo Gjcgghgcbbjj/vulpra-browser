@@ -47,13 +47,36 @@ final class TabCardCell: UICollectionViewCell {
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 
+    private var representedURL: URL?
+
     func update(tab: BrowserTab, selected: Bool) {
         titleLabel.text = tab.title
-        urlLabel.text = tab.url?.host ?? (tab.isPrivate ? "Private tab" : "New tab")
+        let hostText = tab.url.flatMap { BrowserChromeView.displayAddress(from: $0.absoluteString) }
+            ?? (tab.isPrivate ? L10n.tr("Private tab", "隐私标签页") : L10n.tr("New tab", "新标签页"))
+        urlLabel.text = hostText
         contentView.layer.borderWidth = selected ? 2 : 0
         contentView.layer.borderColor = VulpraAppearance.accent.cgColor
-        preview.image = tab.thumbnail ?? UIImage(systemName: tab.isPrivate ? "hand.raised.fill" : "globe")
-        preview.contentMode = tab.thumbnail == nil ? .center : .scaleAspectFill
-        accessibilityLabel = "\(tab.title), \(urlLabel.text ?? "")"
+
+        representedURL = tab.url
+        if let thumbnail = tab.thumbnail {
+            preview.image = thumbnail
+            preview.contentMode = .scaleAspectFill
+        } else if let url = tab.url, !tab.isPrivate {
+            // Letter avatar immediately; real favicon when cached/fetched.
+            preview.image = SiteIcon.placeholder(for: url)
+            preview.backgroundColor = .clear
+            preview.contentMode = .scaleAspectFill
+            SiteIcon.load(for: url) { [weak self] image in
+                guard let self, self.representedURL == url else { return }
+                self.preview.image = image
+                self.preview.setNeedsLayout()
+            }
+        } else {
+            preview.image = UIImage(systemName: tab.isPrivate ? "hand.raised.fill" : "globe")
+            preview.tintColor = .secondaryLabel
+            preview.backgroundColor = .tertiarySystemBackground
+            preview.contentMode = .center
+        }
+        accessibilityLabel = "\(tab.title), \(hostText)"
     }
 }

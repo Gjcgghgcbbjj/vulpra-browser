@@ -125,14 +125,16 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         quickButtons.removeAll()
         guard !unique.isEmpty else { return }
 
+        // firefox-ios TopSites tile: rounded square, centered icon, label below.
+        var tileBackground = UIBackgroundConfiguration.clear()
+        tileBackground.backgroundColor = .secondarySystemBackground
+        tileBackground.cornerRadius = SiteIcon.tileCornerRadius
         var configuration = UIButton.Configuration.plain()
-        configuration.image = UIImage(systemName: "globe")
         configuration.imagePlacement = .top
-        configuration.imagePadding = 6
-        configuration.preferredSymbolConfigurationForImage =
-            UIImage.SymbolConfiguration(pointSize: 26, weight: .medium)
-        configuration.baseForegroundColor = VulpraAppearance.accent
-        configuration.titlePadding = 2
+        configuration.imagePadding = 8
+        configuration.background = tileBackground
+        configuration.titlePadding = 4
+        configuration.titleAlignment = .center
 
         for rowStart in stride(from: 0, to: unique.count, by: 4) {
             let rowItems = unique[rowStart..<min(rowStart + 4, unique.count)]
@@ -140,11 +142,21 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
             for (offset, item) in rowItems.enumerated() {
                 var cellConfiguration = configuration
                 cellConfiguration.title = item.0.isEmpty ? item.1.host ?? "—" : item.0
+                cellConfiguration.image = SiteIcon.placeholder(for: item.1)
+                cellConfiguration.preferredSymbolConfigurationForImage =
+                    UIImage.SymbolConfiguration(pointSize: 30)
                 let button = UIButton(configuration: cellConfiguration)
                 button.tag = rowStart + offset
                 button.titleLabel?.font = .preferredFont(forTextStyle: .caption1)
                 button.titleLabel?.lineBreakMode = .byTruncatingTail
                 button.addTarget(self, action: #selector(openQuickSite(_:)), for: .touchUpInside)
+                let representedURL = item.1
+                SiteIcon.load(for: representedURL) { [weak button] image in
+                    guard let button else { return }
+                    var updated = button.configuration
+                    updated?.image = image
+                    button.configuration = updated
+                }
                 quickButtons.append(button)
                 cells.append(button)
             }
