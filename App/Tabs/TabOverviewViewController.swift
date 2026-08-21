@@ -3,7 +3,7 @@ import UIKit
 final class TabOverviewViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
     private let manager: TabManager
     private var collectionView: UICollectionView!
-    private let privateControl = UISegmentedControl(items: ["Tabs", "Private"])
+    private let privateControl = UISegmentedControl(items: [L10n.tr("Tabs", "标签页"), L10n.tr("Private", "隐私")])
     private var showingPrivate = false
     var onDismiss: (() -> Void)?
 
@@ -18,15 +18,15 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Tabs"
+        title = L10n.tr("Tabs", "标签页")
         view.backgroundColor = .systemBackground
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Done", style: .done, target: self, action: #selector(done))
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: L10n.tr("Done", "完成"), style: .done, target: self, action: #selector(done))
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addTab))
         privateControl.selectedSegmentIndex = 0
         toolbarItems = [
-            UIBarButtonItem(title: "Undo Close", style: .plain, target: self, action: #selector(undoClose)),
+            UIBarButtonItem(title: L10n.tr("Undo Close", "撤销关闭"), style: .plain, target: self, action: #selector(undoClose)),
             UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
-            UIBarButtonItem(title: "Close Others", style: .plain, target: self, action: #selector(closeOthers)),
+            UIBarButtonItem(title: L10n.tr("Close Others", "关闭其他"), style: .plain, target: self, action: #selector(closeOthers)),
         ]
         navigationController?.setToolbarHidden(false, animated: false)
         privateControl.addTarget(self, action: #selector(modeChanged), for: .valueChanged)

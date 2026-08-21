@@ -41,6 +41,14 @@ final class OmniboxSuggestionsView: UIView, UITableViewDataSource, UITableViewDe
         suggestions = values
         isHidden = values.isEmpty
         tableView.reloadData()
+        // Size to content: one row should never render a five-row empty panel.
+        invalidateIntrinsicContentSize()
+    }
+
+    override var intrinsicContentSize: CGSize {
+        let rows = CGFloat(suggestions.count)
+        let height = rows == 0 ? 0 : min(rows * 58 + 12, 320)
+        return CGSize(width: UIView.noIntrinsicMetric, height: height)
     }
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int { suggestions.count }

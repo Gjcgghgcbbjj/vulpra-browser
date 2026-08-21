@@ -22,6 +22,9 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private var recordedURLs: [UUID: String] = [:]
     private var initialURL: URL?
     private var isSceneActive = false
+    private var chromeDockConstraint: NSLayoutConstraint?
+    private var chromeKeyboardConstraint: NSLayoutConstraint?
+    private var chromeRidesKeyboard = false
 
     init(initialURL: URL? = nil) {
         self.initialURL = initialURL
@@ -121,6 +124,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         view.addSubview(contentContainer)
         view.addSubview(chrome)
         view.insertSubview(suggestionsView, belowSubview: chrome)
+        chromeDockConstraint = chrome.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -6)
         NSLayoutConstraint.activate([
             contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -128,13 +132,17 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             chrome.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 10),
             chrome.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
-            chrome.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -6),
+            chromeDockConstraint!,
             suggestionsView.leadingAnchor.constraint(equalTo: chrome.leadingAnchor),
             suggestionsView.trailingAnchor.constraint(equalTo: chrome.trailingAnchor),
             suggestionsView.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -8),
-            suggestionsView.heightAnchor.constraint(lessThanOrEqualToConstant: 320),
-            suggestionsView.heightAnchor.constraint(equalToConstant: 290),
         ])
+        // Height of the suggestion panel is driven by its intrinsicContentSize
+        // (row count); no fixed 290pt panel for a single suggestion anymore.
+        // When the address field is focused the chrome docks above the
+        // keyboard so suggestions stay visible (Safari-style).
+        chromeKeyboardConstraint = chrome.bottomAnchor.constraint(
+            equalTo: view.keyboardLayoutGuide.topAnchor, constant: -8)
         let backEdge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgeNavigation(_:)))
         backEdge.edges = .left
         contentContainer.addGestureRecognizer(backEdge)
@@ -197,15 +205,46 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
     private func showFailure(_ message: String) {
         logger.error("\(message, privacy: .public)")
-        let label = UILabel(); label.text = message; label.textColor = .secondaryLabel
-        label.textAlignment = .center; label.numberOfLines = 0
-        label.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(label)
+        removeCurrentContent()
+        let icon = UIImageView(image: UIImage(systemName: "wifi.exclamationmark"))
+        icon.tintColor = .secondaryLabel
+        icon.contentMode = .center
+        let label = UILabel()
+        label.text = message
+        label.textColor = .secondaryLabel
+        label.textAlignment = .center
+        label.numberOfLines = 0
+        label.font = .preferredFont(forTextStyle: .subheadline)
+        var configuration = UIButton.Configuration.gray()
+        configuration.title = L10n.tr("Try Again", "重试")
+        configuration.image = UIImage(systemName: "arrow.clockwise")
+        configuration.imagePadding = 6
+        configuration.buttonSize = .large
+        configuration.cornerStyle = .capsule
+        let retry = UIButton(configuration: configuration)
+        retry.addTarget(self, action: #selector(retryFailedPage), for: .touchUpInside)
+        let stack = UIStackView(arrangedSubviews: [icon, label, retry])
+        stack.axis = .vertical
+        stack.spacing = 14
+        stack.setCustomSpacing(22, after: label)
+        stack.alignment = .center
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        contentContainer.addSubview(stack)
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: contentContainer.centerYAnchor),
-            label.leadingAnchor.constraint(greaterThanOrEqualTo: contentContainer.layoutMarginsGuide.leadingAnchor),
+            stack.centerXAnchor.constraint(equalTo: contentContainer.centerXAnchor),
+            stack.centerYAnchor.constraint(equalTo: contentContainer.centerYAnchor),
+            stack.leadingAnchor.constraint(greaterThanOrEqualTo: contentContainer.layoutMarginsGuide.leadingAnchor),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: contentContainer.layoutMarginsGuide.trailingAnchor),
+            icon.heightAnchor.constraint(equalToConstant: 56),
+            icon.widthAnchor.constraint(equalToConstant: 72),
         ])
+    }
+
+    @objc private func retryFailedPage() {
+        attachedEngineView?.removeFromSuperview()
+        attachedEngineView = nil
+        tabManager.selectedTab?.reload()
+        showSelectedTab()
     }
 
     private func presentLibrary(_ section: LibrarySection) {
@@ -219,6 +258,24 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
                                                                       target: self, action: #selector(closePresented))
         present(UINavigationController(rootViewController: controller), animated: true)
     }
+
+    /// Docks the chrome above the keyboard while editing the address field.
+    private func setChromeKeyboardRide(_ enabled: Bool) {
+        guard enabled != chromeRidesKeyboard,
+              let dock = chromeDockConstraint, let ride = chromeKeyboardConstraint else { return }
+        chromeRidesKeyboard = enabled
+        view.layoutIfNeeded()
+        let changes = {
+            if enabled { dock.isActive = false; ride.isActive = true }
+            else { ride.isActive = false; dock.isActive = true }
+            self.view.layoutIfNeeded()
+        }
+        if UIAccessibility.isReduceMotionEnabled { changes() }
+        else { UIView.animate(withDuration: 0.25, animations: changes) }
+    }
+
+    func browserChromeDidBeginEditing(_ chrome: BrowserChromeView) { setChromeKeyboardRide(true) }
+    func browserChromeDidEndEditing(_ chrome: BrowserChromeView) { setChromeKeyboardRide(false) }
 
     func browserChrome(_ chrome: BrowserChromeView, submitted text: String) {
         suggestionsView.update([])

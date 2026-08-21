@@ -9,6 +9,8 @@ protocol BrowserChromeViewDelegate: AnyObject {
     func browserChromeDidRequestTabs(_ chrome: BrowserChromeView)
     func browserChrome(_ chrome: BrowserChromeView, requestedAdjacentTab offset: Int)
     func browserChrome(_ chrome: BrowserChromeView, textDidChange text: String)
+    func browserChromeDidBeginEditing(_ chrome: BrowserChromeView)
+    func browserChromeDidEndEditing(_ chrome: BrowserChromeView)
 }
 
 final class BrowserChromeView: UIView, UITextFieldDelegate {
@@ -20,6 +22,7 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         let progress: Int
         let tabCount: Int
         let isSecure: Bool
+        let isPrivate: Bool
     }
 
     weak var delegate: BrowserChromeViewDelegate?
@@ -59,14 +62,17 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
             isLoading: tab.isLoading,
             progress: tab.progress,
             tabCount: tabCount,
-            isSecure: tab.url?.scheme?.lowercased() == "https"
+            isSecure: tab.url?.scheme?.lowercased() == "https",
+            isPrivate: tab.isPrivate
         )
         guard state != renderedState else { return }
 
         let previous = renderedState
         renderedState = state
         if previous?.address != state.address, !addressField.isFirstResponder {
-            addressField.text = state.address
+            // Show a clean domain while browsing; the full URL returns when
+            // the field gains focus for editing or sharing.
+            addressField.text = Self.displayAddress(from: state.address)
         }
         if previous?.canGoBack != state.canGoBack { backButton.isEnabled = state.canGoBack }
         if previous?.canGoForward != state.canGoForward { forwardButton.isEnabled = state.canGoForward }
@@ -84,6 +90,15 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         if previous?.progress != state.progress || previous?.isLoading != state.isLoading {
             progressView.update(progress: state.progress, loading: state.isLoading)
         }
+        if previous?.isPrivate != state.isPrivate { applyPrivateTheme(state.isPrivate) }
+    }
+
+    /// Browsing chrome shows just the host ("example.com"); editing shows the
+    /// full URL. Falls back to the raw string when no host exists.
+    static func displayAddress(from absolute: String?) -> String? {
+        guard let absolute, let url = URL(string: absolute) else { return absolute }
+        if let host = url.host { return host.hasPrefix("www.") ? String(host.dropFirst(4)) : host }
+        return absolute
     }
 
     func focusAddress() {
@@ -114,7 +129,7 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         lockView.tintColor = .secondaryLabel
         lockView.contentMode = .scaleAspectFit
         lockView.translatesAutoresizingMaskIntoConstraints = false
-        addressField.placeholder = "Search or enter website"
+        addressField.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
         addressField.autocapitalizationType = .none
         addressField.autocorrectionType = .no
         addressField.keyboardType = .webSearch
@@ -174,10 +189,30 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         return true
     }
 
-    func textFieldDidBeginEditing(_ textField: UITextField) { animateEditing(true) }
-    func textFieldDidEndEditing(_ textField: UITextField) {
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        // Editing always shows the full URL so it can be corrected or shared.
         addressField.text = renderedState?.address
+        delegate?.browserChromeDidBeginEditing(self)
+        animateEditing(true)
+    }
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        addressField.text = Self.displayAddress(from: renderedState?.address)
+        delegate?.browserChromeDidEndEditing(self)
         animateEditing(false)
+    }
+
+    /// Private-mode chrome: darker material and a violet accent so the mode is
+    /// unmistakable at a glance, mirroring mainstream mobile browsers.
+    private func applyPrivateTheme(_ privateMode: Bool) {
+        let effect = UIBlurEffect(style: privateMode ? .systemMaterialDark : .systemChromeMaterial)
+        UIView.transition(with: material, duration: 0.25, options: [.transitionCrossDissolve]) {
+            self.material.effect = effect
+        }
+        lockView.tintColor = privateMode ? UIColor(red: 0.78, green: 0.64, blue: 1.0, alpha: 1) : .secondaryLabel
+    }
+
+    private func haptic() {
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
     private func animateEditing(_ editing: Bool) {
@@ -189,11 +224,11 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
     }
 
     @objc private func addressChanged() { delegate?.browserChrome(self, textDidChange: addressField.text ?? "") }
-    @objc private func back() { delegate?.browserChromeDidRequestBack(self) }
-    @objc private func forward() { delegate?.browserChromeDidRequestForward(self) }
-    @objc private func reload() { delegate?.browserChromeDidRequestReloadOrStop(self) }
-    @objc private func share() { delegate?.browserChromeDidRequestShare(self) }
-    @objc private func tabs() { delegate?.browserChromeDidRequestTabs(self) }
+    @objc private func back() { haptic(); delegate?.browserChromeDidRequestBack(self) }
+    @objc private func forward() { haptic(); delegate?.browserChromeDidRequestForward(self) }
+    @objc private func reload() { haptic(); delegate?.browserChromeDidRequestReloadOrStop(self) }
+    @objc private func share() { haptic(); delegate?.browserChromeDidRequestShare(self) }
+    @objc private func tabs() { haptic(); delegate?.browserChromeDidRequestTabs(self) }
     @objc private func swipe(_ gesture: UISwipeGestureRecognizer) {
         delegate?.browserChrome(self, requestedAdjacentTab: gesture.direction == .left ? 1 : -1)
     }

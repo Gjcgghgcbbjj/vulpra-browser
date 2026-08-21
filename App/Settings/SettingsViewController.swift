@@ -12,7 +12,7 @@ final class SettingsViewController: UITableViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Settings"
+        title = L10n.tr("Settings", "设置")
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "SettingsCell")
     }
 
@@ -26,17 +26,17 @@ final class SettingsViewController: UITableViewController {
         cell.accessoryView = nil
         cell.accessoryType = .disclosureIndicator
         switch row {
-        case .searchEngine: content.text = "Search Engine"; content.secondaryText = settings.searchEngine.title
-        case .remoteSuggestions: configureSwitch(cell, title: "Search Suggestions", isOn: settings.remoteSuggestions, action: #selector(toggleSuggestions(_:)), content: &content)
-        case .darkAppearance: configureSwitch(cell, title: "Dark Appearance", isOn: settings.darkAppearance, action: #selector(toggleDark(_:)), content: &content)
-        case .desktopMode: configureSwitch(cell, title: "Desktop Sites by Default", isOn: settings.defaultDesktopMode, action: #selector(toggleDesktop(_:)), content: &content)
-        case .pageZoom: content.text = "Page Zoom"; content.secondaryText = "\(settings.pageZoom)%"
-        case .trackingProtection: content.text = "Tracking Protection"; content.secondaryText = settings.trackingProtection.rawValue.capitalized
-        case .httpsOnly: configureSwitch(cell, title: "HTTPS-Only", isOn: settings.httpsOnly, action: #selector(toggleHTTPS(_:)), content: &content)
-        case .historyRetention: content.text = "History Retention"; content.secondaryText = "\(settings.historyRetentionDays) days"
-        case .privacyData: content.text = "Clear Browsing Data"; content.image = UIImage(systemName: "trash")
-        case .addons: content.text = "Extensions"; content.image = UIImage(systemName: "puzzlepiece.extension")
-        case .permissions: content.text = "Site Permissions"; content.image = UIImage(systemName: "hand.raised")
+        case .searchEngine: content.text = L10n.tr("Search Engine", "搜索引擎"); content.secondaryText = settings.searchEngine.title
+        case .remoteSuggestions: configureSwitch(cell, title: L10n.tr("Search Suggestions", "搜索建议"), isOn: settings.remoteSuggestions, action: #selector(toggleSuggestions(_:)), content: &content)
+        case .darkAppearance: configureSwitch(cell, title: L10n.tr("Dark Appearance", "深色外观"), isOn: settings.darkAppearance, action: #selector(toggleDark(_:)), content: &content)
+        case .desktopMode: configureSwitch(cell, title: L10n.tr("Desktop Sites by Default", "默认请求桌面版网站"), isOn: settings.defaultDesktopMode, action: #selector(toggleDesktop(_:)), content: &content)
+        case .pageZoom: content.text = L10n.tr("Page Zoom", "页面缩放"); content.secondaryText = "\(settings.pageZoom)%"
+        case .trackingProtection: content.text = L10n.tr("Tracking Protection", "跟踪保护"); content.secondaryText = settings.trackingProtection.rawValue.capitalized
+        case .httpsOnly: configureSwitch(cell, title: L10n.tr("HTTPS-Only", "仅 HTTPS 模式"), isOn: settings.httpsOnly, action: #selector(toggleHTTPS(_:)), content: &content)
+        case .historyRetention: content.text = L10n.tr("History Retention", "历史保留"); content.secondaryText = "\(settings.historyRetentionDays) days"
+        case .privacyData: content.text = L10n.tr("Clear Browsing Data", "清除浏览数据"); content.image = UIImage(systemName: "trash")
+        case .addons: content.text = L10n.tr("Extensions", "扩展"); content.image = UIImage(systemName: "puzzlepiece.extension")
+        case .permissions: content.text = L10n.tr("Site Permissions", "网站权限"); content.image = UIImage(systemName: "hand.raised")
         }
         cell.contentConfiguration = content
         return cell
@@ -46,10 +46,10 @@ final class SettingsViewController: UITableViewController {
         tableView.deselectRow(at: indexPath, animated: true)
         let row = Row.allCases[indexPath.row]
         switch row {
-        case .searchEngine: choose(title: "Search Engine", values: SearchEngine.allCases, label: { $0.title }) { engine in BrowserSettingsStore.shared.update { $0.searchEngine = engine } }
-        case .pageZoom: choose(title: "Page Zoom", values: [75, 90, 100, 110, 125, 150], label: { "\($0)%" }) { zoom in BrowserSettingsStore.shared.update { $0.pageZoom = zoom } }
-        case .trackingProtection: choose(title: "Tracking Protection", values: TrackingProtectionLevel.allCases, label: { $0.rawValue.capitalized }) { level in BrowserSettingsStore.shared.update { $0.trackingProtection = level } }
-        case .historyRetention: choose(title: "History Retention", values: [7, 30, 90, 365], label: { "\($0) days" }) { days in BrowserSettingsStore.shared.update { $0.historyRetentionDays = days } }
+        case .searchEngine: choose(title: L10n.tr("Search Engine", "搜索引擎"), values: SearchEngine.allCases, label: { $0.title }) { engine in BrowserSettingsStore.shared.update { $0.searchEngine = engine } }
+        case .pageZoom: choose(title: L10n.tr("Page Zoom", "页面缩放"), values: [75, 90, 100, 110, 125, 150], label: { "\($0)%" }) { zoom in BrowserSettingsStore.shared.update { $0.pageZoom = zoom } }
+        case .trackingProtection: choose(title: L10n.tr("Tracking Protection", "跟踪保护"), values: TrackingProtectionLevel.allCases, label: { $0.rawValue.capitalized }) { level in BrowserSettingsStore.shared.update { $0.trackingProtection = level } }
+        case .historyRetention: choose(title: L10n.tr("History Retention", "历史保留"), values: [7, 30, 90, 365], label: { "\($0) days" }) { days in BrowserSettingsStore.shared.update { $0.historyRetentionDays = days } }
         case .privacyData: navigationController?.pushViewController(PrivacyDataViewController(), animated: true)
         case .addons: navigationController?.pushViewController(AddonManagementViewController(), animated: true)
         case .permissions: navigationController?.pushViewController(SitePermissionsViewController(), animated: true)
@@ -67,7 +67,7 @@ final class SettingsViewController: UITableViewController {
     private func choose<T>(title: String, values: [T], label: (T) -> String, apply: @escaping (T) -> Void) {
         let alert = UIAlertController(title: title, message: nil, preferredStyle: .actionSheet)
         values.forEach { value in alert.addAction(UIAlertAction(title: label(value), style: .default) { _ in apply(value); self.tableView.reloadData() }) }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.tr("Cancel", "取消"), style: .cancel))
         present(alert, animated: true)
     }
 

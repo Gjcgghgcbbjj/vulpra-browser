@@ -20,11 +20,32 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
+        // Subtle brand gradient at the top gives the page depth without
+        // fighting dark mode.
+        let gradient = CAGradientLayer()
+        gradient.colors = [
+            VulpraAppearance.accent.withAlphaComponent(0.10).cgColor,
+            UIColor.clear.cgColor,
+        ]
+        gradient.startPoint = CGPoint(x: 0.5, y: 0)
+        gradient.endPoint = CGPoint(x: 0.5, y: 1)
+        let backdrop = UIView(frame: CGRect(x: 0, y: 0, width: view.bounds.width, height: 260))
+        backdrop.autoresizingMask = [.flexibleWidth]
+        backdrop.isUserInteractionEnabled = false
+        backdrop.layer.addSublayer(gradient)
+        gradient.frame = backdrop.bounds
+        view.addSubview(backdrop)
+
         let title = UILabel()
         title.text = "Vulpra"
-        title.font = .systemFont(ofSize: 36, weight: .bold)
+        title.font = .systemFont(ofSize: 40, weight: .bold)
         title.textAlignment = .center
-        searchField.placeholder = "Search or enter website"
+        let subtitle = UILabel()
+        subtitle.text = L10n.tr("Browse with Gecko", "Gecko 内核浏览器")
+        subtitle.font = .preferredFont(forTextStyle: .subheadline)
+        subtitle.textColor = .secondaryLabel
+        subtitle.textAlignment = .center
+        searchField.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
         searchField.backgroundColor = .secondarySystemBackground
         searchField.layer.cornerRadius = 16
         searchField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 1))
@@ -38,11 +59,11 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         searchField.heightAnchor.constraint(equalToConstant: 52).isActive = true
 
         let actions = [
-            action("star", "Bookmarks", #selector(bookmarks)),
-            action("clock", "History", #selector(history)),
-            action("arrow.down.circle", "Downloads", #selector(downloads)),
-            action("hand.raised", "Private", #selector(privateTab)),
-            action("gearshape", "Settings", #selector(settings)),
+            action("star", L10n.tr("Bookmarks", "书签"), #selector(bookmarks)),
+            action("clock", L10n.tr("History", "历史"), #selector(history)),
+            action("arrow.down.circle", L10n.tr("Downloads", "下载"), #selector(downloads)),
+            action("hand.raised", L10n.tr("Private", "隐私"), #selector(privateTab)),
+            action("gearshape", L10n.tr("Settings", "设置"), #selector(settings)),
         ]
         let actionStack = UIStackView(arrangedSubviews: actions)
         actionStack.axis = .horizontal
@@ -50,7 +71,9 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         actionStack.spacing = 8
         quickStack.axis = .vertical
         quickStack.spacing = 6
-        let stack = UIStackView(arrangedSubviews: [title, searchField, quickStack, actionStack])
+        let stack = UIStackView(arrangedSubviews: [title, subtitle, searchField, quickStack, actionStack])
+        stack.setCustomSpacing(2, after: title)
+        stack.setCustomSpacing(28, after: searchField)
         stack.axis = .vertical
         stack.spacing = 24
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -97,37 +120,45 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
             }
         }
         var seen = Set<String>()
-        let unique = pairs.filter { seen.insert($0.1.absoluteString).inserted }.prefix(6)
+        let unique = Array(pairs.filter { seen.insert($0.1.absoluteString).inserted }.prefix(8))
         quickURLs = unique.map { $0.1 }
 
-        // #5: Reuse existing buttons instead of destroy+recreate.
-        // Only create new buttons when the count grows; otherwise just
-        // update their configuration in place.
-        let needed = unique.count
-        while quickButtons.count < needed {
-            var configuration = UIButton.Configuration.gray()
-            configuration.image = UIImage(systemName: "globe")
-            configuration.imagePadding = 10
-            configuration.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 12, bottom: 8, trailing: 12)
-            let button = UIButton(configuration: configuration)
-            button.contentHorizontalAlignment = .leading
-            button.addTarget(self, action: #selector(openQuickSite(_:)), for: .touchUpInside)
-            quickStack.addArrangedSubview(button)
-            quickButtons.append(button)
-        }
-        // Remove and destroy excess buttons when count shrinks.
-        while quickButtons.count > needed {
-            let button = quickButtons.removeLast()
-            button.removeFromSuperview()
-        }
-        // Update existing buttons in place.
-        for (index, item) in unique.enumerated() {
-            let button = quickButtons[index]
-            button.tag = index
-            var configuration = button.configuration
-            configuration?.title = item.0
-            configuration?.subtitle = item.1.host
-            button.configuration = configuration
+        // Icon grid (4 per row, like mainstream mobile browsers). The set is
+        // bounded to 8 items and only rebuilt on viewWillAppear, so a plain
+        // rebuild here is cheaper than diffing stack rows.
+        quickStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        quickButtons.removeAll()
+        guard !unique.isEmpty else { return }
+
+        var configuration = UIButton.Configuration.plain()
+        configuration.image = UIImage(systemName: "globe")
+        configuration.imagePlacement = .top
+        configuration.imagePadding = 6
+        configuration.preferredSymbolConfigurationForImage =
+            UIImage.SymbolConfiguration(pointSize: 26, weight: .medium)
+        configuration.baseForegroundColor = VulpraAppearance.accent
+        configuration.titlePadding = 2
+
+        for rowStart in stride(from: 0, to: unique.count, by: 4) {
+            let rowItems = unique[rowStart..<min(rowStart + 4, unique.count)]
+            var cells: [UIButton] = []
+            for (offset, item) in rowItems.enumerated() {
+                var cellConfiguration = configuration
+                cellConfiguration.title = item.0.isEmpty ? item.1.host ?? "—" : item.0
+                let button = UIButton(configuration: cellConfiguration)
+                button.tag = rowStart + offset
+                button.titleLabel?.font = .preferredFont(forTextStyle: .caption1)
+                button.titleLabel?.lineBreakMode = .byTruncatingTail
+                button.addTarget(self, action: #selector(openQuickSite(_:)), for: .touchUpInside)
+                quickButtons.append(button)
+                cells.append(button)
+            }
+            while cells.count < 4 { cells.append(UIView()) } // pad the last row
+            let row = UIStackView(arrangedSubviews: cells)
+            row.axis = .horizontal
+            row.distribution = .fillEqually
+            row.spacing = 8
+            quickStack.addArrangedSubview(row)
         }
     }
 
