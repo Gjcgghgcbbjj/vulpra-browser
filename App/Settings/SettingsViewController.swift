@@ -108,7 +108,7 @@ final class SettingsViewController: UITableViewController {
         content.image = UIImage(systemName: row.symbol)
         content.imageProperties.tintColor = row.tint
         content.imageProperties.maximumSize = CGSize(width: 26, height: 26)
-        content.preferredConfiguration = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+        content.imageProperties.preferredSymbolConfiguration = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
         cell.accessoryView = nil
         switch row {
         case .remoteSuggestions:
