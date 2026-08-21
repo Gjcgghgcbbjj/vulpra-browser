@@ -26,6 +26,10 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private var chromeDockConstraint: NSLayoutConstraint?
     private var chromeKeyboardConstraint: NSLayoutConstraint?
     private var chromeRidesKeyboard = false
+    private var contentTopConstraint: NSLayoutConstraint?
+    private var contentBottomToChrome: NSLayoutConstraint?
+    private var contentBottomToSafe: NSLayoutConstraint?
+    private var chromeHiddenForImmersive = false
 
     init(initialURL: URL? = nil) {
         self.initialURL = initialURL
@@ -126,11 +130,20 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         view.addSubview(chrome)
         view.insertSubview(suggestionsView, belowSubview: chrome)
         chromeDockConstraint = chrome.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -6)
+        // Web content must never sit under the notch/status bar or behind the
+        // floating toolbar — the Gecko uikit port exposes no safe-area insets
+        // to pages, so fixed page footers/headers were getting occluded.
+        // Top: below the safe area. Bottom: above the chrome while it is
+        // visible; full height down to the home-indicator area in immersive
+        // mode (the pill toggle).
+        contentTopConstraint = contentContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
+        contentBottomToChrome = contentContainer.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -8)
+        contentBottomToSafe = contentContainer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         NSLayoutConstraint.activate([
-            contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            contentTopConstraint!,
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            contentBottomToChrome!,
             chrome.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 10),
             chrome.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
             chromeDockConstraint!,
@@ -292,12 +305,15 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     }
 
     /// Immersive mode: hide or restore the bottom toolbar. The pill stays
-    /// tappable so one tap always brings the chrome back.
+    /// tappable so one tap always brings the chrome back. While hidden the
+    /// page extends to the safe-area bottom (still clears the home indicator,
+    /// since pages cannot read that inset themselves).
     @objc private func toggleChrome() {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
         if chrome.addressField.isFirstResponder { chrome.addressField.resignFirstResponder() }
         let willHide = chrome.alpha > 0.5
         suggestionsView.update([])
+        chromeHiddenForImmersive = willHide
         view.layoutIfNeeded()
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.92,
                        initialSpringVelocity: 0.3, options: [.beginFromCurrentState]) {
@@ -305,6 +321,9 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             self.chrome.transform = willHide
                 ? CGAffineTransform(translationX: 0, y: self.chrome.bounds.height + 20)
                 : .identity
+            // Swap the content bottom edge with the chrome state.
+            self.contentBottomToChrome?.isActive = !willHide
+            self.contentBottomToSafe?.isActive = willHide
             self.view.layoutIfNeeded()
         }
     }
