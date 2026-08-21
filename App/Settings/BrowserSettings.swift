@@ -44,11 +44,19 @@ struct BrowserSettings: Codable, Equatable {
     var showRecentVisits = true
     var showRecentlyClosed = true
 
+    /// Google refuses sign-in from unknown browser identities ("browser may
+    /// not be secure"). Claiming the iOS Safari identity per session gives
+    /// maximum page compatibility — applied at the session-settings layer so
+    /// every tab presents it regardless of desktop-mode toggles.
+    static let safariUserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1"
+
     var geckoSettings: GeckoSessionSettings {
         GeckoSessionSettings(
-            websiteMode: defaultDesktopMode
-                ? WebsiteModeSetting(userAgentOverride: nil, userAgentMode: 1, viewportMode: 1)
-                : .mobile,
+            websiteMode: WebsiteModeSetting(
+                userAgentOverride: BrowserSettings.safariUserAgent,
+                userAgentMode: defaultDesktopMode ? 1 : 0,
+                viewportMode: defaultDesktopMode ? 1 : 0
+            ),
             pageZoom: PageZoomSetting(level: min(200, max(50, pageZoom))),
             language: LanguageSetting(codes: Locale.preferredLanguages),
             trackingProtection: trackingProtection != .standard
