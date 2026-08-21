@@ -160,7 +160,14 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
 
     func onNewSession(session: GeckoSession, uri: String, windowId: String) async -> GeckoSession? {
         guard let target = URL(string: uri) else { return nil }
-        return observer?.browserTab(self, requestedNewTab: target, windowID: windowId)
+        // Unlike the other navigation callbacks (which arrive pre-wrapped on
+        // the main actor), the new-window request carries a return value, so
+        // GeckoView awaits it on a worker thread. Tab creation touches UIKit
+        // autolayout all the way down — it must hop to the main thread first
+        // or CoreAutoLayout aborts the process (device SIGABRT reports).
+        return await MainActor.run {
+            observer?.browserTab(self, requestedNewTab: target, windowID: windowId)
+        }
     }
 
     func onPageStart(session: GeckoSession, url: String) {
