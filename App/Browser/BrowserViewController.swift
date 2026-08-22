@@ -15,10 +15,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private let contextMenu = BrowserContextMenuController()
     private let contentContainer = UIView()
     private let chrome = BrowserChromeView()
-    /// Labelled exit capsule for immersive mode. Three generations of bare
-    /// color bars failed because they relied on the user noticing a tiny
-    /// shape; a worded button cannot be missed or misread.
-    private let immersiveExitButton = UIButton(type: .system)
     private let startPage = StartPageViewController()
     private let suggestionsView = OmniboxSuggestionsView()
     private var attachedEngineView: UIView?
@@ -32,7 +28,10 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private var contentTopConstraint: NSLayoutConstraint?
     private var contentBottomToChrome: NSLayoutConstraint?
     private var contentBottomToSafe: NSLayoutConstraint?
-    private var chromeHiddenForImmersive = false
+    /// Scroll-aware chrome: engine scroll telemetry drives visibility.
+    private let scrollObserver = GeckoScrollObserver()
+    private var lastScrollY: CGFloat = 0
+    private var isChromeHidden = false
 
     init(initialURL: URL? = nil) {
         self.initialURL = initialURL
@@ -108,6 +107,11 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         updatePrivacyCover(show: !active && tabManager.selectedTab?.isPrivate == true)
     }
 
+    /// True while the home screen (not web content) fills the container.
+    private var startPageVisible: Bool {
+        attachedEngineView == nil
+    }
+
     private func configureOwners() {
         tabManager.delegate = self
         tabManager.permissionDelegate = permissionController
@@ -123,6 +127,9 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         startPage.delegate = self
         suggestionsView.onSelect = { [weak self] suggestion in
             guard let self else { return }; self.browserChrome(self.chrome, submitted: suggestion.value)
+        }
+        scrollObserver.onScrollY = { [weak self] y in
+            self?.handleEngineScrollY(y)
         }
     }
 
@@ -161,40 +168,8 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         chromeKeyboardConstraint = chrome.bottomAnchor.constraint(
             equalTo: view.keyboardLayoutGuide.topAnchor, constant: -8)
 
-        // Immersive exit capsule: worded, shadowed, top-right. Entering
-        // immersive fades it in; leaving fades it out.
-        var exitConfig = UIButton.Configuration.plain()
-        exitConfig.title = L10n.tr("Exit Immersive", "退出沉浸")
-        exitConfig.image = UIImage(systemName: "arrow.down.right.and.arrow.up.left",
-                                   withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
-        exitConfig.imagePadding = 6
-        exitConfig.baseForegroundColor = .white
-        exitConfig.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 12)
-        immersiveExitButton.configuration = exitConfig
-        immersiveExitButton.backgroundColor = UIColor.black.withAlphaComponent(0.62)
-        immersiveExitButton.layer.cornerRadius = 15
-        immersiveExitButton.layer.shadowColor = UIColor.black.cgColor
-        immersiveExitButton.layer.shadowOpacity = 0.35
-        immersiveExitButton.layer.shadowOffset = CGSize(width: 0, height: 2)
-        immersiveExitButton.layer.shadowRadius = 4
-        immersiveExitButton.accessibilityLabel = L10n.tr("Show toolbar", "显示工具栏")
-        immersiveExitButton.isUserInteractionEnabled = true
-        immersiveExitButton.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(immersiveExitButton)
-        immersiveExitButton.addTarget(self, action: #selector(toggleChrome), for: .touchUpInside)
-        NSLayoutConstraint.activate([
-            immersiveExitButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
-            immersiveExitButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-        ])
-        immersiveExitButton.alpha = 0
-
         let backEdge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgeNavigation(_:)))
         backEdge.edges = .left
-        // Second immersive exit path: swipe in from the right edge. Deliberate
-        // motion only — no more accidental restores from resting thumbs.
-        let restoreEdge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgeRestoreChrome(_:)))
-        restoreEdge.edges = .right
-        view.addGestureRecognizer(restoreEdge)
         contentContainer.addGestureRecognizer(backEdge)
         let forwardEdge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgeNavigation(_:)))
         forwardEdge.edges = .right
@@ -207,6 +182,8 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
         guard tab.url != nil else { showStartPage(); return }
         let session = tab.activate(settings: BrowserSettingsStore.shared.value)
+        scrollObserver.attach(to: session)
+        lastScrollY = 0
         // First activate may still be waiting on GeckoEngineGate — keep start page up.
         guard session.isOpen(), let engineView = session.engineView else {
             showStartPage()
@@ -323,64 +300,54 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         else { UIView.animate(withDuration: 0.25, animations: changes) }
     }
 
-    /// Immersive mode: hide or restore the bottom toolbar. The pill stays
-    /// tappable so one tap always brings the chrome back. While hidden the
-    /// page extends to the safe-area bottom (still clears the home indicator,
-    /// since pages cannot read that inset themselves).
-    @objc private func toggleChrome() {
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        if chrome.addressField.isFirstResponder { chrome.addressField.resignFirstResponder() }
-        let willHide = chrome.alpha > 0.5
-        suggestionsView.update([])
-        chromeHiddenForImmersive = willHide
-        view.layoutIfNeeded()
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.92,
-                       initialSpringVelocity: 0.3, options: [.beginFromCurrentState]) {
-            self.chrome.alpha = willHide ? 0 : 1
-            self.chrome.transform = willHide
-                ? CGAffineTransform(translationX: 0, y: self.chrome.bounds.height + 20)
-                : .identity
-            // Swap the content bottom edge with the chrome state.
-            self.contentBottomToChrome?.isActive = !willHide
-            self.contentBottomToSafe?.isActive = willHide
-            // The restore pill only exists while hidden, parked in the corner
-            // away from the thumb-rest zone so browsing taps never hit it.
-            self.immersiveExitButton.alpha = willHide ? 1 : 0
-            self.view.layoutIfNeeded()
+    // MARK: - Scroll-aware chrome (Safari-style)
+
+    private func hideChrome() {
+        guard !isChromeHidden else { return }
+        isChromeHidden = true
+        animateChrome(hidden: true)
+    }
+
+    private func showChrome() {
+        guard isChromeHidden else { return }
+        isChromeHidden = false
+        animateChrome(hidden: false)
+    }
+
+    private func animateChrome(hidden: Bool) {
+        if UIAccessibility.isReduceMotionEnabled {
+            applyChromeState(hidden: hidden)
+            return
         }
-        if willHide { showImmersiveHint() }
+        UIView.animate(withDuration: 0.28, delay: 0, usingSpringWithDamping: 0.95,
+                       initialSpringVelocity: 0.2, options: [.beginFromCurrentState]) {
+            self.applyChromeState(hidden: hidden)
+        }
     }
 
-    @objc private func edgeRestoreChrome(_ gesture: UIScreenEdgePanGestureRecognizer) {
-        guard gesture.state == .began, chromeHiddenForImmersive, chrome.alpha < 0.5 else { return }
-        toggleChrome()
+    private func applyChromeState(hidden: Bool) {
+        chrome.alpha = hidden ? 0 : 1
+        chrome.transform = hidden
+            ? CGAffineTransform(translationX: 0, y: chrome.bounds.height + 20)
+            : .identity
+        contentBottomToChrome?.isActive = !hidden
+        contentBottomToSafe?.isActive = hidden
+        view.layoutIfNeeded()
     }
 
-    /// Brief toast after entering immersive so the exit affordance is clear.
-    private func showImmersiveHint() {
-        let hint = UILabel()
-        hint.text = L10n.tr("Toolbar hidden — tap \u{201C}Exit Immersive\u{201D} (top right) to restore",
-                            "已隐藏工具栏 · 点右上角「退出沉浸」恢复")
-        hint.font = .systemFont(ofSize: 12, weight: .medium)
-        hint.textColor = .white
-        hint.backgroundColor = UIColor.black.withAlphaComponent(0.65)
-        hint.textAlignment = .center
-        hint.layer.cornerRadius = 12
-        hint.clipsToBounds = true
-        hint.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(hint)
-        NSLayoutConstraint.activate([
-            hint.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            hint.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -18),
-            hint.heightAnchor.constraint(equalToConstant: 30),
-        ])
-        hint.layoutIfNeeded()
-        hint.bounds.size.width += 24
-        hint.alpha = 0
-        UIView.animate(withDuration: 0.25, animations: { hint.alpha = 1 }) { _ in
-            UIView.animate(withDuration: 0.4, delay: 2.2, options: [],
-                           animations: { hint.alpha = 0 },
-                           completion: { _ in hint.removeFromSuperview() })
+    /// Engine telemetry → direction detection. Scroll down hides the toolbar,
+    /// scroll up brings it back — nothing ever overlays the page itself.
+    func handleEngineScrollY(_ y: CGFloat) {
+        defer { lastScrollY = y }
+        guard !startPageVisible, isViewLoaded else { return }
+        let dy = y - lastScrollY
+        guard abs(dy) > 14 else { return }  // ignore rubber-band jitter
+        if dy > 0, chrome.alpha > 0.5 {
+            if chrome.addressField.isFirstResponder { chrome.addressField.resignFirstResponder() }
+            suggestionsView.update([])
+            hideChrome()
+        } else if dy < 0, chrome.alpha < 0.5 {
+            showChrome()
         }
     }
 
@@ -485,10 +452,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
     }
     func pageToolsDidRequestPictureInPicture(_ controller: PageToolsController) { pictureInPicture.start() }
-    /// Entering immersive from the page menu is deliberate; no tap-to-hide.
-    func pageToolsDidRequestImmersiveMode(_ controller: PageToolsController) {
-        if chrome.alpha > 0.5 { toggleChrome() }
-    }
     func pageToolsDidRequestReaderMode(_ controller: PageToolsController) {
         guard let session = tabManager.selectedTab?.session else { return }
         readerMode.presenter = self

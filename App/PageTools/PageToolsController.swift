@@ -9,7 +9,6 @@ protocol PageToolsControllerDelegate: AnyObject {
     func pageToolsDidRequestQRScanner(_ controller: PageToolsController)
     func pageToolsDidRequestPictureInPicture(_ controller: PageToolsController)
     func pageToolsDidRequestReaderMode(_ controller: PageToolsController)
-    func pageToolsDidRequestImmersiveMode(_ controller: PageToolsController)
 }
 
 final class PageToolsController {
@@ -22,7 +21,6 @@ final class PageToolsController {
         menu.addAction(UIAlertAction(title: L10n.tr("Find in Page", "页面内查找"), style: .default) { _ in self.askFind(from: presenter) })
         menu.addAction(UIAlertAction(title: L10n.tr("Request Desktop Site", "请求桌面版网站"), style: .default) { _ in self.delegate?.pageToolsDidRequestDesktopMode(self) })
         menu.addAction(UIAlertAction(title: L10n.tr("Page Zoom", "页面缩放"), style: .default) { _ in self.askZoom(from: presenter) })
-        menu.addAction(UIAlertAction(title: L10n.tr("Immersive Mode", "沉浸式阅读"), style: .default) { _ in self.delegate?.pageToolsDidRequestImmersiveMode(self) })
         menu.addAction(UIAlertAction(title: L10n.tr("Picture in Picture", "画中画"), style: .default) { _ in self.delegate?.pageToolsDidRequestPictureInPicture(self) })
         menu.addAction(UIAlertAction(title: L10n.tr("Reader Mode", "阅读模式"), style: .default) { _ in self.delegate?.pageToolsDidRequestReaderMode(self) })
         menu.addAction(UIAlertAction(title: L10n.tr("Scan QR Code", "扫描二维码"), style: .default) { _ in self.delegate?.pageToolsDidRequestQRScanner(self) })
