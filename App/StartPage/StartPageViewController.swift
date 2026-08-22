@@ -15,7 +15,7 @@ protocol StartPageViewControllerDelegate: AnyObject {
 /// and one quiet glyph row. No thumbnails anywhere.
 final class StartPageViewController: UIViewController, UITextFieldDelegate {
     weak var delegate: StartPageViewControllerDelegate?
-    private let wallpaperView = UIImageView()
+    private let wallpaperView = WallpaperView()
     private let searchField = UITextField()
     private let gridStack = UIStackView()
     private let customizeHint = UILabel()
@@ -49,27 +49,13 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
     private func applyWallpaper() {
         let raw = BrowserSettingsStore.shared.value.wallpaper
         let option = Wallpaper(rawValue: raw) ?? .none
-        NSLog("VULPRA_DIAG wallpaper raw=%@ option=%@", raw, String(describing: option))
-        // Re-measure once layout has settled so gradients/photos render full-size.
-        view.layoutIfNeeded()
-        let size = view.bounds.size == .zero ? UIScreen.main.bounds.size : view.bounds.size
-        let image = option.image(for: size)
-        NSLog("VULPRA_DIAG wallpaper image=%@ for %dx%d",
-              image.map { "\($0.size)" } ?? "nil", Int(size.width), Int(size.height))
-        // Paint the flat base FIRST so even a rasterization failure shows the
-        // wallpaper's color, never a bare white page.
-        let hasVisual = (image != nil) || (option.baseColor != nil)
-        if option.isDark && hasVisual {
-            view.backgroundColor = option.baseColor ?? .black
-            wallpaperView.isHidden = false
-            wallpaperView.image = image
-        } else {
-            view.backgroundColor = .systemBackground
-            wallpaperView.isHidden = true
-            wallpaperView.image = nil
-        }
-        // Flip the whole content tree to dark semantics over dark wallpapers.
-        view.overrideUserInterfaceStyle = option.isDark ? .dark : .unspecified
+        wallpaperView.apply(option: option)
+        let dark = option.isDark && !wallpaperView.isHidden
+        view.backgroundColor = dark ? UIColor(red: 0.04, green: 0.04, blue: 0.07, alpha: 1)
+                                    : .systemBackground
+        view.overrideUserInterfaceStyle = dark ? .dark : .unspecified
+        NSLog("VULPRA_DIAG wallpaper -> %@ (raw=%@, visible=%d)",
+              option.rawValue, raw, wallpaperView.isHidden ? 0 : 1)
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -81,9 +67,7 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
 
-        // Via-style wallpaper behind everything; content keeps blur materials.
-        wallpaperView.contentMode = .scaleAspectFill
-        wallpaperView.clipsToBounds = true
+        // Live-gradient backdrop behind everything; content keeps blur materials.
         wallpaperView.translatesAutoresizingMaskIntoConstraints = false
         view.insertSubview(wallpaperView, at: 0)
         NSLayoutConstraint.activate([
