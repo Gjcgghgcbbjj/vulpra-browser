@@ -15,7 +15,10 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private let contextMenu = BrowserContextMenuController()
     private let contentContainer = UIView()
     private let chrome = BrowserChromeView()
-    private let chromeTogglePill = UIButton(type: .custom)
+    /// Labelled exit capsule for immersive mode. Three generations of bare
+    /// color bars failed because they relied on the user noticing a tiny
+    /// shape; a worded button cannot be missed or misread.
+    private let immersiveExitButton = UIButton(type: .system)
     private let startPage = StartPageViewController()
     private let suggestionsView = OmniboxSuggestionsView()
     private var attachedEngineView: UIView?
@@ -158,41 +161,32 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         chromeKeyboardConstraint = chrome.bottomAnchor.constraint(
             equalTo: view.keyboardLayoutGuide.topAnchor, constant: -8)
 
-        // Immersive reading toggle: a subtle pill under the chrome. Tap hides
-        // the whole toolbar so the page gets the full screen; tap again to
-        // bring it back. No gesture conflicts with web content.
-        // High-contrast by design: a light capsule vanishes on light pages,
-        // which is exactly how users got stranded in immersive mode before.
-        chromeTogglePill.backgroundColor = UIColor.black.withAlphaComponent(0.55)
-        chromeTogglePill.layer.cornerRadius = 3
-        chromeTogglePill.accessibilityLabel = L10n.tr("Show toolbar", "显示工具栏")
-        chromeTogglePill.accessibilityHint = L10n.tr("Restores the hidden toolbar",
-                                                     "恢复被隐藏的工具栏")
-        chromeTogglePill.isUserInteractionEnabled = true
-        chromeTogglePill.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(chromeTogglePill)
-        let pillBar = UIView()
-        pillBar.backgroundColor = .white
-        pillBar.layer.cornerRadius = 1
-        pillBar.translatesAutoresizingMaskIntoConstraints = false
-        pillBar.isUserInteractionEnabled = false
-        chromeTogglePill.addSubview(pillBar)
+        // Immersive exit capsule: worded, shadowed, top-right. Entering
+        // immersive fades it in; leaving fades it out.
+        var exitConfig = UIButton.Configuration.plain()
+        exitConfig.title = L10n.tr("Exit Immersive", "退出沉浸")
+        exitConfig.image = UIImage(systemName: "arrow.down.right.and.arrow.up.left",
+                                   withConfiguration: UIImage.SymbolConfiguration(pointSize: 11, weight: .semibold))
+        exitConfig.imagePadding = 6
+        exitConfig.baseForegroundColor = .white
+        exitConfig.contentInsets = NSDirectionalEdgeInsets(top: 7, leading: 12, bottom: 7, trailing: 12)
+        immersiveExitButton.configuration = exitConfig
+        immersiveExitButton.backgroundColor = UIColor.black.withAlphaComponent(0.62)
+        immersiveExitButton.layer.cornerRadius = 15
+        immersiveExitButton.layer.shadowColor = UIColor.black.cgColor
+        immersiveExitButton.layer.shadowOpacity = 0.35
+        immersiveExitButton.layer.shadowOffset = CGSize(width: 0, height: 2)
+        immersiveExitButton.layer.shadowRadius = 4
+        immersiveExitButton.accessibilityLabel = L10n.tr("Show toolbar", "显示工具栏")
+        immersiveExitButton.isUserInteractionEnabled = true
+        immersiveExitButton.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(immersiveExitButton)
+        immersiveExitButton.addTarget(self, action: #selector(toggleChrome), for: .touchUpInside)
         NSLayoutConstraint.activate([
-            pillBar.centerXAnchor.constraint(equalTo: chromeTogglePill.centerXAnchor),
-            pillBar.centerYAnchor.constraint(equalTo: chromeTogglePill.centerYAnchor),
-            pillBar.widthAnchor.constraint(equalToConstant: 18),
-            pillBar.heightAnchor.constraint(equalToConstant: 2),
+            immersiveExitButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+            immersiveExitButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
         ])
-        chromeTogglePill.addTarget(self, action: #selector(toggleChrome), for: .touchUpInside)
-        // Top-right placement: the thumb-rest zone (bottom corners) caused
-        // accidental restores while reading; the top corner never sees them.
-        NSLayoutConstraint.activate([
-            chromeTogglePill.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -14),
-            chromeTogglePill.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            chromeTogglePill.widthAnchor.constraint(equalToConstant: 44),
-            chromeTogglePill.heightAnchor.constraint(equalToConstant: 6),
-        ])
-        chromeTogglePill.alpha = 0
+        immersiveExitButton.alpha = 0
 
         let backEdge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgeNavigation(_:)))
         backEdge.edges = .left
@@ -351,7 +345,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             self.contentBottomToSafe?.isActive = willHide
             // The restore pill only exists while hidden, parked in the corner
             // away from the thumb-rest zone so browsing taps never hit it.
-            self.chromeTogglePill.alpha = willHide ? 0.8 : 0
+            self.immersiveExitButton.alpha = willHide ? 1 : 0
             self.view.layoutIfNeeded()
         }
         if willHide { showImmersiveHint() }
@@ -365,8 +359,8 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     /// Brief toast after entering immersive so the exit affordance is clear.
     private func showImmersiveHint() {
         let hint = UILabel()
-        hint.text = L10n.tr("Toolbar hidden — tap the pill (top right) or swipe from the right edge",
-                            "已隐藏工具栏 · 点右上角小白条或从右侧边缘左滑恢复")
+        hint.text = L10n.tr("Toolbar hidden — tap \u{201C}Exit Immersive\u{201D} (top right) to restore",
+                            "已隐藏工具栏 · 点右上角「退出沉浸」恢复")
         hint.font = .systemFont(ofSize: 12, weight: .medium)
         hint.textColor = .white
         hint.backgroundColor = UIColor.black.withAlphaComponent(0.65)
@@ -456,6 +450,9 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     func startPageDidRequestHistory(_ controller: StartPageViewController) { presentLibrary(.history) }
     func startPageDidRequestDownloads(_ controller: StartPageViewController) { presentNavigation(DownloadsViewController()) }
     func startPageDidRequestSettings(_ controller: StartPageViewController) { presentNavigation(SettingsViewController()) }
+    func startPageDidRequestCustomizeWallpaper(_ controller: StartPageViewController) {
+        presentNavigation(WallpaperPickerViewController())
+    }
 
     func pageToolsDidRequestShare(_ controller: PageToolsController) {
         guard let url = tabManager.selectedTab?.url else { return }

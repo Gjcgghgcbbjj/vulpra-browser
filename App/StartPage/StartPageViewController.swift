@@ -7,6 +7,7 @@ protocol StartPageViewControllerDelegate: AnyObject {
     func startPageDidRequestHistory(_ controller: StartPageViewController)
     func startPageDidRequestDownloads(_ controller: StartPageViewController)
     func startPageDidRequestSettings(_ controller: StartPageViewController)
+    func startPageDidRequestCustomizeWallpaper(_ controller: StartPageViewController)
 }
 
 /// Via-style start screen: centered search capsule, a compact grid of small
@@ -17,6 +18,7 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
     private let wallpaperView = UIImageView()
     private let searchField = UITextField()
     private let gridStack = UIStackView()
+    private let customizeHint = UILabel()
     private let actionRow = UIStackView()
     private var quickURLs: [URL] = []
     private let columns = 5
@@ -25,6 +27,12 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
     override func viewWillAppear(_ animated: Bool) { super.viewWillAppear(animated); applyWallpaper(); reloadQuickSites() }
 
     @objc private func wallpaperDidChange() { applyWallpaper() }
+
+    @objc private func customizePressed(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        delegate?.startPageDidRequestCustomizeWallpaper(self)
+    }
 
     private func applyWallpaper() {
         let option = Wallpaper(rawValue: BrowserSettingsStore.shared.value.wallpaper) ?? .none
@@ -63,6 +71,25 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         NotificationCenter.default.addObserver(
             self, selector: #selector(wallpaperDidChange),
             name: .vulpraWallpaperDidChange, object: nil)
+
+        // Via-style discoverability: long-press anywhere on the home screen
+        // to open the wallpaper picker — no digging through Settings.
+        let customize = UILongPressGestureRecognizer(
+            target: self, action: #selector(customizePressed(_:)))
+        customize.minimumPressDuration = 0.45
+        customize.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
+        view.addGestureRecognizer(customize)
+
+        customizeHint.text = L10n.tr("Long-press to change wallpaper", "长按可更换壁纸")
+        customizeHint.font = .systemFont(ofSize: 11)
+        customizeHint.textColor = .tertiaryLabel
+        customizeHint.textAlignment = .center
+        customizeHint.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(customizeHint)
+        NSLayoutConstraint.activate([
+            customizeHint.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            customizeHint.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
+        ])
 
         searchField.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
         // Translucent so a chosen wallpaper glows through; still readable.
