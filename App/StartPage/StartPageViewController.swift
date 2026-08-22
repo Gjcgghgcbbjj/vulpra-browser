@@ -215,9 +215,6 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = UIScreen.main.scale
         return UIGraphicsImageRenderer(size: CGSize(width: size, height: size), format: format).image { context in
-            let cgContext = context.cgContext
-            cgContext.interpolationQuality =
-                drawSize.width >= image.size.width ? .high : .none
             UIColor.secondarySystemBackground.setFill()
             UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: size, height: size),
                          cornerRadius: cornerRadius).fill()
@@ -229,6 +226,8 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
                 drawSize = CGSize(width: drawSize.width * scale, height: drawSize.height * scale)
             }
             let origin = CGPoint(x: (size - drawSize.width) / 2, y: (size - drawSize.height) / 2)
+            context.cgContext.interpolationQuality =
+                drawSize.width >= image.size.width ? .high : .none
             image.draw(in: CGRect(origin: origin, size: drawSize))
         }
     }
