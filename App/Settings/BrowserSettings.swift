@@ -33,7 +33,7 @@ enum TrackingProtectionLevel: String, Codable, CaseIterable {
 
 struct BrowserSettings: Codable, Equatable {
     // Bump when a migration must run on load; see BrowserSettingsStore.init.
-    static let currentSchemaVersion = 2
+    static let currentSchemaVersion = 3
 
     var searchEngine: SearchEngine = .duckDuckGo
     var remoteSuggestions = false
@@ -46,9 +46,8 @@ struct BrowserSettings: Codable, Equatable {
     var showFavorites = true
     var showRecentVisits = true
     var showRecentlyClosed = true
-    /// Factory default is a real wallpaper — a bare white start page reads as
-    /// "the feature is broken" even when it merely was never chosen.
-    var wallpaper = "sunset"
+    /// Clean start page by default; wallpapers remain opt-in via long-press.
+    var wallpaper = "none"
     var schemaVersion = 0
 
     private enum CodingKeys: String, CodingKey {
@@ -74,13 +73,11 @@ struct BrowserSettings: Codable, Equatable {
         showFavorites = try c.decodeIfPresent(Bool.self, forKey: .showFavorites) ?? true
         showRecentVisits = try c.decodeIfPresent(Bool.self, forKey: .showRecentVisits) ?? true
         showRecentlyClosed = try c.decodeIfPresent(Bool.self, forKey: .showRecentlyClosed) ?? true
-        wallpaper = try c.decodeIfPresent(String.self, forKey: .wallpaper) ?? Self.defaultWallpaper
+        wallpaper = try c.decodeIfPresent(String.self, forKey: .wallpaper) ?? "none"
         schemaVersion = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
     }
 
     init() {}
-
-    static let defaultWallpaper = "sunset"
 
     /// Google refuses sign-in from unknown browser identities ("browser may
     /// not be secure"). Claiming iOS Safari did not clear Google's interstitial
@@ -124,9 +121,10 @@ final class BrowserSettingsStore {
         let loaded = store.load(default: BrowserSettings())
         if loaded.schemaVersion < BrowserSettings.currentSchemaVersion {
             var migrated = loaded
-            // v1→v2: legacy installs never had a wallpaper choice; give them
-            // the factory gradient instead of interpreting "none" as intent.
-            if migrated.schemaVersion < 2 { migrated.wallpaper = BrowserSettings.defaultWallpaper }
+            // v2→v3: the factory gradient experiment is over — users judged
+            // it ugly, so everyone lands back on the clean page unless they
+            // deliberately pick a wallpaper afterwards.
+            if migrated.schemaVersion < 3 { migrated.wallpaper = "none" }
             migrated.schemaVersion = BrowserSettings.currentSchemaVersion
             store.save(migrated)
             value = migrated
