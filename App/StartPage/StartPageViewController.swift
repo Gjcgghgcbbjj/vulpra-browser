@@ -28,11 +28,21 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
 
     private func applyWallpaper() {
         let option = Wallpaper(rawValue: BrowserSettingsStore.shared.value.wallpaper) ?? .none
+        // Re-measure once layout has settled so gradients/photos render full-size.
+        view.layoutIfNeeded()
         let size = view.bounds.size == .zero ? UIScreen.main.bounds.size : view.bounds.size
         wallpaperView.image = option.image(for: size)
-        let dark = option.isDark
         wallpaperView.isHidden = wallpaperView.image == nil
+        let dark = option.isDark && wallpaperView.image != nil
         view.backgroundColor = dark ? .black : .systemBackground
+        // Flip the whole content tree to dark semantics over dark wallpapers —
+        // labels, materials and separators all adapt in one move.
+        view.overrideUserInterfaceStyle = dark ? .dark : .unspecified
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        applyWallpaper()
     }
 
     override func viewDidLoad() {

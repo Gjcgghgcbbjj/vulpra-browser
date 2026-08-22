@@ -58,34 +58,80 @@ enum Wallpaper: String, CaseIterable {
         }
     }
 
+    /// Decoded custom photo kept in memory so applying it never depends on a
+    /// disk round-trip that can silently fail.
+    static var cachedCustomImage: UIImage?
+
+
     func image(for size: CGSize) -> UIImage? {
         switch self {
         case .none:
             return nil
         case .photo:
+            if Self.cachedCustomImage != nil { return Self.cachedCustomImage }
             guard let data = try? Data(contentsOf: Self.photoFileURL),
                   let image = UIImage(data: data) else { return nil }
+            Self.cachedCustomImage = image
             return image
         case .sunset, .ocean, .forest, .night:
-            guard let colors = gradientColors else { return nil }
-            let format = UIGraphicsImageRendererFormat.default()
-            format.scale = UIScreen.main.scale
-            return UIGraphicsImageRenderer(size: size, format: format).image { context in
-                let space = CGColorSpaceCreateDeviceRGB()
-                guard let gradient = CGGradient(
-                    colorsSpace: space,
-                    colors: colors.map(\.cgColor) as CFArray,
-                    locations: [0.0, 0.55, 1.0]
-                ) else { return }
-                let start = CGPoint(x: size.width / 2, y: 0)
-                let end = CGPoint(x: size.width / 2, y: size.height)
-                context.cgContext.drawLinearGradient(
-                    gradient, start: start, end: end, options: [])
-            }
+            return renderGradient(size: size)
         }
     }
 
-    static func storePhoto(_ image: UIImage) {
+    /// Five-stop diagonal gradient plus a faint noise pass — flat vertical
+    /// three-stop gradients banded badly on OLED screens ("质感太差").
+    private func renderGradient(size: CGSize) -> UIImage? {
+        guard let colors = gradientColors else { return nil }
+        // Interpolate two extra mid stops for a smoother sweep.
+        var stops: [UIColor] = []
+        for (index, color) in colors.enumerated() {
+            stops.append(color)
+            guard index < colors.count - 1 else { continue }
+            stops.append(blend(colors[index], colors[index + 1], 0.5))
+        }
+        let locations = (0..<stops.count).map {
+            CGFloat($0) / CGFloat(stops.count - 1)
+        }
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = UIScreen.main.scale
+        let rendered = UIGraphicsImageRenderer(size: size, format: format).image { context in
+            let cg = context.cgContext
+            let space = CGColorSpaceCreateDeviceRGB()
+            guard let gradient = CGGradient(
+                colorsSpace: space,
+                colors: stops.map(\.cgColor) as CFArray,
+                locations: locations
+            ) else { return }
+            // Diagonal sweep reads far more premium than vertical.
+            cg.drawLinearGradient(
+                gradient,
+                start: CGPoint(x: 0, y: 0),
+                end: CGPoint(x: size.width, y: size.height),
+                options: [.drawsBeforeEndLocation, .drawsAfterEndLocation])
+            // 1.5% monochrome noise breaks up gradient banding.
+            cg.setAlpha(0.015)
+            for _ in 0..<2200 {
+                let x = CGFloat.random(in: 0...size.width)
+                let y = CGFloat.random(in: 0...size.height)
+                UIColor.white.withAlphaComponent(CGFloat.random(in: 0.05...0.2)).setFill()
+                cg.fill(CGRect(x: x, y: y, width: 1.5, height: 1.5))
+            }
+            cg.setAlpha(1)
+        }
+        return rendered
+    }
+
+    private func blend(_ a: UIColor, _ b: UIColor, _ t: CGFloat) -> UIColor {
+        var (r1, g1, b1, a1) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
+        var (r2, g2, b2, a2) = (CGFloat(0), CGFloat(0), CGFloat(0), CGFloat(0))
+        a.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        b.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        return UIColor(red: r1 + (r2 - r1) * t, green: g1 + (g2 - g1) * t,
+                       blue: b1 + (b2 - b1) * t, alpha: a1 + (a2 - a1) * t)
+    }
+
+    static func storePhoto(_ image: UIImage) -> Bool {
+        defer { cachedCustomImage = image }
         // Downscale to at most the screen's longest edge before writing —
         // a 48MP library photo would bloat Documents and slow every load.
         let maxEdge = max(UIScreen.main.bounds.size.width, UIScreen.main.bounds.size.height)
@@ -103,7 +149,15 @@ enum Wallpaper: String, CaseIterable {
         } else {
             target = image
         }
-        try? target.pngData()?.write(to: photoFileURL, options: .atomic)
+        do {
+            let data = target.pngData() ?? Data()
+            try data.write(to: photoFileURL, options: .atomic)
+            NSLog("VULPRA_DIAG wallpaper stored %d bytes", data.count)
+            return !data.isEmpty
+        } catch {
+            NSLog("VULPRA_DIAG wallpaper store FAILED: %@", error.localizedDescription)
+            return false
+        }
     }
 }
 
@@ -165,6 +219,12 @@ final class WallpaperPickerViewController: UITableViewController, PHPickerViewCo
         }
     }
 
+    private func showPickError(message: String) {
+        let alert = UIAlertController(title: nil, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: L10n.tr("OK", "好"), style: .default))
+        present(alert, animated: true)
+    }
+
     private func presentPhotoPicker() {
         var config = PHPickerConfiguration()
         config.filter = .images
@@ -179,9 +239,15 @@ final class WallpaperPickerViewController: UITableViewController, PHPickerViewCo
         guard let provider = results.first?.itemProvider,
               provider.canLoadObject(ofClass: UIImage.self) else { return }
         provider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
-            guard let image = object as? UIImage else { return }
             DispatchQueue.main.async {
-                Wallpaper.storePhoto(image)
+                guard let image = object as? UIImage else {
+                    self?.showPickError(message: L10n.tr("Could not load that photo.", "无法读取该照片。"))
+                    return
+                }
+                guard Wallpaper.storePhoto(image) else {
+                    self?.showPickError(message: L10n.tr("Could not save the wallpaper.", "壁纸保存失败。"))
+                    return
+                }
                 BrowserSettingsStore.shared.update { $0.wallpaper = Wallpaper.photo.rawValue }
                 NotificationCenter.default.post(name: .vulpraWallpaperDidChange, object: nil)
                 self?.tableView.reloadData()
