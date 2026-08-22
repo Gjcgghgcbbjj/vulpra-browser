@@ -197,7 +197,7 @@ public class GeckoSession {
             "unsafeSessionContextId": nil,
         ]
 
-        let modules: [String: Bool] = Dictionary(
+        var modules: [String: Bool] = Dictionary(
             uniqueKeysWithValues: sessionHandlers.compactMap {
                 guard let moduleName = $0.moduleName else {
                     return nil
@@ -205,6 +205,9 @@ public class GeckoSession {
                 return (moduleName, $0.enabled)
             }
         )
+        // Scroll telemetry has no Swift-side delegate; GeckoScrollObserver
+        // listens for its events directly, so the module must be enabled here.
+        modules["GeckoViewScroll"] = true
 
         window = GeckoViewOpenWindow(
             id,

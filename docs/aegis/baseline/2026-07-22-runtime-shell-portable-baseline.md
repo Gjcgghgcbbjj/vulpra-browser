@@ -14,7 +14,7 @@ compiled the project, that Gecko or idevice were rebuilt, that an IPA exists,
 or that a physical device has launched the app.
 
 - Import manifest rows: `349`
-- Import manifest SHA-256: `6e6e26dd9fb16ea93b8208f76d0ca746461d55574bad77da51bef886d7cbed62`
+- Import manifest SHA-256: `45330fde4a226f5520ce37808dad88dce81bba2c354a7527b9f21e70981abacd`
 - Xcode graph SHA-256: `deb0a92db9c71c5af443ef9d34c693caa10698f2ede575018571cec882ab525c`
 - Gecko artifact contract SHA-256: `d1e38d64a4f88f1ab90c52abc5f2ad1b488d6f4a0bc4ef775e61bef7660e4b02`
 - Portable runner SHA-256: `54feedf3a9a6d36b7a5d192616d8595a24aaca2e634c4def65bd29966d9f5d5c`
