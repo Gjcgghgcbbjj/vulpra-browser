@@ -2,148 +2,116 @@ import UIKit
 
 protocol StartPageViewControllerDelegate: AnyObject {
     func startPage(_ controller: StartPageViewController, open text: String)
-    func startPageDidRequestPrivateTab(_ controller: StartPageViewController)
-    func startPageDidRequestBookmarks(_ controller: StartPageViewController)
-    func startPageDidRequestHistory(_ controller: StartPageViewController)
-    func startPageDidRequestDownloads(_ controller: StartPageViewController)
-    func startPageDidRequestSettings(_ controller: StartPageViewController)
-    func startPageDidRequestCustomizeWallpaper(_ controller: StartPageViewController)
 }
 
-/// Via-style start screen: centered search capsule, a compact grid of small
-/// labelled shortcut tiles (favorites only — history never clutters home),
-/// and one quiet glyph row. No thumbnails anywhere.
+/// Chrome-style new tab page: colorful wordmark, a full-width search
+/// capsule, and up to eight circular shortcuts to bookmarked sites.
+/// Navigation (bookmarks/history/downloads/settings/private tab) lives in
+/// the toolbar's page-tools menu, mirroring Chrome — the home screen stays
+/// purely about search and shortcuts.
 final class StartPageViewController: UIViewController, UITextFieldDelegate {
     weak var delegate: StartPageViewControllerDelegate?
-    private let wallpaperView = WallpaperView()
-    private let searchField = UITextField()
+
     private let gridStack = UIStackView()
-    private let customizeHint = UILabel()
-    private let actionRow = UIStackView()
+    private let sectionHeader = UILabel()
+    private let emptyHint = UILabel()
     private var quickURLs: [URL] = []
-    private let columns = 5
-    private let tileSize: CGFloat = 40
+    private let columns = 4
+    private let tileSize: CGFloat = 56
 
-    override func viewWillAppear(_ animated: Bool) { super.viewWillAppear(animated); applyWallpaper(); reloadQuickSites() }
+    // MARK: - Brand mark
 
-    @objc private func wallpaperDidChange() { applyWallpaper() }
+    /// Google-logo-style multicolor wordmark — instantly reads as "search
+    /// home" without copying any asset.
+    private lazy var logoLabel: UILabel = {
+        let palette: [UIColor] = [#colorLiteral(red: 0.26, green: 0.52, blue: 0.96, alpha: 1),   // blue
+                                  #colorLiteral(red: 0.92, green: 0.26, blue: 0.21, alpha: 1),   // red
+                                  #colorLiteral(red: 0.98, green: 0.74, blue: 0.02, alpha: 1),   // yellow
+                                  #colorLiteral(red: 0.26, green: 0.52, blue: 0.96, alpha: 1),   // blue
+                                  #colorLiteral(red: 0.20, green: 0.66, blue: 0.32, alpha: 1),   // green
+                                  #colorLiteral(red: 0.92, green: 0.26, blue: 0.21, alpha: 1)]   // red
+        let text = NSMutableAttributedString(string: "Vulpra")
+        for (index, letter) in text.string.enumerated() {
+            let range = NSRange(location: index, length: 1)
+            text.addAttribute(.foregroundColor,
+                              value: palette[index % palette.count],
+                              range: range)
+            if letter == "l" {
+                text.addAttribute(.font, value: UIFont.systemFont(ofSize: 40, weight: .semibold), range: range)
+            }
+        }
+        let label = UILabel()
+        label.attributedText = text
+        label.font = UIFont.systemFont(ofSize: 40, weight: .medium)
+        label.textAlignment = .center
+        return label
+    }()
 
-    @objc private func customizePressed(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began else { return }
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        delegate?.startPageDidRequestCustomizeWallpaper(self)
-    }
+    private let searchField: UITextField = {
+        let field = UITextField()
+        field.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
+        field.backgroundColor = .secondarySystemFill
+        field.layer.cornerRadius = 24
+        field.clearButtonMode = .whileEditing
+        field.returnKeyType = .go
+        field.keyboardType = .webSearch
+        field.autocapitalizationType = .none
+        field.autocorrectionType = .no
 
+        let magnifier = UIImageView(image: UIImage(systemName: "magnifyingglass",
+                                                   withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)))
+        magnifier.tintColor = .secondaryLabel
+        magnifier.contentMode = .center
+        magnifier.frame = CGRect(x: 0, y: 0, width: 36, height: 24)
+        field.leftView = magnifier
+        field.leftViewMode = .always
 
- // Wordmark anchors the composition; without it the centered stack
- // leaves a large anonymous void that reads as unfinished.
- private let wordmarkLabel: UILabel = {
-     let label = UILabel()
-     label.text = "Vulpra"
-     label.font = .systemFont(ofSize: 34, weight: .light)
-     label.textAlignment = .center
-     label.textColor = .label
-     return label
- }()
+        let rightPad = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 1))
+        field.rightView = rightPad
+        field.rightViewMode = .always
+        field.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        return field
+    }()
 
-    private func applyWallpaper() {
-        let raw = BrowserSettingsStore.shared.value.wallpaper
-        let option = Wallpaper(rawValue: raw) ?? .none
-        wallpaperView.apply(option: option)
-        let dark = option.isDark && !wallpaperView.isHidden
-        view.backgroundColor = dark ? UIColor(red: 0.04, green: 0.04, blue: 0.07, alpha: 1)
-                                    : .systemBackground
-        view.overrideUserInterfaceStyle = dark ? .dark : .unspecified
-        #if DEBUG
-        NSLog("VULPRA_DIAG wallpaper -> %@ (raw=%@, visible=%d)",
-              option.rawValue, raw, wallpaperView.isHidden ? 0 : 1)
-        #endif
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        reloadQuickSites()
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
 
-        // Live-gradient backdrop behind everything; content keeps blur materials.
-        wallpaperView.translatesAutoresizingMaskIntoConstraints = false
-        view.insertSubview(wallpaperView, at: 0)
-        NSLayoutConstraint.activate([
-            wallpaperView.topAnchor.constraint(equalTo: view.topAnchor),
-            wallpaperView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            wallpaperView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            wallpaperView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-        ])
-        NotificationCenter.default.addObserver(
-            self, selector: #selector(wallpaperDidChange),
-            name: .vulpraWallpaperDidChange, object: nil)
+        sectionHeader.text = L10n.tr("Shortcuts", "快捷方式")
+        sectionHeader.font = .systemFont(ofSize: 14, weight: .semibold)
+        sectionHeader.textColor = .secondaryLabel
 
-        // Via-style discoverability: long-press anywhere on the home screen
-        // to open the wallpaper picker — no digging through Settings.
-        let customize = UILongPressGestureRecognizer(
-            target: self, action: #selector(customizePressed(_:)))
-        customize.minimumPressDuration = 0.45
-        customize.allowedTouchTypes = [NSNumber(value: UITouch.TouchType.direct.rawValue)]
-        view.addGestureRecognizer(customize)
-
-        customizeHint.text = L10n.tr("Long-press to change wallpaper", "长按可更换壁纸")
-        customizeHint.font = .systemFont(ofSize: 11)
-        customizeHint.textColor = .tertiaryLabel
-        customizeHint.textAlignment = .center
-        customizeHint.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(customizeHint)
-        NSLayoutConstraint.activate([
-            customizeHint.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            customizeHint.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -10),
-        ])
-
-        searchField.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
-        // Translucent so a chosen wallpaper glows through; still readable.
-        searchField.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.72)
-        searchField.layer.cornerRadius = 12
-        searchField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 1))
-        searchField.leftViewMode = .always
-        searchField.clearButtonMode = .whileEditing
-        searchField.returnKeyType = .go
-        searchField.keyboardType = .webSearch
-        searchField.autocapitalizationType = .none
-        searchField.autocorrectionType = .no
-        searchField.delegate = self
-        searchField.heightAnchor.constraint(equalToConstant: 44).isActive = true
+        emptyHint.text = L10n.tr("Bookmark sites and your shortcuts will appear here.",
+                                 "收藏网站后，快捷方式会显示在这里。")
+        emptyHint.font = .systemFont(ofSize: 13)
+        emptyHint.textColor = .tertiaryLabel
+        emptyHint.textAlignment = .center
+        emptyHint.numberOfLines = 0
 
         gridStack.axis = .vertical
-        gridStack.spacing = 18
-        gridStack.isHidden = true
+        gridStack.spacing = 20
 
-        let actions: [(String, Selector)] = [
-            ("star", #selector(bookmarks)),
-            ("clock", #selector(history)),
-            ("arrow.down.circle", #selector(downloads)),
-            ("hand.raised", #selector(privateTab)),
-            ("gearshape", #selector(settings)),
-        ]
-        for (symbol, selector) in actions {
-            var configuration = UIButton.Configuration.plain()
-            configuration.image = UIImage(systemName: symbol,
-                                          withConfiguration: UIImage.SymbolConfiguration(pointSize: 21, weight: .medium))
-            configuration.baseForegroundColor = .secondaryLabel
-            let button = UIButton(configuration: configuration)
-            button.addTarget(self, action: selector, for: .touchUpInside)
-            actionRow.addArrangedSubview(button)
-        }
-        actionRow.axis = .horizontal
-        actionRow.distribution = .equalSpacing
-
-        let stack = UIStackView(arrangedSubviews: [wordmarkLabel, searchField, gridStack, actionRow])
+        let stack = UIStackView(arrangedSubviews: [logoLabel, searchField, sectionHeader, gridStack, emptyHint])
         stack.axis = .vertical
-        stack.spacing = 30
+        stack.spacing = 28
+        stack.setCustomSpacing(26, after: logoLabel)
+        stack.setCustomSpacing(34, after: searchField)
+        stack.setCustomSpacing(16, after: sectionHeader)
         stack.translatesAutoresizingMaskIntoConstraints = false
-        stack.setCustomSpacing(18, after: wordmarkLabel)
         view.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
-            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -56),
+            stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor, constant: 12),
+            stack.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor, constant: -12),
+            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -64),
+            searchField.leadingAnchor.constraint(greaterThanOrEqualTo: stack.leadingAnchor),
+            searchField.trailingAnchor.constraint(lessThanOrEqualTo: stack.trailingAnchor),
         ])
+        searchField.delegate = self
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
@@ -152,10 +120,9 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         return true
     }
 
-    // MARK: - Shortcut grid (Via style)
+    // MARK: - Shortcuts grid
 
-    /// Favorites only. Recent history stays out of the home screen on purpose:
-    /// short visits with missing favicons read as noise, not shortcuts.
+    /// Favorites only — history never clutters the home screen.
     private func reloadQuickSites() {
         let settings = BrowserSettingsStore.shared.value
         var pairs: [(String, URL)] = []
@@ -170,8 +137,11 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         quickURLs = unique.map { $0.1 }
 
         gridStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        gridStack.isHidden = unique.isEmpty
-        guard !unique.isEmpty else { return }
+        let hasSites = !unique.isEmpty
+        gridStack.isHidden = !hasSites
+        sectionHeader.isHidden = !hasSites
+        emptyHint.isHidden = hasSites
+        guard hasSites else { return }
 
         var index = 0
         while index < unique.count {
@@ -192,17 +162,21 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         }
     }
 
+    /// Circular tile in the Chrome idiom: disc background, centered favicon,
+    /// single-line label underneath.
     private func makeTile(title: String, url: URL, tag: Int) -> UIView {
         let container = UIStackView()
         container.axis = .vertical
         container.alignment = .center
-        container.spacing = 5
+        container.spacing = 7
 
-        let icon = UIImageView(image: SiteIcon.tile(for: url, size: tileSize, cornerRadius: 9))
+        let icon = UIImageView(image: SiteIcon.tile(for: url, size: tileSize, cornerRadius: tileSize / 2))
         icon.contentMode = .center
         icon.translatesAutoresizingMaskIntoConstraints = false
-        icon.widthAnchor.constraint(equalToConstant: tileSize).isActive = true
-        icon.heightAnchor.constraint(equalToConstant: tileSize).isActive = true
+        NSLayoutConstraint.activate([
+            icon.widthAnchor.constraint(equalToConstant: tileSize),
+            icon.heightAnchor.constraint(equalToConstant: tileSize),
+        ])
 
         let label = UILabel()
         label.text = title
@@ -225,29 +199,29 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
             container.centerXAnchor.constraint(equalTo: button.centerXAnchor),
             container.leadingAnchor.constraint(greaterThanOrEqualTo: button.leadingAnchor, constant: 2),
             container.trailingAnchor.constraint(lessThanOrEqualTo: button.trailingAnchor, constant: -2),
-            button.heightAnchor.constraint(equalToConstant: 64),
+            button.heightAnchor.constraint(equalToConstant: 80),
         ])
 
         // Refresh the tile once a real favicon arrives.
         SiteIcon.load(for: url) { [weak self] image in
             guard let self, self.quickURLs.indices.contains(tag), self.quickURLs[tag] == url else { return }
-            icon.image = Self.composed(image: image, size: tileSize, cornerRadius: 9, fallbackFor: url)
+            icon.image = Self.composed(image: image, size: tileSize, cornerRadius: tileSize / 2, fallbackFor: url)
         }
         return button
     }
 
     private static func composed(image: UIImage, size: CGFloat, cornerRadius: CGFloat,
                                  fallbackFor url: URL) -> UIImage {
-        // Re-run through the same fit-composition path as tile(for:) using the
-        // freshly fetched favicon instead of only the disk cache.
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = UIScreen.main.scale
         return UIGraphicsImageRenderer(size: CGSize(width: size, height: size), format: format).image { context in
-            let host = url.host ?? ""
+            let cgContext = context.cgContext
+            cgContext.interpolationQuality =
+                drawSize.width >= image.size.width ? .high : .none
             UIColor.secondarySystemBackground.setFill()
             UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: size, height: size),
                          cornerRadius: cornerRadius).fill()
-            let inset = size * 0.18
+            let inset = size * 0.22
             let box = size - inset * 2
             var drawSize = image.size
             if drawSize.width > box || drawSize.height > box {
@@ -255,7 +229,6 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
                 drawSize = CGSize(width: drawSize.width * scale, height: drawSize.height * scale)
             }
             let origin = CGPoint(x: (size - drawSize.width) / 2, y: (size - drawSize.height) / 2)
-            context.cgContext.interpolationQuality = drawSize.width >= image.size.width ? .high : .none
             image.draw(in: CGRect(origin: origin, size: drawSize))
         }
     }
@@ -264,10 +237,4 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         guard quickURLs.indices.contains(sender.tag) else { return }
         delegate?.startPage(self, open: quickURLs[sender.tag].absoluteString)
     }
-
-    @objc private func privateTab() { delegate?.startPageDidRequestPrivateTab(self) }
-    @objc private func bookmarks() { delegate?.startPageDidRequestBookmarks(self) }
-    @objc private func history() { delegate?.startPageDidRequestHistory(self) }
-    @objc private func downloads() { delegate?.startPageDidRequestDownloads(self) }
-    @objc private func settings() { delegate?.startPageDidRequestSettings(self) }
 }

@@ -5,7 +5,7 @@ import UIKit
 final class SettingsViewController: UITableViewController {
     private enum Row {
         case searchEngine, remoteSuggestions, desktopMode
-        case darkAppearance, pageZoom, homeWallpaper
+        case darkAppearance, pageZoom
         case trackingProtection, httpsOnly, permissions
         case historyRetention, privacyData, addons
         case engineDiagnostics
@@ -17,7 +17,6 @@ final class SettingsViewController: UITableViewController {
             case .desktopMode: return L10n.tr("Desktop Sites by Default", "默认请求桌面版网站")
             case .darkAppearance: return L10n.tr("Dark Appearance", "深色外观")
             case .pageZoom: return L10n.tr("Page Zoom", "页面缩放")
-            case .homeWallpaper: return L10n.tr("Home Wallpaper", "首页壁纸")
             case .trackingProtection: return L10n.tr("Tracking Protection", "跟踪保护")
             case .httpsOnly: return L10n.tr("HTTPS-Only", "仅 HTTPS 模式")
             case .permissions: return L10n.tr("Site Permissions", "网站权限")
@@ -35,7 +34,6 @@ final class SettingsViewController: UITableViewController {
             case .desktopMode: return "desktopcomputer"
             case .darkAppearance: return "moon.fill"
             case .pageZoom: return "plus.magnifyingglass"
-            case .homeWallpaper: return "photo"
             case .trackingProtection: return "shield.lefthalf.filled"
             case .httpsOnly: return "lock.shield"
             case .permissions: return "hand.raised"
@@ -50,7 +48,6 @@ final class SettingsViewController: UITableViewController {
             switch self {
             case .searchEngine, .remoteSuggestions: return .systemBlue
             case .desktopMode, .pageZoom: return .systemIndigo
-            case .homeWallpaper: return .systemPink
             case .darkAppearance: return .systemPurple
             case .trackingProtection, .httpsOnly: return .systemGreen
             case .permissions: return .systemOrange
@@ -70,7 +67,7 @@ final class SettingsViewController: UITableViewController {
             Section(header: L10n.tr("General", "通用"), footer: nil,
                     rows: [.searchEngine, .remoteSuggestions, .desktopMode]),
             Section(header: L10n.tr("Appearance", "外观"), footer: nil,
-                    rows: [.darkAppearance, .pageZoom, .homeWallpaper]),
+                    rows: [.darkAppearance, .pageZoom]),
             Section(header: L10n.tr("Privacy & Security", "隐私与安全"),
                     footer: L10n.tr("Tracking protection blocks known trackers before pages load.",
                                     "跟踪保护会在页面加载前拦截已知跟踪器。"),
@@ -136,9 +133,6 @@ final class SettingsViewController: UITableViewController {
         case .pageZoom:
             content.secondaryText = "\(settings.pageZoom)%"
             cell.accessoryType = .disclosureIndicator
-        case .homeWallpaper:
-            content.secondaryText = (Wallpaper(rawValue: settings.wallpaper) ?? .none).displayName
-            cell.accessoryType = .disclosureIndicator
         case .trackingProtection:
             content.secondaryText = settings.trackingProtection.rawValue.capitalized
             cell.accessoryType = .disclosureIndicator
@@ -169,8 +163,6 @@ final class SettingsViewController: UITableViewController {
         case .pageZoom:
             choose(title: L10n.tr("Page Zoom", "页面缩放"), values: [75, 90, 100, 110, 125, 150],
                    label: { "\($0)%" }) { zoom in BrowserSettingsStore.shared.update { $0.pageZoom = zoom } }
-        case .homeWallpaper:
-            navigationController?.pushViewController(WallpaperPickerViewController(), animated: true)
         case .trackingProtection:
             choose(title: L10n.tr("Tracking Protection", "跟踪保护"), values: TrackingProtectionLevel.allCases,
                    label: { $0.rawValue.capitalized }) { level in BrowserSettingsStore.shared.update { $0.trackingProtection = level } }

@@ -33,7 +33,7 @@ enum TrackingProtectionLevel: String, Codable, CaseIterable {
 
 struct BrowserSettings: Codable, Equatable {
     // Bump when a migration must run on load; see BrowserSettingsStore.init.
-    static let currentSchemaVersion = 3
+    static let currentSchemaVersion = 4
 
     var searchEngine: SearchEngine = .duckDuckGo
     var remoteSuggestions = false
@@ -46,15 +46,13 @@ struct BrowserSettings: Codable, Equatable {
     var showFavorites = true
     var showRecentVisits = true
     var showRecentlyClosed = true
-    /// Clean start page by default; wallpapers remain opt-in via long-press.
-    var wallpaper = "none"
     var schemaVersion = 0
 
     private enum CodingKeys: String, CodingKey {
         case searchEngine, remoteSuggestions, darkAppearance, defaultDesktopMode
         case pageZoom, trackingProtection, httpsOnly, historyRetentionDays
         case showFavorites, showRecentVisits, showRecentlyClosed
-        case wallpaper, schemaVersion
+        case schemaVersion
     }
 
     /// Tolerant decoding: synthesized Codable threw away the ENTIRE struct
@@ -73,7 +71,6 @@ struct BrowserSettings: Codable, Equatable {
         showFavorites = try c.decodeIfPresent(Bool.self, forKey: .showFavorites) ?? true
         showRecentVisits = try c.decodeIfPresent(Bool.self, forKey: .showRecentVisits) ?? true
         showRecentlyClosed = try c.decodeIfPresent(Bool.self, forKey: .showRecentlyClosed) ?? true
-        wallpaper = try c.decodeIfPresent(String.self, forKey: .wallpaper) ?? "none"
         schemaVersion = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
     }
 
@@ -120,11 +117,9 @@ final class BrowserSettingsStore {
     private init() {
         let loaded = store.load(default: BrowserSettings())
         if loaded.schemaVersion < BrowserSettings.currentSchemaVersion {
+            // v2/v3 carried the wallpaper experiments; the field is gone and
+            // tolerant decoding drops the stale key. Only the marker advances.
             var migrated = loaded
-            // v2→v3: the factory gradient experiment is over — users judged
-            // it ugly, so everyone lands back on the clean page unless they
-            // deliberately pick a wallpaper afterwards.
-            if migrated.schemaVersion < 3 { migrated.wallpaper = "none" }
             migrated.schemaVersion = BrowserSettings.currentSchemaVersion
             store.save(migrated)
             value = migrated

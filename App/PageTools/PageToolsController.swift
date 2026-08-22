@@ -1,6 +1,11 @@
 import UIKit
 
 protocol PageToolsControllerDelegate: AnyObject {
+    func pageToolsDidRequestBookmarks(_ controller: PageToolsController)
+    func pageToolsDidRequestHistory(_ controller: PageToolsController)
+    func pageToolsDidRequestDownloads(_ controller: PageToolsController)
+    func pageToolsDidRequestPrivateTab(_ controller: PageToolsController)
+    func pageToolsDidRequestSettings(_ controller: PageToolsController)
     func pageToolsDidRequestShare(_ controller: PageToolsController)
     func pageToolsDidRequestBookmark(_ controller: PageToolsController)
     func pageTools(_ controller: PageToolsController, find text: String)
@@ -16,6 +21,12 @@ final class PageToolsController {
 
     func present(from presenter: UIViewController, sourceView: UIView?, url: URL?) {
         let menu = UIAlertController(title: url?.host ?? L10n.tr("Page Tools", "页面工具"), message: nil, preferredStyle: .actionSheet)
+        // Navigation cluster first, mirroring Chrome's menu order.
+        menu.addAction(UIAlertAction(title: L10n.tr("New Private Tab", "新建私密标签页"), style: .default) { _ in self.delegate?.pageToolsDidRequestPrivateTab(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Bookmarks", "书签"), style: .default) { _ in self.delegate?.pageToolsDidRequestBookmarks(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("History", "历史记录"), style: .default) { _ in self.delegate?.pageToolsDidRequestHistory(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Downloads", "下载"), style: .default) { _ in self.delegate?.pageToolsDidRequestDownloads(self) })
+        menu.addAction(UIAlertAction(title: L10n.tr("Settings", "设置"), style: .default) { _ in self.delegate?.pageToolsDidRequestSettings(self) })
         menu.addAction(UIAlertAction(title: L10n.tr("Share", "分享"), style: .default) { _ in self.delegate?.pageToolsDidRequestShare(self) })
         menu.addAction(UIAlertAction(title: L10n.tr("Add Bookmark", "添加书签"), style: .default) { _ in self.delegate?.pageToolsDidRequestBookmark(self) })
         menu.addAction(UIAlertAction(title: L10n.tr("Find in Page", "页面内查找"), style: .default) { _ in self.askFind(from: presenter) })

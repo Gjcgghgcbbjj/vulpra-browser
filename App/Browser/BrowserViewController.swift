@@ -412,14 +412,13 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     }
 
     func startPage(_ controller: StartPageViewController, open text: String) { browserChrome(chrome, submitted: text) }
-    func startPageDidRequestPrivateTab(_ controller: StartPageViewController) { _ = tabManager.newTab(url: nil, privateMode: true); showSelectedTab() }
-    func startPageDidRequestBookmarks(_ controller: StartPageViewController) { presentLibrary(.bookmarks) }
-    func startPageDidRequestHistory(_ controller: StartPageViewController) { presentLibrary(.history) }
-    func startPageDidRequestDownloads(_ controller: StartPageViewController) { presentNavigation(DownloadsViewController()) }
-    func startPageDidRequestSettings(_ controller: StartPageViewController) { presentNavigation(SettingsViewController()) }
-    func startPageDidRequestCustomizeWallpaper(_ controller: StartPageViewController) {
-        presentNavigation(WallpaperPickerViewController())
+    func pageToolsDidRequestPrivateTab(_ controller: PageToolsController) {
+        _ = tabManager.newTab(url: nil, privateMode: true); showSelectedTab()
     }
+    func pageToolsDidRequestBookmarks(_ controller: PageToolsController) { presentLibrary(.bookmarks) }
+    func pageToolsDidRequestHistory(_ controller: PageToolsController) { presentLibrary(.history) }
+    func pageToolsDidRequestDownloads(_ controller: PageToolsController) { presentNavigation(DownloadsViewController()) }
+    func pageToolsDidRequestSettings(_ controller: PageToolsController) { presentNavigation(SettingsViewController()) }
 
     func pageToolsDidRequestShare(_ controller: PageToolsController) {
         guard let url = tabManager.selectedTab?.url else { return }
