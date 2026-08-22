@@ -20,10 +20,17 @@ public final class GeckoScrollObserver: GeckoEventListenerInternal {
     }
 
     func handleMessage(type: String, message: [String: Any?]?) async throws -> Any? {
-        guard type == "GeckoView:ScrollChanged",
-              let scrollY = message?["scrollY"] as? CGFloat
-                  ?? (message?["scrollY"] as? NSNumber)?.doubleValue.map(CGFloat.init)
-        else { return nil }
+        guard type == "GeckoView:ScrollChanged" else { return nil }
+        let raw = message?["scrollY"]
+        let scrollY: CGFloat?
+        if let value = raw as? CGFloat {
+            scrollY = value
+        } else if let number = raw as? NSNumber {
+            scrollY = CGFloat(number.doubleValue)
+        } else {
+            scrollY = nil
+        }
+        guard let scrollY else { return nil }
         DispatchQueue.main.async { [weak self] in
             self?.onScrollY?(scrollY)
         }
