@@ -54,8 +54,8 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         view.layoutIfNeeded()
         let size = view.bounds.size == .zero ? UIScreen.main.bounds.size : view.bounds.size
         let image = option.image(for: size)
-        NSLog("VULPRA_DIAG wallpaper image=%@ for %@",
-              image.map { "\($0.size)" } ?? "nil", NSStringFromCGSize(size))
+        NSLog("VULPRA_DIAG wallpaper image=%@ for %dx%d",
+              image.map { "\($0.size)" } ?? "nil", Int(size.width), Int(size.height))
         // Paint the flat base FIRST so even a rasterization failure shows the
         // wallpaper's color, never a bare white page.
         let hasVisual = (image != nil) || (option.baseColor != nil)
