@@ -32,6 +32,9 @@ enum TrackingProtectionLevel: String, Codable, CaseIterable {
 }
 
 struct BrowserSettings: Codable, Equatable {
+    // Bump when a migration must run on load; see BrowserSettingsStore.init.
+    static let currentSchemaVersion = 2
+
     var searchEngine: SearchEngine = .duckDuckGo
     var remoteSuggestions = false
     var darkAppearance = false
@@ -43,7 +46,41 @@ struct BrowserSettings: Codable, Equatable {
     var showFavorites = true
     var showRecentVisits = true
     var showRecentlyClosed = true
-    var wallpaper = "none"
+    /// Factory default is a real wallpaper — a bare white start page reads as
+    /// "the feature is broken" even when it merely was never chosen.
+    var wallpaper = "sunset"
+    var schemaVersion = 0
+
+    private enum CodingKeys: String, CodingKey {
+        case searchEngine, remoteSuggestions, darkAppearance, defaultDesktopMode
+        case pageZoom, trackingProtection, httpsOnly, historyRetentionDays
+        case showFavorites, showRecentVisits, showRecentlyClosed
+        case wallpaper, schemaVersion
+    }
+
+    /// Tolerant decoding: synthesized Codable threw away the ENTIRE struct
+    /// when an older file lacked any newer key — every preference silently
+    /// reset (wallpaper picks included). decodeIfPresent per field instead.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        searchEngine = try c.decodeIfPresent(SearchEngine.self, forKey: .searchEngine) ?? .duckDuckGo
+        remoteSuggestions = try c.decodeIfPresent(Bool.self, forKey: .remoteSuggestions) ?? false
+        darkAppearance = try c.decodeIfPresent(Bool.self, forKey: .darkAppearance) ?? false
+        defaultDesktopMode = try c.decodeIfPresent(Bool.self, forKey: .defaultDesktopMode) ?? false
+        pageZoom = try c.decodeIfPresent(Int.self, forKey: .pageZoom) ?? 100
+        trackingProtection = try c.decodeIfPresent(TrackingProtectionLevel.self, forKey: .trackingProtection) ?? .standard
+        httpsOnly = try c.decodeIfPresent(Bool.self, forKey: .httpsOnly) ?? true
+        historyRetentionDays = try c.decodeIfPresent(Int.self, forKey: .historyRetentionDays) ?? 30
+        showFavorites = try c.decodeIfPresent(Bool.self, forKey: .showFavorites) ?? true
+        showRecentVisits = try c.decodeIfPresent(Bool.self, forKey: .showRecentVisits) ?? true
+        showRecentlyClosed = try c.decodeIfPresent(Bool.self, forKey: .showRecentlyClosed) ?? true
+        wallpaper = try c.decodeIfPresent(String.self, forKey: .wallpaper) ?? Self.defaultWallpaper
+        schemaVersion = try c.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 0
+    }
+
+    init() {}
+
+    static let defaultWallpaper = "sunset"
 
     /// Google refuses sign-in from unknown browser identities ("browser may
     /// not be secure"). Claiming iOS Safari did not clear Google's interstitial
@@ -83,7 +120,20 @@ final class BrowserSettingsStore {
     private let store = AtomicJSONStore<BrowserSettings>(filename: "settings.json")
     private(set) var value: BrowserSettings
 
-    private init() { value = store.load(default: BrowserSettings()) }
+    private init() {
+        let loaded = store.load(default: BrowserSettings())
+        if loaded.schemaVersion < BrowserSettings.currentSchemaVersion {
+            var migrated = loaded
+            // v1→v2: legacy installs never had a wallpaper choice; give them
+            // the factory gradient instead of interpreting "none" as intent.
+            if migrated.schemaVersion < 2 { migrated.wallpaper = BrowserSettings.defaultWallpaper }
+            migrated.schemaVersion = BrowserSettings.currentSchemaVersion
+            store.save(migrated)
+            value = migrated
+        } else {
+            value = loaded
+        }
+    }
 
     func update(_ change: (inout BrowserSettings) -> Void) {
         change(&value)

@@ -27,6 +27,13 @@ enum Wallpaper: String, CaseIterable {
         }
     }
 
+    /// Flat underlay painted behind (and instead of) the rasterized image —
+    /// if image generation ever fails the page still shows the wallpaper's
+    /// color identity rather than a bare white void.
+    var baseColor: UIColor? {
+        gradientColors?.first
+    }
+
     /// True when content on top should use light text and stronger blur.
     var isDark: Bool {
         switch self {

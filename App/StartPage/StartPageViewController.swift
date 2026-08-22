@@ -34,18 +34,42 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         delegate?.startPageDidRequestCustomizeWallpaper(self)
     }
 
+
+ // Wordmark anchors the composition; without it the centered stack
+ // leaves a large anonymous void that reads as unfinished.
+ private let wordmarkLabel: UILabel = {
+     let label = UILabel()
+     label.text = "Vulpra"
+     label.font = .systemFont(ofSize: 34, weight: .light)
+     label.textAlignment = .center
+     label.textColor = .label
+     return label
+ }()
+
     private func applyWallpaper() {
-        let option = Wallpaper(rawValue: BrowserSettingsStore.shared.value.wallpaper) ?? .none
+        let raw = BrowserSettingsStore.shared.value.wallpaper
+        let option = Wallpaper(rawValue: raw) ?? .none
+        NSLog("VULPRA_DIAG wallpaper raw=%@ option=%@", raw, String(describing: option))
         // Re-measure once layout has settled so gradients/photos render full-size.
         view.layoutIfNeeded()
         let size = view.bounds.size == .zero ? UIScreen.main.bounds.size : view.bounds.size
-        wallpaperView.image = option.image(for: size)
-        wallpaperView.isHidden = wallpaperView.image == nil
-        let dark = option.isDark && wallpaperView.image != nil
-        view.backgroundColor = dark ? .black : .systemBackground
-        // Flip the whole content tree to dark semantics over dark wallpapers —
-        // labels, materials and separators all adapt in one move.
-        view.overrideUserInterfaceStyle = dark ? .dark : .unspecified
+        let image = option.image(for: size)
+        NSLog("VULPRA_DIAG wallpaper image=%@ for %@",
+              image.map { "\($0.size)" } ?? "nil", NSStringFromCGSize(size))
+        // Paint the flat base FIRST so even a rasterization failure shows the
+        // wallpaper's color, never a bare white page.
+        let hasVisual = (image != nil) || (option.baseColor != nil)
+        if option.isDark && hasVisual {
+            view.backgroundColor = option.baseColor ?? .black
+            wallpaperView.isHidden = false
+            wallpaperView.image = image
+        } else {
+            view.backgroundColor = .systemBackground
+            wallpaperView.isHidden = true
+            wallpaperView.image = nil
+        }
+        // Flip the whole content tree to dark semantics over dark wallpapers.
+        view.overrideUserInterfaceStyle = option.isDark ? .dark : .unspecified
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -128,10 +152,11 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         actionRow.axis = .horizontal
         actionRow.distribution = .equalSpacing
 
-        let stack = UIStackView(arrangedSubviews: [searchField, gridStack, actionRow])
+        let stack = UIStackView(arrangedSubviews: [wordmarkLabel, searchField, gridStack, actionRow])
         stack.axis = .vertical
         stack.spacing = 30
         stack.translatesAutoresizingMaskIntoConstraints = false
+        stack.setCustomSpacing(18, after: wordmarkLabel)
         view.addSubview(stack)
         NSLayoutConstraint.activate([
             stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
