@@ -55,7 +55,8 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
             name: .vulpraWallpaperDidChange, object: nil)
 
         searchField.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
-        searchField.backgroundColor = .secondarySystemMaterial
+        // Translucent so a chosen wallpaper glows through; still readable.
+        searchField.backgroundColor = UIColor.secondarySystemBackground.withAlphaComponent(0.72)
         searchField.layer.cornerRadius = 12
         searchField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 1))
         searchField.leftViewMode = .always
