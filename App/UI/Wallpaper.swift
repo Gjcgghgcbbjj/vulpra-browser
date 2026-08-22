@@ -107,7 +107,7 @@ enum Wallpaper: String, CaseIterable {
                 gradient,
                 start: CGPoint(x: 0, y: 0),
                 end: CGPoint(x: size.width, y: size.height),
-                options: [.drawsBeforeEndLocation, .drawsAfterEndLocation])
+                options: [])
             // 1.5% monochrome noise breaks up gradient banding.
             cg.setAlpha(0.015)
             for _ in 0..<2200 {
