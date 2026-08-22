@@ -6,15 +6,20 @@ import Foundation
 /// overlay on the page.
 public final class GeckoScrollObserver: GeckoEventListenerInternal {
     private weak var dispatcher: GeckoEventDispatcherWrapper?
+    /// EventDispatcher.addListener appends unconditionally, so re-attaching
+    /// to a session whose dispatcher we already hooked would stack duplicate
+    /// registrations and deliver one scroll event N times. Track identities.
+    private var attachedDispatchers = Set<ObjectIdentifier>()
     /// Called on the main thread with the latest vertical scroll offset.
     public var onScrollY: ((CGFloat) -> Void)?
 
     public init() {}
 
-    /// Idempotent per dispatcher; attaching the same observer to several
-    /// sessions simply widens the source (handlers should filter).
     public func attach(to session: GeckoSession) {
         let dispatcher = session.dispatcher
+        let identity = ObjectIdentifier(dispatcher)
+        guard !attachedDispatchers.contains(identity) else { return }
+        attachedDispatchers.insert(identity)
         self.dispatcher = dispatcher
         dispatcher.addListener(type: "GeckoView:ScrollChanged", listener: self)
     }

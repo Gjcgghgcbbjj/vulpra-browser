@@ -106,10 +106,14 @@ enum Wallpaper: String, CaseIterable {
         do {
             let data = target.pngData() ?? Data()
             try data.write(to: photoFileURL, options: .atomic)
+            #if DEBUG
             NSLog("VULPRA_DIAG photo stored %d bytes", data.count)
+            #endif
             return !data.isEmpty
         } catch {
+            #if DEBUG
             NSLog("VULPRA_DIAG photo store FAILED: %@", error.localizedDescription)
+            #endif
             return false
         }
     }

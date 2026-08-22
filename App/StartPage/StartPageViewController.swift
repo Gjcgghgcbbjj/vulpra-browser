@@ -54,13 +54,10 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         view.backgroundColor = dark ? UIColor(red: 0.04, green: 0.04, blue: 0.07, alpha: 1)
                                     : .systemBackground
         view.overrideUserInterfaceStyle = dark ? .dark : .unspecified
+        #if DEBUG
         NSLog("VULPRA_DIAG wallpaper -> %@ (raw=%@, visible=%d)",
               option.rawValue, raw, wallpaperView.isHidden ? 0 : 1)
-    }
-
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        applyWallpaper()
+        #endif
     }
 
     override func viewDidLoad() {

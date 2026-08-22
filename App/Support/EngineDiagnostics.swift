@@ -46,9 +46,15 @@ enum EngineDiagnostics {
 
     private static func report(prefAccepted: Bool, engineUA: String?) {
         let matches = engineUA == expectedUA
-        NSLog("VULPRA_DIAG safariUAPrefAccepted=%d", prefAccepted ? 1 : 0)
+        #if DEBUG
+NSLog("VULPRA_DIAG safariUAPrefAccepted=%d", prefAccepted ? 1 : 0)
+        #endif
+        #if DEBUG
         NSLog("VULPRA_DIAG engineReportedUA=%@", engineUA ?? "<no answer>")
+        #endif
+        #if DEBUG
         NSLog("VULPRA_DIAG engineMatchesSafari=%d", matches ? 1 : 0)
+        #endif
 
         guard let documents = FileManager.default.urls(
             for: .documentDirectory, in: .userDomainMask
