@@ -21,28 +21,15 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
 
     // MARK: - Brand mark
 
-    /// Google-logo-style multicolor wordmark — instantly reads as "search
-    /// home" without copying any asset.
-    private lazy var logoLabel: UILabel = {
-        let palette: [UIColor] = [#colorLiteral(red: 0.26, green: 0.52, blue: 0.96, alpha: 1),   // blue
-                                  #colorLiteral(red: 0.92, green: 0.26, blue: 0.21, alpha: 1),   // red
-                                  #colorLiteral(red: 0.98, green: 0.74, blue: 0.02, alpha: 1),   // yellow
-                                  #colorLiteral(red: 0.26, green: 0.52, blue: 0.96, alpha: 1),   // blue
-                                  #colorLiteral(red: 0.20, green: 0.66, blue: 0.32, alpha: 1),   // green
-                                  #colorLiteral(red: 0.92, green: 0.26, blue: 0.21, alpha: 1)]   // red
-        let text = NSMutableAttributedString(string: "Vulpra")
-        for (index, letter) in text.string.enumerated() {
-            let range = NSRange(location: index, length: 1)
-            text.addAttribute(.foregroundColor,
-                              value: palette[index % palette.count],
-                              range: range)
-            if letter == "l" {
-                text.addAttribute(.font, value: UIFont.systemFont(ofSize: 40, weight: .semibold), range: range)
-            }
-        }
+    /// Own-brand wordmark: quiet, typographic, zero borrowed identity.
+    private let logoLabel: UILabel = {
+        let text = NSAttributedString(string: "Vulpra", attributes: [
+            .font: UIFont.systemFont(ofSize: 36, weight: .semibold),
+            .foregroundColor: UIColor.label,
+            .kern: 2.0,
+        ])
         let label = UILabel()
         label.attributedText = text
-        label.font = UIFont.systemFont(ofSize: 40, weight: .medium)
         label.textAlignment = .center
         return label
     }()
