@@ -43,6 +43,7 @@ struct BrowserSettings: Codable, Equatable {
     var showFavorites = true
     var showRecentVisits = true
     var showRecentlyClosed = true
+    var wallpaper = "none"
 
     /// Google refuses sign-in from unknown browser identities ("browser may
     /// not be secure"). Claiming iOS Safari did not clear Google's interstitial

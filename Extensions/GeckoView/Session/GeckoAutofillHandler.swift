@@ -119,7 +119,13 @@ final class GeckoAutofillHandler: NSObject, GeckoSessionHandlerCommon {
             if let fieldPayload = message?["node"] as? [String: Any?],
                let field = CredentialField(fieldPayload) {
                 focusedField = field
-                activatePasswordInputForAutofill()
+                // Only credential/OTP fields need the password input proxy.
+                // Spinning it up for every plain text box forced a full
+                // first-responder rebuild on each focus — that was the
+                // multi-second stall users hit while typing (Bitwarden flow).
+                if hasActiveAutofillFocus() {
+                    activatePasswordInputForAutofill()
+                }
             } else {
                 focusedField = nil
             }

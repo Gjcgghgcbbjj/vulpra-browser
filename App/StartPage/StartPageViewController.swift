@@ -14,6 +14,7 @@ protocol StartPageViewControllerDelegate: AnyObject {
 /// and one quiet glyph row. No thumbnails anywhere.
 final class StartPageViewController: UIViewController, UITextFieldDelegate {
     weak var delegate: StartPageViewControllerDelegate?
+    private let wallpaperView = UIImageView()
     private let searchField = UITextField()
     private let gridStack = UIStackView()
     private let actionRow = UIStackView()
@@ -21,14 +22,40 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
     private let columns = 5
     private let tileSize: CGFloat = 40
 
-    override func viewWillAppear(_ animated: Bool) { super.viewWillAppear(animated); reloadQuickSites() }
+    override func viewWillAppear(_ animated: Bool) { super.viewWillAppear(animated); applyWallpaper(); reloadQuickSites() }
+
+    @objc private func wallpaperDidChange() { applyWallpaper() }
+
+    private func applyWallpaper() {
+        let option = Wallpaper(rawValue: BrowserSettingsStore.shared.value.wallpaper) ?? .none
+        let size = view.bounds.size == .zero ? UIScreen.main.bounds.size : view.bounds.size
+        wallpaperView.image = option.image(for: size)
+        let dark = option.isDark
+        wallpaperView.isHidden = wallpaperView.image == nil
+        view.backgroundColor = dark ? .black : .systemBackground
+    }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
 
+        // Via-style wallpaper behind everything; content keeps blur materials.
+        wallpaperView.contentMode = .scaleAspectFill
+        wallpaperView.clipsToBounds = true
+        wallpaperView.translatesAutoresizingMaskIntoConstraints = false
+        view.insertSubview(wallpaperView, at: 0)
+        NSLayoutConstraint.activate([
+            wallpaperView.topAnchor.constraint(equalTo: view.topAnchor),
+            wallpaperView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            wallpaperView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            wallpaperView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+        ])
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(wallpaperDidChange),
+            name: .vulpraWallpaperDidChange, object: nil)
+
         searchField.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
-        searchField.backgroundColor = .secondarySystemBackground
+        searchField.backgroundColor = .secondarySystemMaterial
         searchField.layer.cornerRadius = 12
         searchField.leftView = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 1))
         searchField.leftViewMode = .always

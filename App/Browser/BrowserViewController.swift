@@ -161,8 +161,14 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         // Immersive reading toggle: a subtle pill under the chrome. Tap hides
         // the whole toolbar so the page gets the full screen; tap again to
         // bring it back. No gesture conflicts with web content.
-        chromeTogglePill.backgroundColor = UIColor.tertiarySystemFill
-        chromeTogglePill.layer.cornerRadius = 2
+        chromeTogglePill.backgroundColor = UIColor.secondarySystemGroupedBackground
+        chromeTogglePill.layer.cornerRadius = 3
+        chromeTogglePill.layer.borderWidth = 0.5
+        chromeTogglePill.layer.borderColor = UIColor.quaternaryLabel.cgColor
+        chromeTogglePill.layer.shadowColor = UIColor.black.cgColor
+        chromeTogglePill.layer.shadowOpacity = 0.3
+        chromeTogglePill.layer.shadowOffset = CGSize(width: 0, height: 1)
+        chromeTogglePill.layer.shadowRadius = 2
         chromeTogglePill.accessibilityLabel = L10n.tr("Show toolbar", "显示工具栏")
         chromeTogglePill.isUserInteractionEnabled = true
         chromeTogglePill.translatesAutoresizingMaskIntoConstraints = false
@@ -171,8 +177,8 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         NSLayoutConstraint.activate([
             chromeTogglePill.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -14),
             chromeTogglePill.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -4),
-            chromeTogglePill.widthAnchor.constraint(equalToConstant: 28),
-            chromeTogglePill.heightAnchor.constraint(equalToConstant: 4),
+            chromeTogglePill.widthAnchor.constraint(equalToConstant: 44),
+            chromeTogglePill.heightAnchor.constraint(equalToConstant: 6),
         ])
         chromeTogglePill.alpha = 0
 
@@ -328,8 +334,37 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             self.contentBottomToSafe?.isActive = willHide
             // The restore pill only exists while hidden, parked in the corner
             // away from the thumb-rest zone so browsing taps never hit it.
-            self.chromeTogglePill.alpha = willHide ? 0.55 : 0
+            self.chromeTogglePill.alpha = willHide ? 0.8 : 0
             self.view.layoutIfNeeded()
+        }
+        if willHide { showImmersiveHint() }
+    }
+
+    /// Brief toast after entering immersive so the exit affordance is clear.
+    private func showImmersiveHint() {
+        let hint = UILabel()
+        hint.text = L10n.tr("Toolbar hidden — tap the pill (bottom right) to restore",
+                            "已隐藏工具栏 · 点右下角小白条恢复")
+        hint.font = .systemFont(ofSize: 12, weight: .medium)
+        hint.textColor = .white
+        hint.backgroundColor = UIColor.black.withAlphaComponent(0.65)
+        hint.textAlignment = .center
+        hint.layer.cornerRadius = 12
+        hint.clipsToBounds = true
+        hint.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(hint)
+        NSLayoutConstraint.activate([
+            hint.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            hint.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -18),
+            hint.heightAnchor.constraint(equalToConstant: 30),
+        ])
+        hint.layoutIfNeeded()
+        hint.bounds.size.width += 24
+        hint.alpha = 0
+        UIView.animate(withDuration: 0.25, animations: { hint.alpha = 1 }) { _ in
+            UIView.animate(withDuration: 0.4, delay: 2.2, options: [],
+                           animations: { hint.alpha = 0 },
+                           completion: { _ in hint.removeFromSuperview() })
         }
     }
 
