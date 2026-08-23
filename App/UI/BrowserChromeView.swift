@@ -2,7 +2,6 @@ import UIKit
 
 protocol BrowserChromeViewDelegate: AnyObject {
     func browserChrome(_ chrome: BrowserChromeView, submitted text: String)
-    func browserChromeDidRequestTools(_ chrome: BrowserChromeView)
     func browserChromeDidRequestTabs(_ chrome: BrowserChromeView)
     func browserChrome(_ chrome: BrowserChromeView, requestedAdjacentTab offset: Int)
     func browserChrome(_ chrome: BrowserChromeView, textDidChange text: String)
@@ -10,8 +9,11 @@ protocol BrowserChromeViewDelegate: AnyObject {
     func browserChromeDidEndEditing(_ chrome: BrowserChromeView)
 }
 
-/// A single floating command capsule. The page owns the screen; tools appear
-/// contextually instead of occupying a permanent five-button row.
+/// v24 "Quiet Deck": one floating command bar anchored below the status bar.
+/// The top placement means the bar never interacts with the keyboard or the
+/// home-indicator area, so no keyboard-ride constraints exist at all. All
+/// commands live in a system-presented UIMenu (assigned by the owner), which
+/// removes custom sheet presentations — and their presentation races — entirely.
 final class BrowserChromeView: UIView, UITextFieldDelegate {
     private struct RenderState: Equatable {
         let address: String?
@@ -43,7 +45,14 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 29).cgPath
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 27).cgPath
+    }
+
+    /// The ⋯ menu is rebuilt by the owner whenever tab state changes, so the
+    /// system always presents current navigation/page state.
+    func updateToolsMenu(_ menu: UIMenu?) {
+        toolsButton.menu = menu
+        toolsButton.showsMenuAsPrimaryAction = true
     }
 
     func update(tab: BrowserTab, tabCount: Int) {
@@ -86,16 +95,16 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
 
     private func configure() {
         layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.16
-        layer.shadowRadius = 22
-        layer.shadowOffset = CGSize(width: 0, height: 12)
+        layer.shadowOpacity = 0.14
+        layer.shadowRadius = 18
+        layer.shadowOffset = CGSize(width: 0, height: 8)
         material.layer.cornerCurve = .continuous
-        material.layer.cornerRadius = 29
+        material.layer.cornerRadius = 27
         material.clipsToBounds = true
         material.translatesAutoresizingMaskIntoConstraints = false
         addSubview(material)
 
-        heightAnchor.constraint(greaterThanOrEqualToConstant: 58).isActive = true
+        heightAnchor.constraint(greaterThanOrEqualToConstant: 54).isActive = true
         progressView.tintColor = VulpraAppearance.accent
         progressView.trackTintColor = .clear
         progressView.translatesAutoresizingMaskIntoConstraints = false
@@ -144,18 +153,18 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
 
             toolsButton.topAnchor.constraint(equalTo: material.contentView.topAnchor),
             toolsButton.bottomAnchor.constraint(equalTo: material.contentView.bottomAnchor),
-            toolsButton.leadingAnchor.constraint(equalTo: material.contentView.leadingAnchor, constant: 4),
+            toolsButton.trailingAnchor.constraint(equalTo: material.contentView.trailingAnchor, constant: -4),
 
             tabsButton.topAnchor.constraint(equalTo: material.contentView.topAnchor),
             tabsButton.bottomAnchor.constraint(equalTo: material.contentView.bottomAnchor),
-            tabsButton.trailingAnchor.constraint(equalTo: material.contentView.trailingAnchor, constant: -4),
+            tabsButton.trailingAnchor.constraint(equalTo: toolsButton.leadingAnchor),
 
             tabCountLabel.topAnchor.constraint(equalTo: tabsButton.topAnchor, constant: 9),
             tabCountLabel.trailingAnchor.constraint(equalTo: tabsButton.trailingAnchor, constant: 1),
             tabCountLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 16),
             tabCountLabel.heightAnchor.constraint(equalToConstant: 16),
 
-            lockView.leadingAnchor.constraint(equalTo: toolsButton.trailingAnchor, constant: 2),
+            lockView.leadingAnchor.constraint(equalTo: material.contentView.leadingAnchor, constant: 18),
             lockView.centerYAnchor.constraint(equalTo: material.contentView.centerYAnchor),
             lockView.widthAnchor.constraint(equalToConstant: 13),
 
@@ -163,14 +172,13 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
             addressField.centerYAnchor.constraint(equalTo: material.contentView.centerYAnchor),
             addressField.topAnchor.constraint(greaterThanOrEqualTo: material.contentView.topAnchor, constant: 8),
             addressField.bottomAnchor.constraint(lessThanOrEqualTo: material.contentView.bottomAnchor, constant: -8),
-            addressField.trailingAnchor.constraint(equalTo: tabsButton.leadingAnchor, constant: -4),
+            addressField.trailingAnchor.constraint(equalTo: tabsButton.leadingAnchor, constant: -2),
 
             progressView.topAnchor.constraint(equalTo: topAnchor),
             progressView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 18),
             progressView.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -18),
         ])
 
-        toolsButton.addTarget(self, action: #selector(tools), for: .touchUpInside)
         tabsButton.addTarget(self, action: #selector(tabs), for: .touchUpInside)
         addGestureRecognizer(UISwipeGestureRecognizer(target: self, action: #selector(swipe(_:))).configured(.left))
         addGestureRecognizer(UISwipeGestureRecognizer(target: self, action: #selector(swipe(_:))).configured(.right))
@@ -185,13 +193,11 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
     func textFieldDidBeginEditing(_ textField: UITextField) {
         addressField.text = renderedState?.address
         delegate?.browserChromeDidBeginEditing(self)
-        animateEditing(true)
     }
 
     func textFieldDidEndEditing(_ textField: UITextField) {
         addressField.text = Self.displayAddress(from: renderedState?.address)
         delegate?.browserChromeDidEndEditing(self)
-        animateEditing(false)
     }
 
     private func applyPrivateTheme(_ privateMode: Bool) {
@@ -206,18 +212,7 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
     }
 
-    private func animateEditing(_ editing: Bool) {
-        let changes = { self.transform = editing ? CGAffineTransform(translationX: 0, y: -4) : .identity }
-        if UIAccessibility.isReduceMotionEnabled {
-            changes()
-        } else {
-            UIView.animate(withDuration: 0.28, delay: 0, usingSpringWithDamping: 0.86,
-                           initialSpringVelocity: 0.2, options: [.beginFromCurrentState], animations: changes)
-        }
-    }
-
     @objc private func addressChanged() { delegate?.browserChrome(self, textDidChange: addressField.text ?? "") }
-    @objc private func tools() { haptic(); delegate?.browserChromeDidRequestTools(self) }
     @objc private func tabs() { haptic(); delegate?.browserChromeDidRequestTabs(self) }
     @objc private func swipe(_ gesture: UISwipeGestureRecognizer) {
         delegate?.browserChrome(self, requestedAdjacentTab: gesture.direction == .left ? 1 : -1)

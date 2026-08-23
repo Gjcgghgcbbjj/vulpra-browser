@@ -22,12 +22,9 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     var recordedURLs: [UUID: String] = [:]
     var initialURL: URL?
     private var isSceneActive = false
-    private var chromeDockConstraint: NSLayoutConstraint?
-    private var chromeKeyboardConstraint: NSLayoutConstraint?
-    private var chromeRidesKeyboard = false
-    private var contentTopConstraint: NSLayoutConstraint?
-    private var contentBottomToChrome: NSLayoutConstraint?
-    private var contentBottomToSafe: NSLayoutConstraint?
+    private var contentTopToChrome: NSLayoutConstraint?
+    private var contentTopToSafe: NSLayoutConstraint?
+    private var failureOverlay: UIStackView?
     /// Scroll-aware chrome: engine scroll telemetry drives visibility.
     private let scrollObserver = GeckoScrollObserver()
     private var lastScrollY: CGFloat = 0
@@ -111,34 +108,24 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         view.addSubview(contentContainer)
         view.addSubview(chrome)
         view.insertSubview(suggestionsView, belowSubview: chrome)
-        chromeDockConstraint = chrome.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12)
-        // Web content must never sit under the notch/status bar or behind the
-        // floating toolbar — the Gecko uikit port exposes no safe-area insets
-        // to pages, so fixed page footers/headers were getting occluded.
-        // Top: below the safe area. Bottom: above the chrome while it is
-        // visible; full height down to the home-indicator area in immersive
-        // mode (the pill toggle).
-        contentTopConstraint = contentContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
-        contentBottomToChrome = contentContainer.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -12)
-        contentBottomToSafe = contentContainer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
+        // v24 Quiet Deck: one command bar floats below the status bar; the
+        // page owns everything beneath it, down to the home-indicator edge.
+        // A top bar is always above the keyboard by construction, so no
+        // keyboard-ride constraints exist at all.
+        contentTopToChrome = contentContainer.topAnchor.constraint(equalTo: chrome.bottomAnchor, constant: 8)
+        contentTopToSafe = contentContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
         NSLayoutConstraint.activate([
-            contentTopConstraint!,
+            contentTopToSafe!,
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            contentBottomToChrome!,
+            contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            chrome.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             chrome.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
             chrome.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            chromeDockConstraint!,
+            suggestionsView.topAnchor.constraint(equalTo: chrome.bottomAnchor, constant: 8),
             suggestionsView.leadingAnchor.constraint(equalTo: chrome.leadingAnchor),
             suggestionsView.trailingAnchor.constraint(equalTo: chrome.trailingAnchor),
-            suggestionsView.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -12),
         ])
-        // Height of the suggestion panel is driven by its intrinsicContentSize
-        // (row count); no fixed 290pt panel for a single suggestion anymore.
-        // When the address field is focused the chrome docks above the
-        // keyboard so suggestions stay visible (Safari-style).
-        chromeKeyboardConstraint = chrome.bottomAnchor.constraint(
-            equalTo: view.keyboardLayoutGuide.topAnchor, constant: -8)
 
         let backEdge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgeNavigation(_:)))
         backEdge.edges = .left
@@ -258,18 +245,19 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         present(UINavigationController(rootViewController: controller), animated: true)
     }
 
-    /// Docks the chrome above the keyboard while editing the address field.
-    func setChromeKeyboardRide(_ enabled: Bool) {        guard enabled != chromeRidesKeyboard,
-              let dock = chromeDockConstraint, let ride = chromeKeyboardConstraint else { return }
-        chromeRidesKeyboard = enabled
-        view.layoutIfNeeded()
-        let changes = {
-            if enabled { dock.isActive = false; ride.isActive = true }
-            else { ride.isActive = false; dock.isActive = true }
-            self.view.layoutIfNeeded()
-        }
-        if UIAccessibility.isReduceMotionEnabled { changes() }
-        else { UIView.animate(withDuration: 0.25, animations: changes) }
+    /// Start-page vs web mode: the bar exists only while web content shows.
+    func setChromeDisplayed(_ displayed: Bool) {
+        let targetHidden = !displayed
+        guard chrome.isHidden != targetHidden else { return }
+        chrome.isHidden = targetHidden
+        suggestionsView.isHidden = targetHidden
+        refreshContentTop()
+    }
+
+    private func refreshContentTop() {
+        let attachToChrome = !chrome.isHidden && !isChromeHidden
+        contentTopToChrome?.isActive = attachToChrome
+        contentTopToSafe?.isActive = !attachToChrome
     }
 
     // MARK: - Scroll-aware chrome (Safari-style)
@@ -299,11 +287,11 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
     private func applyChromeState(hidden: Bool) {
         chrome.alpha = hidden ? 0 : 1
+        // Slide up beneath the status bar; nothing ever overlays the page.
         chrome.transform = hidden
-            ? CGAffineTransform(translationX: 0, y: chrome.bounds.height + 20)
+            ? CGAffineTransform(translationX: 0, y: -(chrome.bounds.height + view.safeAreaInsets.top + 8))
             : .identity
-        contentBottomToChrome?.isActive = !hidden
-        contentBottomToSafe?.isActive = hidden
+        refreshContentTop()
         view.layoutIfNeeded()
     }
 
