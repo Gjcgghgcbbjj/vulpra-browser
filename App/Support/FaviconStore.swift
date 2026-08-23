@@ -13,12 +13,12 @@ import UIKit
 final class FaviconStore {
     static let shared = FaviconStore()
     
-    private static let expirationDays = 30
-    private static let databaseName = "Favicons"
-    private static let imageFilePrefix = "img-"
-    private static let maxHTMLBytes = 768 * 1024
-    private static let maxImageBytes = 2 * 1024 * 1024
-    private static let maxRedirectDepth = 3
+    static let expirationDays = 30
+    static let databaseName = "Favicons"
+    static let imageFilePrefix = "img-"
+    static let maxHTMLBytes = 768 * 1024
+    static let maxImageBytes = 2 * 1024 * 1024
+    static let maxRedirectDepth = 3
     
     struct StorageURLs {
         let directoryURL: URL

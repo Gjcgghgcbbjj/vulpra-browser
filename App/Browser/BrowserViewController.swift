@@ -13,7 +13,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     let pictureInPicture = BrowserPictureInPictureController()
     let readerMode = ReaderModeController()
     let contextMenu = BrowserContextMenuController()
-    private let contentContainer = UIView()
+    let contentContainer = UIView()
     let chrome = BrowserChromeView()
     let startPage = StartPageViewController()
     let suggestionsView = OmniboxSuggestionsView()
@@ -323,4 +323,27 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         }
     }
 
+    private func updatePrivacyCover(show: Bool) {
+        if show, privacyCover == nil {
+            let cover = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterialDark))
+            cover.frame = view.bounds
+            cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.addSubview(cover)
+            privacyCover = cover
+        } else if !show {
+            privacyCover?.removeFromSuperview()
+            privacyCover = nil
+        }
+    }
+
+    @objc private func settingsChanged() {
+        overrideUserInterfaceStyle = BrowserSettingsStore.shared.value.darkAppearance ? .dark : .unspecified
+        tabManager.tabs.forEach { $0.applySettings(BrowserSettingsStore.shared.value) }
+    }
+    @objc private func closePresented() { dismiss(animated: true) }
+    @objc private func edgeNavigation(_ gesture: UIScreenEdgePanGestureRecognizer) {
+        guard gesture.state == .ended,
+              gesture.translation(in: contentContainer).x.magnitude > 60 else { return }
+        gesture.edges == .left ? tabManager.selectedTab?.goBack() : tabManager.selectedTab?.goForward()
+    }
 }
