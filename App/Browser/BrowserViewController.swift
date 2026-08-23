@@ -5,22 +5,22 @@ import UIKit
 final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, TabManagerDelegate,
     StartPageViewControllerDelegate, PageToolsControllerDelegate {
     private let logger = Logger(subsystem: "com.vulpra.browser", category: "browser")
-    private let tabManager = TabManager()
+    let tabManager = TabManager()
     private let permissionController = BrowserPermissionController()
     private let promptController = BrowserPromptController()
     private let addonController = BrowserAddonController()
-    private let pageTools = PageToolsController()
-    private let pictureInPicture = BrowserPictureInPictureController()
-    private let readerMode = ReaderModeController()
-    private let contextMenu = BrowserContextMenuController()
+    let pageTools = PageToolsController()
+    let pictureInPicture = BrowserPictureInPictureController()
+    let readerMode = ReaderModeController()
+    let contextMenu = BrowserContextMenuController()
     private let contentContainer = UIView()
-    private let chrome = BrowserChromeView()
-    private let startPage = StartPageViewController()
-    private let suggestionsView = OmniboxSuggestionsView()
+    let chrome = BrowserChromeView()
+    let startPage = StartPageViewController()
+    let suggestionsView = OmniboxSuggestionsView()
     private var attachedEngineView: UIView?
     private var privacyCover: UIVisualEffectView?
-    private var recordedURLs: [UUID: String] = [:]
-    private var initialURL: URL?
+    var recordedURLs: [UUID: String] = [:]
+    var initialURL: URL?
     private var isSceneActive = false
     private var chromeDockConstraint: NSLayoutConstraint?
     private var chromeKeyboardConstraint: NSLayoutConstraint?
@@ -32,6 +32,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private let scrollObserver = GeckoScrollObserver()
     private var lastScrollY: CGFloat = 0
     private var isChromeHidden = false
+    var zoomPersistWork: DispatchWorkItem?
 
     init(initialURL: URL? = nil) {
         self.initialURL = initialURL
@@ -72,35 +73,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         tabManager.suspendBackgroundTabs()
     }
 
-    func open(_ url: URL) {
-        guard let tab = tabManager.selectedTab else { return }
-        tab.load(url, settings: BrowserSettingsStore.shared.value)
-        showSelectedTab()
-    }
-
-    /// State restoration: restore multiple tabs from saved URLs.
-    /// Called by SceneDelegate when the app is relaunched after a system kill.
-    func restoreTabs(urls: [URL]) {
-        guard !urls.isEmpty else { return }
-        let settings = BrowserSettingsStore.shared.value
-        // Load the first URL into the existing empty tab (created by TabManager.init).
-        if let firstTab = tabManager.selectedTab, firstTab.url == nil {
-            firstTab.load(urls[0], settings: settings)
-        }
-        // Create additional tabs for the remaining URLs.
-        for url in urls.dropFirst() {
-            tabManager.newTab(url: url, privateMode: false, select: false)
-        }
-        showSelectedTab()
-    }
-
-    /// State restoration: the URLs of all open normal (non-private) tabs.
-    var openTabURLs: [URL] {
-        tabManager.normalTabs.compactMap { $0.url }
-    }
-
-    func closePrivateTabs() { tabManager.closePrivateTabs() }
-
     func setActive(_ active: Bool) {
         isSceneActive = active
         tabManager.selectedTab?.setActive(active)
@@ -139,7 +111,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         view.addSubview(contentContainer)
         view.addSubview(chrome)
         view.insertSubview(suggestionsView, belowSubview: chrome)
-        chromeDockConstraint = chrome.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -6)
+        chromeDockConstraint = chrome.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -12)
         // Web content must never sit under the notch/status bar or behind the
         // floating toolbar — the Gecko uikit port exposes no safe-area insets
         // to pages, so fixed page footers/headers were getting occluded.
@@ -147,19 +119,19 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         // visible; full height down to the home-indicator area in immersive
         // mode (the pill toggle).
         contentTopConstraint = contentContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
-        contentBottomToChrome = contentContainer.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -8)
+        contentBottomToChrome = contentContainer.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -12)
         contentBottomToSafe = contentContainer.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         NSLayoutConstraint.activate([
             contentTopConstraint!,
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             contentBottomToChrome!,
-            chrome.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 10),
-            chrome.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10),
+            chrome.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            chrome.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
             chromeDockConstraint!,
             suggestionsView.leadingAnchor.constraint(equalTo: chrome.leadingAnchor),
             suggestionsView.trailingAnchor.constraint(equalTo: chrome.trailingAnchor),
-            suggestionsView.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -8),
+            suggestionsView.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -12),
         ])
         // Height of the suggestion panel is driven by its intrinsicContentSize
         // (row count); no fixed 290pt panel for a single suggestion anymore.
@@ -176,7 +148,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         contentContainer.addGestureRecognizer(forwardEdge)
     }
 
-    private func showSelectedTab() {
+    func showSelectedTab() {
         guard isViewLoaded, let tab = tabManager.selectedTab else { return }
         chrome.update(tab: tab, tabCount: tabManager.tabs.count)
 
@@ -274,20 +246,20 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         showSelectedTab()
     }
 
-    private func presentLibrary(_ section: LibrarySection) {
+    func presentLibrary(_ section: LibrarySection) {
         let controller = LibraryViewController(section: section)
         controller.onOpenURL = { [weak self] in self?.open($0) }
         presentNavigation(controller)
     }
 
-    private func presentNavigation(_ controller: UIViewController) {
+    func presentNavigation(_ controller: UIViewController) {
         controller.navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close,
                                                                       target: self, action: #selector(closePresented))
         present(UINavigationController(rootViewController: controller), animated: true)
     }
 
     /// Docks the chrome above the keyboard while editing the address field.
-    private func setChromeKeyboardRide(_ enabled: Bool) {        guard enabled != chromeRidesKeyboard,
+    func setChromeKeyboardRide(_ enabled: Bool) {        guard enabled != chromeRidesKeyboard,
               let dock = chromeDockConstraint, let ride = chromeKeyboardConstraint else { return }
         chromeRidesKeyboard = enabled
         view.layoutIfNeeded()
@@ -351,133 +323,4 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         }
     }
 
-    func browserChromeDidBeginEditing(_ chrome: BrowserChromeView) { setChromeKeyboardRide(true) }
-    func browserChromeDidEndEditing(_ chrome: BrowserChromeView) { setChromeKeyboardRide(false) }
-
-    func browserChrome(_ chrome: BrowserChromeView, submitted text: String) {
-        suggestionsView.update([])
-        guard let url = OmniboxResolver.resolve(text, settings: BrowserSettingsStore.shared.value) else { return }
-        open(url)
-    }
-    func browserChrome(_ chrome: BrowserChromeView, textDidChange text: String) {
-        suggestionsView.update(OmniboxSuggestionProvider.suggestions(for: text, tabs: tabManager.tabs))
-    }
-    func browserChromeDidRequestBack(_ chrome: BrowserChromeView) { tabManager.selectedTab?.goBack() }
-    func browserChromeDidRequestForward(_ chrome: BrowserChromeView) { tabManager.selectedTab?.goForward() }
-    func browserChromeDidRequestReloadOrStop(_ chrome: BrowserChromeView) {
-        guard let tab = tabManager.selectedTab else { return }; tab.isLoading ? tab.stop() : tab.reload()
-    }
-    func browserChromeDidRequestShare(_ chrome: BrowserChromeView) {
-        pageTools.present(from: self, sourceView: chrome, url: tabManager.selectedTab?.url)
-    }
-    func browserChromeDidRequestTabs(_ chrome: BrowserChromeView) {
-        let overview = TabOverviewViewController(manager: tabManager)
-        overview.onDismiss = { [weak self] in self?.showSelectedTab() }
-        present(UINavigationController(rootViewController: overview), animated: true)
-    }
-    func browserChrome(_ chrome: BrowserChromeView, requestedAdjacentTab offset: Int) {
-        tabManager.selectAdjacent(offset: offset); showSelectedTab()
-    }
-
-    func tabManagerDidChange(_ manager: TabManager) {
-        showSelectedTab()
-        recordHistoryIfNeeded(for: manager.selectedTab)
-    }
-    func tabManager(_ manager: TabManager, didUpdatePresentationFor tab: BrowserTab) {
-        guard tab === manager.selectedTab else { return }
-        chrome.update(tab: tab, tabCount: manager.tabs.count)
-        if !tab.isLoading { recordHistoryIfNeeded(for: tab) }
-    }
-    func tabManager(_ manager: TabManager, didUpdatePersistableStateFor tab: BrowserTab) {
-        guard tab === manager.selectedTab else { return }
-        chrome.update(tab: tab, tabCount: manager.tabs.count)
-        if !tab.isLoading { recordHistoryIfNeeded(for: tab) }
-    }
-    func tabManager(_ manager: TabManager, didChangeSessionFor tab: BrowserTab) {
-        guard tab === manager.selectedTab else { return }
-        showSelectedTab()
-    }
-
-    private func recordHistoryIfNeeded(for tab: BrowserTab?) {
-        guard let tab, let url = tab.url, !tab.isLoading,
-              recordedURLs[tab.id] != url.absoluteString else { return }
-        recordedURLs[tab.id] = url.absoluteString
-        HistoryStore.shared.record(title: tab.title, url: url, privateMode: tab.isPrivate)
-    }
-    func tabManager(_ manager: TabManager, requestedDownload response: ExternalResponseInfo) async -> Bool { DownloadManager.shared.accept(response) }
-    func tabManager(_ manager: TabManager, downloadAt path: String, received bytes: Int64) -> Bool { DownloadManager.shared.update(path: path, bytes: bytes) }
-    func tabManager(_ manager: TabManager, completedDownloadAt path: String, succeeded: Bool) { DownloadManager.shared.complete(path: path, succeeded: succeeded) }
-    func tabManager(_ manager: TabManager, requestedContextMenu element: ContextElement) {
-        contextMenu.present(element: element, from: self, sourceView: contentContainer)
-    }
-
-    func startPage(_ controller: StartPageViewController, open text: String) { browserChrome(chrome, submitted: text) }
-    func pageToolsDidRequestPrivateTab(_ controller: PageToolsController) {
-        _ = tabManager.newTab(url: nil, privateMode: true); showSelectedTab()
-    }
-    func pageToolsDidRequestBookmarks(_ controller: PageToolsController) { presentLibrary(.bookmarks) }
-    func pageToolsDidRequestHistory(_ controller: PageToolsController) { presentLibrary(.history) }
-    func pageToolsDidRequestDownloads(_ controller: PageToolsController) { presentNavigation(DownloadsViewController()) }
-    func pageToolsDidRequestSettings(_ controller: PageToolsController) { presentNavigation(SettingsViewController()) }
-
-    func pageToolsDidRequestShare(_ controller: PageToolsController) {
-        guard let url = tabManager.selectedTab?.url else { return }
-        let activity = UIActivityViewController(activityItems: [url], applicationActivities: nil)
-        activity.popoverPresentationController?.sourceView = chrome
-        present(activity, animated: true)
-    }
-    func pageToolsDidRequestBookmark(_ controller: PageToolsController) {
-        guard let tab = tabManager.selectedTab, let url = tab.url else { return }
-        BookmarkStore.shared.add(title: tab.title, url: url)
-    }
-    func pageTools(_ controller: PageToolsController, find text: String) {
-        guard !text.isEmpty, let finder = tabManager.selectedTab?.session?.finder else { return }
-        Task { _ = try? await finder.find(text); finder.setDisplayOptions([.highlightAll, .dimPage]) }
-    }
-    private var zoomPersistWork: DispatchWorkItem?
-
-    func pageToolsDidRequestDesktopMode(_ controller: PageToolsController) {
-        BrowserSettingsStore.shared.update { $0.defaultDesktopMode.toggle() }
-        tabManager.selectedTab?.applySettings(BrowserSettingsStore.shared.value)
-        tabManager.selectedTab?.reload()
-    }
-    func pageTools(_ controller: PageToolsController, setZoom level: Int) {
-        // #1: Silent update (no broadcast), apply to selected tab only, debounce disk write.
-        BrowserSettingsStore.shared.updateSilently { $0.pageZoom = level }
-        tabManager.selectedTab?.applySettings(BrowserSettingsStore.shared.value)
-        zoomPersistWork?.cancel()
-        let work = DispatchWorkItem { BrowserSettingsStore.shared.persist() }
-        zoomPersistWork = work
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
-    }
-    func pageToolsDidRequestPictureInPicture(_ controller: PageToolsController) { pictureInPicture.start() }
-    func pageToolsDidRequestReaderMode(_ controller: PageToolsController) {
-        guard let session = tabManager.selectedTab?.session else { return }
-        readerMode.presenter = self
-        Task { await readerMode.parseAndPresent(session: session, sourceView: chrome) }
-    }
-    func pageToolsDidRequestQRScanner(_ controller: PageToolsController) {
-        let scanner = QRScannerViewController(); scanner.onCode = { [weak self] value in
-            guard let self else { return }; self.browserChrome(self.chrome, submitted: value)
-        }
-        present(UINavigationController(rootViewController: scanner), animated: true)
-    }
-
-    private func updatePrivacyCover(show: Bool) {
-        if show, privacyCover == nil {
-            let cover = UIVisualEffectView(effect: UIBlurEffect(style: .systemChromeMaterialDark))
-            cover.frame = view.bounds; cover.autoresizingMask = [.flexibleWidth, .flexibleHeight]
-            view.addSubview(cover); privacyCover = cover
-        } else if !show { privacyCover?.removeFromSuperview(); privacyCover = nil }
-    }
-
-    @objc private func settingsChanged() {
-        overrideUserInterfaceStyle = BrowserSettingsStore.shared.value.darkAppearance ? .dark : .unspecified
-        tabManager.tabs.forEach { $0.applySettings(BrowserSettingsStore.shared.value) }
-    }
-    @objc private func closePresented() { dismiss(animated: true) }
-    @objc private func edgeNavigation(_ gesture: UIScreenEdgePanGestureRecognizer) {
-        guard gesture.state == .ended, gesture.translation(in: contentContainer).x.magnitude > 60 else { return }
-        gesture.edges == .left ? tabManager.selectedTab?.goBack() : tabManager.selectedTab?.goForward()
-    }
 }

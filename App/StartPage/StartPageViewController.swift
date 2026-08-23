@@ -2,43 +2,60 @@ import UIKit
 
 protocol StartPageViewControllerDelegate: AnyObject {
     func startPage(_ controller: StartPageViewController, open text: String)
+    func startPageDidRequestPrivateTab(_ controller: StartPageViewController)
+    func startPageDidRequestBookmarks(_ controller: StartPageViewController)
+    func startPageDidRequestHistory(_ controller: StartPageViewController)
+    func startPageDidRequestDownloads(_ controller: StartPageViewController)
+    func startPageDidRequestSettings(_ controller: StartPageViewController)
 }
 
-/// Chrome-style new tab page: colorful wordmark, a full-width search
-/// capsule, and up to eight circular shortcuts to bookmarked sites.
-/// Navigation (bookmarks/history/downloads/settings/private tab) lives in
-/// the toolbar's page-tools menu, mirroring Chrome — the home screen stays
-/// purely about search and shortcuts.
+/// A calm spatial home: large typography, one command field, and quiet cards.
 final class StartPageViewController: UIViewController, UITextFieldDelegate {
     weak var delegate: StartPageViewControllerDelegate?
 
-    private let gridStack = UIStackView()
-    private let sectionHeader = UILabel()
+    private let scrollView = UIScrollView()
+    private let contentStack = UIStackView()
+    private let gradient = CAGradientLayer()
+    private let shortcutGrid = UIStackView()
+    private let recentStack = UIStackView()
+    private let recentHeader = UILabel()
+    private let pinnedHeader = UILabel()
     private let emptyHint = UILabel()
-    private var quickURLs: [URL] = []
-    private let columns = 4
-    private let tileSize: CGFloat = 56
 
-    // MARK: - Brand mark
-
-    /// Own-brand wordmark: quiet, typographic, zero borrowed identity.
-    private let logoLabel: UILabel = {
-        let text = NSAttributedString(string: "Vulpra", attributes: [
-            .font: UIFont.systemFont(ofSize: 36, weight: .semibold),
-            .foregroundColor: UIColor.label,
-            .kern: 2.0,
-        ])
+    private let brandLabel: UILabel = {
         let label = UILabel()
-        label.attributedText = text
-        label.textAlignment = .center
+        label.attributedText = NSAttributedString(string: "VULPRA", attributes: [
+            .font: UIFont.preferredFont(forTextStyle: .footnote),
+            .foregroundColor: UIColor.secondaryLabel,
+            .kern: 4,
+        ])
+        label.adjustsFontForContentSizeCategory = true
+        return label
+    }()
+
+    private let greetingLabel: UILabel = {
+        let label = UILabel()
+        label.font = UIFontMetrics(forTextStyle: .largeTitle).scaledFont(
+            for: .systemFont(ofSize: 38, weight: .semibold))
+        label.adjustsFontForContentSizeCategory = true
+        label.textColor = .label
+        label.numberOfLines = 0
+        return label
+    }()
+
+    private let contextLabel: UILabel = {
+        let label = UILabel()
+        label.font = .preferredFont(forTextStyle: .footnote)
+        label.adjustsFontForContentSizeCategory = true
+        label.textColor = .secondaryLabel
         return label
     }()
 
     private let searchField: UITextField = {
         let field = UITextField()
         field.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
-        field.backgroundColor = .secondarySystemFill
-        field.layer.cornerRadius = 24
+        field.backgroundColor = VulpraAppearance.cardFill
+        field.font = .preferredFont(forTextStyle: .body)
         field.clearButtonMode = .whileEditing
         field.returnKeyType = .go
         field.keyboardType = .webSearch
@@ -46,181 +63,253 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         field.autocorrectionType = .no
 
         let magnifier = UIImageView(image: UIImage(systemName: "magnifyingglass",
-                                                   withConfiguration: UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)))
+                                                   withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)))
         magnifier.tintColor = .secondaryLabel
         magnifier.contentMode = .center
-        magnifier.frame = CGRect(x: 0, y: 0, width: 36, height: 24)
+        magnifier.frame = CGRect(x: 0, y: 0, width: 42, height: 24)
         field.leftView = magnifier
         field.leftViewMode = .always
-
-        let rightPad = UIView(frame: CGRect(x: 0, y: 0, width: 16, height: 1))
+        let rightPad = UIView(frame: CGRect(x: 0, y: 0, width: 18, height: 1))
         field.rightView = rightPad
         field.rightViewMode = .always
-        field.heightAnchor.constraint(equalToConstant: 48).isActive = true
+        VulpraAppearance.elevate(field, radius: 20, opacity: 0.05)
+        field.heightAnchor.constraint(greaterThanOrEqualToConstant: 56).isActive = true
         return field
     }()
 
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        reloadQuickSites()
-    }
+    private let menuButton: UIButton = {
+        var configuration = UIButton.Configuration.plain()
+        configuration.image = UIImage(systemName: "ellipsis.circle.fill")
+        configuration.preferredSymbolConfigurationForImage = UIImage.SymbolConfiguration(textStyle: .title2)
+        configuration.contentInsets = NSDirectionalEdgeInsets(top: 5, leading: 5, bottom: 5, trailing: 5)
+        let button = UIButton(type: .system)
+        button.configuration = configuration
+        button.tintColor = .secondaryLabel
+        button.showsMenuAsPrimaryAction = true
+        button.accessibilityLabel = L10n.tr("Browser library", "浏览器资料库")
+        return button
+    }()
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        configure()
+        refreshGreeting()
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        reloadLinks()
+    }
+
+    override func viewDidLayoutSubviews() {
+        gradient.frame = view.bounds
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            updateGradientColors()
+            searchField.layer.borderColor = VulpraAppearance.hairline.resolvedColor(with: traitCollection).cgColor
+        }
+    }
+
+    private func configure() {
         view.backgroundColor = .systemBackground
+        updateGradientColors()
+        gradient.startPoint = CGPoint(x: 0.5, y: 0)
+        gradient.endPoint = CGPoint(x: 0.5, y: 1)
+        view.layer.insertSublayer(gradient, at: 0)
 
-        sectionHeader.text = L10n.tr("Shortcuts", "快捷方式")
-        sectionHeader.font = .systemFont(ofSize: 14, weight: .semibold)
-        sectionHeader.textColor = .secondaryLabel
+        scrollView.alwaysBounceVertical = true
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(scrollView)
 
-        emptyHint.text = L10n.tr("Bookmark sites and your shortcuts will appear here.",
-                                 "收藏网站后，快捷方式会显示在这里。")
-        emptyHint.font = .systemFont(ofSize: 13)
+        contentStack.axis = .vertical
+        contentStack.spacing = 24
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.addSubview(contentStack)
+
+        configureMenu()
+        let header = UIStackView(arrangedSubviews: [brandLabel, UIView(), menuButton])
+        header.alignment = .center
+
+        refreshGreeting()
+        let hero = UIStackView(arrangedSubviews: [greetingLabel, contextLabel])
+        hero.axis = .vertical
+        hero.spacing = 5
+        hero.setCustomSpacing(22, after: contextLabel)
+
+        recentHeader.attributedText = sectionHeader(L10n.tr("Recent", "最近访问")).attributedText
+        recentHeader.isHidden = true
+        shortcutGrid.axis = .vertical
+        shortcutGrid.spacing = 12
+        recentStack.axis = .vertical
+        recentStack.spacing = 10
+        emptyHint.text = L10n.tr("Pin a site and it will live here.", "固定网站后，它会出现在这里。")
+        emptyHint.font = .preferredFont(forTextStyle: .callout)
         emptyHint.textColor = .tertiaryLabel
         emptyHint.textAlignment = .center
         emptyHint.numberOfLines = 0
 
-        gridStack.axis = .vertical
-        gridStack.spacing = 20
+        contentStack.addArrangedSubview(header)
+        contentStack.addArrangedSubview(hero)
+        contentStack.addArrangedSubview(searchField)
+        pinnedHeader.attributedText = sectionHeader(L10n.tr("Pinned", "固定站点")).attributedText
+        contentStack.addArrangedSubview(pinnedHeader)
+        contentStack.addArrangedSubview(shortcutGrid)
+        contentStack.addArrangedSubview(recentHeader)
+        contentStack.addArrangedSubview(recentStack)
+        contentStack.addArrangedSubview(emptyHint)
 
-        let stack = UIStackView(arrangedSubviews: [logoLabel, searchField, sectionHeader, gridStack, emptyHint])
-        stack.axis = .vertical
-        stack.spacing = 28
-        stack.setCustomSpacing(26, after: logoLabel)
-        stack.setCustomSpacing(34, after: searchField)
-        stack.setCustomSpacing(16, after: sectionHeader)
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(stack)
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor, constant: 12),
-            stack.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor, constant: -12),
-            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -64),
-            searchField.leadingAnchor.constraint(greaterThanOrEqualTo: stack.leadingAnchor),
-            searchField.trailingAnchor.constraint(lessThanOrEqualTo: stack.trailingAnchor),
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+
+            contentStack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 12),
+            contentStack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: 22),
+            contentStack.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -22),
+            contentStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -36),
+
+            menuButton.widthAnchor.constraint(equalToConstant: 40),
         ])
         searchField.delegate = self
+    }
+
+    private func configureMenu() {
+        let privateTab = UIAction(title: L10n.tr("New Private Tab", "新建私密标签页"),
+                                  image: UIImage(systemName: "eyeglasses")) { [weak self] _ in
+            guard let self else { return }
+            self.delegate?.startPageDidRequestPrivateTab(self)
+        }
+        let bookmark = UIAction(title: L10n.tr("Bookmarks", "书签"), image: UIImage(systemName: "book")) { [weak self] _ in
+            guard let self else { return }
+            self.delegate?.startPageDidRequestBookmarks(self)
+        }
+        let history = UIAction(title: L10n.tr("History", "历史记录"), image: UIImage(systemName: "clock.arrow.circlepath")) { [weak self] _ in
+            guard let self else { return }
+            self.delegate?.startPageDidRequestHistory(self)
+        }
+        let downloads = UIAction(title: L10n.tr("Downloads", "下载"), image: UIImage(systemName: "arrow.down.circle")) { [weak self] _ in
+            guard let self else { return }
+            self.delegate?.startPageDidRequestDownloads(self)
+        }
+        let settings = UIAction(title: L10n.tr("Settings", "设置"), image: UIImage(systemName: "gearshape")) { [weak self] _ in
+            guard let self else { return }
+            self.delegate?.startPageDidRequestSettings(self)
+        }
+        menuButton.menu = UIMenu(children: [
+            privateTab,
+            UIMenu(options: .displayInline, children: [bookmark, history, downloads]),
+            UIMenu(options: .displayInline, children: [settings]),
+        ])
+    }
+
+    private func greeting() -> String {
+        let hour = Calendar.current.component(.hour, from: Date())
+        switch hour {
+        case 5..<12: return L10n.tr("Good morning", "早上好")
+        case 12..<18: return L10n.tr("Good afternoon", "下午好")
+        default: return L10n.tr("Good evening", "晚上好")
+        }
+    }
+
+    private func refreshGreeting() {
+        greetingLabel.text = greeting()
+        contextLabel.text = DateFormatter.localizedString(from: Date(), dateStyle: .full, timeStyle: .none)
+    }
+
+    private func sectionHeader(_ title: String) -> UILabel {
+        let descriptor = UIFontDescriptor.preferredFontDescriptor(withTextStyle: .caption2)
+            .addingAttributes([.traits: [UIFontDescriptor.TraitKey.weight: UIFont.Weight.semibold]])
+        let label = UILabel()
+        label.attributedText = NSAttributedString(string: title.uppercased(), attributes: [
+            .font: UIFontMetrics(forTextStyle: .caption2).scaledFont(
+                for: UIFont(descriptor: descriptor, size: 12)),
+            .foregroundColor: UIColor.tertiaryLabel,
+            .kern: 1.2,
+        ])
+        label.adjustsFontForContentSizeCategory = true
+        return label
+    }
+
+    private func reloadLinks() {
+        let bookmarks = BookmarkStore.shared.items.prefix(6).compactMap { item -> (String, URL)? in
+            guard !item.isFolder, let value = item.url, let url = URL(string: value) else { return nil }
+            return (item.title.isEmpty ? (url.host ?? "") : item.title, url)
+        }
+        var seen = Set(BookmarkStore.shared.items.compactMap(\.url))
+        let uniqueBookmarks = bookmarks.filter { seen.insert($0.1.absoluteString).inserted }
+
+        let visits = HistoryStore.shared.visits.prefix(30).compactMap { visit -> (String, URL)? in
+            guard let url = URL(string: visit.url) else { return nil }
+            return (visit.title.isEmpty ? (url.host ?? "") : visit.title, url)
+        }
+        let uniqueVisits = Array(visits.filter { seen.insert($0.1.absoluteString).inserted }.prefix(3))
+
+        rebuildCards(uniqueBookmarks, into: shortcutGrid, style: .pinned)
+        rebuildCards(uniqueVisits, into: recentStack, style: .recent)
+        let hasShortcuts = !uniqueBookmarks.isEmpty
+        shortcutGrid.isHidden = !hasShortcuts
+        pinnedHeader.isHidden = !hasShortcuts
+        emptyHint.isHidden = hasShortcuts
+        recentHeader.isHidden = uniqueVisits.isEmpty
+    }
+
+    private func rebuildCards(_ pairs: [(String, URL)], into stack: UIStackView, style: StartPageCardStyle) {
+        stack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        guard !pairs.isEmpty else { return }
+        let columns = style == .pinned ? 2 : 1
+        var index = 0
+        while index < pairs.count {
+            let row = UIStackView(arrangedSubviews: [])
+            row.axis = .horizontal
+            row.distribution = .fillEqually
+            row.spacing = 12
+            for _ in 0..<columns {
+                if index < pairs.count {
+                    let pair = pairs[index]
+                    row.addArrangedSubview(StartPageLinkCard(title: pair.0, url: pair.1, style: style) { [weak self] url in
+                        self?.delegate?.startPage(self!, open: url.absoluteString)
+                    })
+                } else {
+                    row.addArrangedSubview(UIView())
+                }
+                index += 1
+            }
+            stack.addArrangedSubview(row)
+        }
+    }
+
+    private func updateGradientColors() {
+        gradient.colors = [
+            UIColor.systemBackground.cgColor,
+            UIColor.secondarySystemBackground.withAlphaComponent(0.55).cgColor,
+            UIColor.systemBackground.cgColor,
+        ]
+    }
+
+    func textFieldDidBeginEditing(_ textField: UITextField) {
+        fieldFocus(true)
+    }
+
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        fieldFocus(false)
+    }
+
+    private func fieldFocus(_ active: Bool) {
+        searchField.layer.borderColor = active
+            ? VulpraAppearance.accent.resolvedColor(with: traitCollection).cgColor
+            : VulpraAppearance.hairline.resolvedColor(with: traitCollection).cgColor
+        UIView.animate(withDuration: UIAccessibility.isReduceMotionEnabled ? 0 : 0.22) {
+            self.searchField.transform = active ? CGAffineTransform(scaleX: 0.995, y: 0.995) : .identity
+        }
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
         delegate?.startPage(self, open: textField.text ?? "")
         textField.resignFirstResponder()
         return true
-    }
-
-    // MARK: - Shortcuts grid
-
-    /// Favorites only — history never clutters the home screen.
-    private func reloadQuickSites() {
-        let settings = BrowserSettingsStore.shared.value
-        var pairs: [(String, URL)] = []
-        if settings.showFavorites {
-            pairs += BookmarkStore.shared.items.prefix(columns * 2).compactMap { item in
-                guard !item.isFolder, let value = item.url, let url = URL(string: value) else { return nil }
-                return (item.title.isEmpty ? (url.host ?? "") : item.title, url)
-            }
-        }
-        var seen = Set<String>()
-        let unique = pairs.filter { seen.insert($0.1.absoluteString).inserted }
-        quickURLs = unique.map { $0.1 }
-
-        gridStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        let hasSites = !unique.isEmpty
-        gridStack.isHidden = !hasSites
-        sectionHeader.isHidden = !hasSites
-        emptyHint.isHidden = hasSites
-        guard hasSites else { return }
-
-        var index = 0
-        while index < unique.count {
-            let row = UIStackView()
-            row.axis = .horizontal
-            row.distribution = .fillEqually
-            for _ in 0..<columns {
-                if index < unique.count {
-                    row.addArrangedSubview(makeTile(title: unique[index].0, url: unique[index].1, tag: index))
-                } else {
-                    let filler = UIView()
-                    filler.isUserInteractionEnabled = false
-                    row.addArrangedSubview(filler)
-                }
-                index += 1
-            }
-            gridStack.addArrangedSubview(row)
-        }
-    }
-
-    /// Circular tile in the Chrome idiom: disc background, centered favicon,
-    /// single-line label underneath.
-    private func makeTile(title: String, url: URL, tag: Int) -> UIView {
-        let container = UIStackView()
-        container.axis = .vertical
-        container.alignment = .center
-        container.spacing = 7
-
-        let icon = UIImageView(image: SiteIcon.tile(for: url, size: tileSize, cornerRadius: tileSize / 2))
-        icon.contentMode = .center
-        icon.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            icon.widthAnchor.constraint(equalToConstant: tileSize),
-            icon.heightAnchor.constraint(equalToConstant: tileSize),
-        ])
-
-        let label = UILabel()
-        label.text = title
-        label.font = .systemFont(ofSize: 11)
-        label.textColor = .secondaryLabel
-        label.textAlignment = .center
-        label.lineBreakMode = .byTruncatingTail
-
-        container.addArrangedSubview(icon)
-        container.addArrangedSubview(label)
-
-        let button = UIButton(type: .custom)
-        button.accessibilityLabel = title
-        button.tag = tag
-        button.addTarget(self, action: #selector(openQuickSite(_:)), for: .touchUpInside)
-        button.addSubview(container)
-        container.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            container.topAnchor.constraint(equalTo: button.topAnchor),
-            container.centerXAnchor.constraint(equalTo: button.centerXAnchor),
-            container.leadingAnchor.constraint(greaterThanOrEqualTo: button.leadingAnchor, constant: 2),
-            container.trailingAnchor.constraint(lessThanOrEqualTo: button.trailingAnchor, constant: -2),
-            button.heightAnchor.constraint(equalToConstant: 80),
-        ])
-
-        // Refresh the tile once a real favicon arrives.
-        SiteIcon.load(for: url) { [weak self] image in
-            guard let self, self.quickURLs.indices.contains(tag), self.quickURLs[tag] == url else { return }
-            icon.image = Self.composed(image: image, size: tileSize, cornerRadius: tileSize / 2, fallbackFor: url)
-        }
-        return button
-    }
-
-    private static func composed(image: UIImage, size: CGFloat, cornerRadius: CGFloat,
-                                 fallbackFor url: URL) -> UIImage {
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = UIScreen.main.scale
-        return UIGraphicsImageRenderer(size: CGSize(width: size, height: size), format: format).image { context in
-            UIColor.secondarySystemBackground.setFill()
-            UIBezierPath(roundedRect: CGRect(x: 0, y: 0, width: size, height: size),
-                         cornerRadius: cornerRadius).fill()
-            let inset = size * 0.22
-            let box = size - inset * 2
-            var drawSize = image.size
-            if drawSize.width > box || drawSize.height > box {
-                let scale = min(box / drawSize.width, box / drawSize.height)
-                drawSize = CGSize(width: drawSize.width * scale, height: drawSize.height * scale)
-            }
-            let origin = CGPoint(x: (size - drawSize.width) / 2, y: (size - drawSize.height) / 2)
-            context.cgContext.interpolationQuality =
-                drawSize.width >= image.size.width ? .high : .none
-            image.draw(in: CGRect(origin: origin, size: drawSize))
-        }
-    }
-
-    @objc private func openQuickSite(_ sender: UIButton) {
-        guard quickURLs.indices.contains(sender.tag) else { return }
-        delegate?.startPage(self, open: quickURLs[sender.tag].absoluteString)
     }
 }

@@ -1,9 +1,12 @@
 import UIKit
 
-final class TabOverviewViewController: UIViewController, UICollectionViewDataSource, UICollectionViewDelegateFlowLayout {
+final class TabOverviewViewController: UIViewController, UICollectionViewDataSource,
+    UICollectionViewDelegateFlowLayout {
     private let manager: TabManager
     private var collectionView: UICollectionView!
     private let privateControl = UISegmentedControl(items: [L10n.tr("Tabs", "标签页"), L10n.tr("Private", "隐私")])
+    private let emptyTitle = UILabel()
+    private let emptyButton = UIButton(type: .system)
     private var showingPrivate = false
     private var undoToast: UIControl?
     var onDismiss: (() -> Void)?
@@ -20,14 +23,18 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
     override func viewDidLoad() {
         super.viewDidLoad()
         title = L10n.tr("Tabs", "标签页")
-        view.backgroundColor = .systemBackground
-        navigationItem.leftBarButtonItem = UIBarButtonItem(title: L10n.tr("Done", "完成"), style: .done, target: self, action: #selector(done))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addTab))
+        view.backgroundColor = .systemGroupedBackground
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: L10n.tr("Done", "完成"), style: .done,
+                                                           target: self, action: #selector(done))
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add,
+                                                            target: self, action: #selector(addTab))
         privateControl.selectedSegmentIndex = 0
         toolbarItems = [
-            UIBarButtonItem(title: L10n.tr("Undo Close", "撤销关闭"), style: .plain, target: self, action: #selector(undoClose)),
+            UIBarButtonItem(title: L10n.tr("Undo Close", "撤销关闭"), style: .plain,
+                            target: self, action: #selector(undoClose)),
             UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil),
-            UIBarButtonItem(title: L10n.tr("Close Others", "关闭其他"), style: .plain, target: self, action: #selector(closeOthers)),
+            UIBarButtonItem(title: L10n.tr("Close Others", "关闭其他"), style: .plain,
+                            target: self, action: #selector(closeOthers)),
         ]
         navigationController?.setToolbarHidden(false, animated: false)
         privateControl.addTarget(self, action: #selector(modeChanged), for: .valueChanged)
@@ -37,7 +44,7 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
         let layout = UICollectionViewFlowLayout()
         layout.minimumLineSpacing = 14
         layout.minimumInteritemSpacing = 12
-        layout.sectionInset = UIEdgeInsets(top: 14, left: 14, bottom: 28, right: 14)
+        layout.sectionInset = UIEdgeInsets(top: 16, left: 16, bottom: 28, right: 16)
         collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.backgroundColor = .clear
         collectionView.dataSource = self
@@ -46,23 +53,61 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
         collectionView.dragInteractionEnabled = true
         collectionView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(collectionView)
+
+        configureEmptyState()
         NSLayoutConstraint.activate([
-            privateControl.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
-            privateControl.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            privateControl.widthAnchor.constraint(lessThanOrEqualToConstant: 320),
-            collectionView.topAnchor.constraint(equalTo: privateControl.bottomAnchor, constant: 4),
+            privateControl.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+            privateControl.leadingAnchor.constraint(equalTo: view.layoutMarginsGuide.leadingAnchor),
+            privateControl.trailingAnchor.constraint(equalTo: view.layoutMarginsGuide.trailingAnchor),
+
+            collectionView.topAnchor.constraint(equalTo: privateControl.bottomAnchor, constant: 14),
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             collectionView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            emptyTitle.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyTitle.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -18),
+            emptyTitle.leadingAnchor.constraint(greaterThanOrEqualTo: view.layoutMarginsGuide.leadingAnchor),
+            emptyTitle.trailingAnchor.constraint(lessThanOrEqualTo: view.layoutMarginsGuide.trailingAnchor),
+            emptyButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyButton.topAnchor.constraint(equalTo: emptyTitle.bottomAnchor, constant: 16),
         ])
+        updateEmptyState()
     }
 
     private var visibleTabs: [BrowserTab] { showingPrivate ? manager.privateTabs : manager.normalTabs }
 
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int { visibleTabs.count }
+    private func configureEmptyState() {
+        emptyTitle.text = L10n.tr("No tabs here", "这里还没有标签页")
+        emptyTitle.font = .preferredFont(forTextStyle: .title3)
+        emptyTitle.textColor = .secondaryLabel
+        emptyTitle.textAlignment = .center
+        var configuration = UIButton.Configuration.gray()
+        configuration.title = L10n.tr("New Tab", "新标签页")
+        configuration.image = UIImage(systemName: "plus")
+        configuration.imagePadding = 7
+        configuration.cornerStyle = .capsule
+        emptyButton.configuration = configuration
+        emptyButton.addTarget(self, action: #selector(addTab), for: .touchUpInside)
+        [emptyTitle, emptyButton].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            $0.isHidden = true
+            view.addSubview($0)
+        }
+    }
+
+    private func updateEmptyState() {
+        let empty = visibleTabs.isEmpty
+        emptyTitle.isHidden = !empty
+        emptyButton.isHidden = !empty
+    }
+
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
+        visibleTabs.count
+    }
 
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TabCardCell.reuseIdentifier, for: indexPath) as! TabCardCell
+        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: TabCardCell.reuseIdentifier,
+                                                      for: indexPath) as! TabCardCell
         let tab = visibleTabs[indexPath.item]
         cell.update(tab: tab, selected: tab.id == manager.selectedID)
         cell.closeButton.tag = indexPath.item
@@ -72,7 +117,8 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
 
     func collectionView(_ collectionView: UICollectionView, canMoveItemAt indexPath: IndexPath) -> Bool { true }
 
-    func collectionView(_ collectionView: UICollectionView, moveItemAt sourceIndexPath: IndexPath, to destinationIndexPath: IndexPath) {
+    func collectionView(_ collectionView: UICollectionView, moveItemAt sourceIndexPath: IndexPath,
+                        to destinationIndexPath: IndexPath) {
         let current = visibleTabs
         guard current.indices.contains(sourceIndexPath.item), current.indices.contains(destinationIndexPath.item) else { return }
         manager.move(current[sourceIndexPath.item], before: current[destinationIndexPath.item])
@@ -86,8 +132,9 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
         let columns: CGFloat = traitCollection.horizontalSizeClass == .regular ? 3 : 2
-        let width = floor((collectionView.bounds.width - 28 - (columns - 1) * 12) / columns)
-        return CGSize(width: width, height: max(190, width * 1.15))
+        let availableWidth = collectionView.bounds.width - 32 - (columns - 1) * 12
+        let width = floor(max(180, availableWidth / columns))
+        return CGSize(width: width, height: max(190, width * 1.12))
     }
 
     @objc private func addTab() {
@@ -97,39 +144,36 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
 
     @objc private func closeTab(_ sender: UIButton) {
         guard visibleTabs.indices.contains(sender.tag) else { return }
-        let closedTitle = visibleTabs[sender.tag].title
         manager.close(visibleTabs[sender.tag])
-        // #4: Use incremental update instead of reloadData — preserves cell
-        // state and gives proper delete animation.
-        collectionView.performBatchUpdates {
-            collectionView.deleteItems(at: [IndexPath(item: sender.tag, section: 0)])
-        }
-        showToast(message: L10n.tr("Tab closed", "已关闭标签页"),
-                  detail: closedTitle.isEmpty ? nil : closedTitle)
+        refreshAfterMutation(message: L10n.tr("Tab closed", "已关闭标签页"))
     }
 
-    /// firefox-ios style undo toast: dark capsule, tappable undo, auto-dismiss.
-    private func showToast(message: String, detail: String?) {
+    private func refreshAfterMutation(message: String) {
+        collectionView.reloadData()
+        updateEmptyState()
+        showToast(message: message)
+    }
+
+    /// Compact dark capsule with a direct undo action; only one toast is alive at a time.
+    private func showToast(message: String) {
         undoToast?.removeFromSuperview()
         let toast = UIControl()
-        toast.backgroundColor = UIColor(white: 0.16, alpha: 0.96)
-        toast.layer.cornerRadius = 18
+        toast.backgroundColor = UIColor(white: 0.15, alpha: 0.96)
+        toast.layer.cornerCurve = .continuous
+        toast.layer.cornerRadius = 20
         toast.translatesAutoresizingMaskIntoConstraints = false
 
-        var text = message
-        if let detail {
-            text += " · " + (detail.count > 24 ? String(detail.prefix(24)) + "…" : detail)
-        }
         let label = UILabel()
-        label.text = text
+        label.text = message
         label.textColor = .white
         label.font = .preferredFont(forTextStyle: .footnote)
+        label.adjustsFontForContentSizeCategory = true
         label.translatesAutoresizingMaskIntoConstraints = false
         toast.addSubview(label)
 
         let undo = UIButton(type: .system)
         undo.setTitle(L10n.tr("Undo", "撤销"), for: .normal)
-        undo.setTitleColor(UIColor(red: 0.45, green: 0.78, blue: 1.0, alpha: 1), for: .normal)
+        undo.setTitleColor(VulpraAppearance.accent, for: .normal)
         undo.titleLabel?.font = .preferredFont(forTextStyle: .footnote)
         undo.addAction(UIAction { [weak self] _ in
             self?.undoClose()
@@ -142,20 +186,21 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
         view.addSubview(toast)
         NSLayoutConstraint.activate([
             toast.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            toast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -14),
-            label.topAnchor.constraint(equalTo: toast.topAnchor, constant: 10),
-            label.leadingAnchor.constraint(equalTo: toast.leadingAnchor, constant: 16),
-            label.trailingAnchor.constraint(equalTo: undo.leadingAnchor, constant: -14),
+            toast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16),
+            label.topAnchor.constraint(equalTo: toast.topAnchor, constant: 11),
+            label.leadingAnchor.constraint(equalTo: toast.leadingAnchor, constant: 17),
+            label.trailingAnchor.constraint(equalTo: undo.leadingAnchor, constant: -15),
             undo.centerYAnchor.constraint(equalTo: toast.centerYAnchor),
-            undo.trailingAnchor.constraint(equalTo: toast.trailingAnchor, constant: -14),
-            undo.widthAnchor.constraint(greaterThanOrEqualToConstant: 32),
-            toast.topAnchor.constraint(equalTo: label.topAnchor, constant: -10),
-            toast.bottomAnchor.constraint(equalTo: label.bottomAnchor, constant: 10),
+            undo.trailingAnchor.constraint(equalTo: toast.trailingAnchor, constant: -15),
+            undo.widthAnchor.constraint(greaterThanOrEqualToConstant: 34),
+            toast.topAnchor.constraint(equalTo: label.topAnchor, constant: -11),
+            toast.bottomAnchor.constraint(equalTo: label.bottomAnchor, constant: 11),
         ])
         toast.alpha = 0
         toast.transform = CGAffineTransform(translationX: 0, y: 12)
         UIView.animate(withDuration: 0.25) {
-            toast.alpha = 1; toast.transform = .identity
+            toast.alpha = 1
+            toast.transform = .identity
         }
         undoToast = toast
         DispatchQueue.main.asyncAfter(deadline: .now() + 4) { [weak self, weak toast] in
@@ -173,20 +218,20 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
     @objc private func modeChanged() {
         showingPrivate = privateControl.selectedSegmentIndex == 1
         collectionView.reloadData()
+        updateEmptyState()
     }
 
     @objc private func done() { dismiss(animated: true, completion: onDismiss) }
 
     @objc private func undoClose() {
         manager.undoClose()
-        collectionView.performBatchUpdates {
-            collectionView.insertItems(at: [IndexPath(item: 0, section: 0)])
-        }
+        refreshAfterMutation(message: L10n.tr("Tab restored", "已恢复标签页"))
     }
 
     @objc private func closeOthers() {
-        guard let selected = manager.selectedTab else { return }
-        manager.closeOthers(keeping: selected)
+        guard let keeper = visibleTabs.first(where: { $0.id == manager.selectedID }) ?? visibleTabs.first else { return }
+        manager.closeOthers(keeping: keeper)
         collectionView.reloadData()
+        updateEmptyState()
     }
 }

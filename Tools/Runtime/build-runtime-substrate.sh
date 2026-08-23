@@ -8,7 +8,10 @@ ROOT_DIR=$(CDPATH= cd -- "$SCRIPT_DIR/../.." && pwd)
 cd "$ROOT_DIR"
 
 "$ROOT_DIR/Tools/Gecko/update-gecko.sh"
-git submodule update --init --depth 1 Vendor/idevice
+# The pinned idevice ref may be an orphan commit, so retain the bounded fallback.
+if ! git submodule update --init --depth 1 Vendor/idevice 2>/dev/null; then
+	git clone --depth 1 https://github.com/jkcoxson/idevice.git Vendor/idevice
+fi
 "$ROOT_DIR/Tools/Gecko/apply-patches.sh"
 "$ROOT_DIR/Tools/Gecko/build-idevice.sh"
 "$ROOT_DIR/Tools/Gecko/build-gecko.sh"

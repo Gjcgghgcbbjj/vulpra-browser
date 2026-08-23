@@ -125,6 +125,7 @@ jobs:
             ./mach --no-interactive bootstrap --application-choice browser \
             2>&1 | tee ../../gecko-bootstrap.log
 
+      # Inline for cache-aware execution; standalone owner is Tools/Runtime/build-runtime-substrate.sh.
       - name: Build and verify runtime substrate
         if: steps.runtime-cache.outputs.cache-hit != 'true'
         shell: bash

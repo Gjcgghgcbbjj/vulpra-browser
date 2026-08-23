@@ -66,7 +66,8 @@ enum SiteIcon {
     /// Rounded square tile with the favicon aspect-FIT at its native size —
     /// tiny 16px favicons are never upscaled, so no mosaic blur. Falls back
     /// to the letter avatar when a site has no usable favicon.
-    static func tile(for url: URL?, size: CGFloat, cornerRadius: CGFloat) -> UIImage {
+    static func tile(for url: URL?, size: CGFloat, cornerRadius: CGFloat,
+                      favicon: UIImage? = nil) -> UIImage {
         let format = UIGraphicsImageRendererFormat.default()
         format.scale = UIScreen.main.scale
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size), format: format)
@@ -80,7 +81,7 @@ enum SiteIcon {
                     .draw(in: CGRect(x: 0, y: 0, width: size, height: size))
                 return
             }
-            if let raw = FaviconStore.shared.cachedFavicon(for: url), raw.size.width > 1 {
+            if let raw = favicon ?? FaviconStore.shared.cachedFavicon(for: url), raw.size.width > 1 {
                 // Fit the favicon inside an inset box without ever enlarging it.
                 let inset = size * 0.18
                 let box = size - inset * 2
