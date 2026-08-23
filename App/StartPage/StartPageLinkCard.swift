@@ -5,20 +5,25 @@ enum StartPageCardStyle {
     case recent
 }
 
+/// A home card with real surface quality: opaque elevated fill, warm ambient
+/// shadow, press-down micro-interaction, and haptic confirmation.
 final class StartPageLinkCard: UIView {
     private let icon = UIImageView()
     private let titleLabel = UILabel()
     private let hostLabel = UILabel()
     private var representedURL: URL?
+    private var onOpen: ((URL) -> Void)?
+    private var representedAccessibilityLabel: String = ""
 
     init(title: String, url: URL, style: StartPageCardStyle, onOpen: @escaping (URL) -> Void) {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
+        self.onOpen = onOpen
+        representedAccessibilityLabel = title
 
-        let imageSize: CGFloat = style == .pinned ? 44 : 34
-        let surfaceFill = VulpraAppearance.cardFill
-        backgroundColor = surfaceFill
-        VulpraAppearance.elevate(self, radius: style == .pinned ? 20 : 17, opacity: 0.06)
+        let imageSize: CGFloat = style == .pinned ? 46 : 36
+        backgroundColor = VulpraAppearance.surfaceElevated
+        VulpraAppearance.elevate(self, radius: style == .pinned ? VulpraAppearance.Radius.card : 17)
 
         icon.image = SiteIcon.tile(for: url, size: imageSize, cornerRadius: imageSize * 0.31)
         icon.contentMode = .center
@@ -26,7 +31,10 @@ final class StartPageLinkCard: UIView {
 
         let host = url.host ?? ""
         titleLabel.text = title
-        titleLabel.font = .preferredFont(forTextStyle: style == .pinned ? .body : .subheadline)
+        titleLabel.font = style == .pinned
+            ? UIFontMetrics(forTextStyle: .body).scaledFont(
+                for: .systemFont(ofSize: 16, weight: .semibold, design: .rounded))
+            : .preferredFont(forTextStyle: .subheadline)
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.textColor = .label
         titleLabel.lineBreakMode = .byTruncatingTail
@@ -42,17 +50,11 @@ final class StartPageLinkCard: UIView {
         labels.alignment = .leading
         labels.translatesAutoresizingMaskIntoConstraints = false
 
-        let button = UIButton(type: .custom)
-        button.accessibilityLabel = title
-        button.addAction(UIAction { [weak self] _ in onOpen(url) }, for: .touchUpInside)
-        button.translatesAutoresizingMaskIntoConstraints = false
-
         addSubview(icon)
         addSubview(labels)
-        addSubview(button)
         let verticalPadding: CGFloat = style == .pinned ? 15 : 11
         NSLayoutConstraint.activate([
-            heightAnchor.constraint(greaterThanOrEqualToConstant: style == .pinned ? 74 : 58),
+            heightAnchor.constraint(greaterThanOrEqualToConstant: style == .pinned ? 76 : 58),
             icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 15),
             icon.topAnchor.constraint(greaterThanOrEqualTo: topAnchor, constant: verticalPadding),
             icon.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -62,21 +64,57 @@ final class StartPageLinkCard: UIView {
             labels.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 12),
             labels.centerYAnchor.constraint(equalTo: centerYAnchor),
             labels.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -14),
-
-            button.topAnchor.constraint(equalTo: topAnchor),
-            button.leadingAnchor.constraint(equalTo: leadingAnchor),
-            button.trailingAnchor.constraint(equalTo: trailingAnchor),
-            button.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
+
+        // Touch-down/up press feedback: a zero-duration long-press recognizer
+        // reports .began on touch-down and .ended on release — exactly what a
+        // card-scale interaction needs (tap recognizers only fire on release).
+        let press = UILongPressGestureRecognizer(target: self, action: #selector(handlePress(_:)))
+        press.minimumPressDuration = 0
+        addGestureRecognizer(press)
+
+        isAccessibilityElement = true
+        accessibilityTraits = .button
+        accessibilityLabel = title
         loadFavicon(for: url, size: imageSize)
     }
 
     @available(*, unavailable)
     required init?(coder: NSCoder) { fatalError("init(coder:) is unavailable") }
 
+    override var accessibilityLabel: String? {
+        get { representedAccessibilityLabel }
+        set { representedAccessibilityLabel = newValue ?? "" }
+    }
+
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         layer.borderColor = VulpraAppearance.hairline.resolvedColor(with: traitCollection).cgColor
+    }
+
+    private func setPressed(_ pressed: Bool) {
+        VulpraMotion.spring(damping: 0.6, duration: 0.3) {
+            self.transform = pressed ? CGAffineTransform(scaleX: 0.965, y: 0.965) : .identity
+            self.layer.shadowOpacity = pressed ? 0.04 : 0.07
+        }
+        if pressed { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
+    }
+
+    @objc private func handlePress(_ gesture: UILongPressGestureRecognizer) {
+        switch gesture.state {
+        case .began:
+            setPressed(true)
+        case .ended:
+            setPressed(false)
+            let point = gesture.location(in: self)
+            if bounds.contains(point), let onOpen, let url = representedURL {
+                onOpen(url)
+            }
+        case .cancelled, .failed:
+            setPressed(false)
+        default:
+            break
+        }
     }
 
     private func loadFavicon(for url: URL, size: CGFloat) {

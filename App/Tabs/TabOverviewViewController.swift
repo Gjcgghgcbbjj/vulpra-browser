@@ -129,6 +129,20 @@ final class TabOverviewViewController: UIViewController, UICollectionViewDataSou
         dismiss(animated: true, completion: onDismiss)
     }
 
+    func collectionView(_ collectionView: UICollectionView, didHighlightItemAt indexPath: IndexPath) {
+        guard let cell = collectionView.cellForItem(at: indexPath) else { return }
+        VulpraMotion.spring(damping: 0.6, duration: 0.28) {
+            cell.transform = CGAffineTransform(scaleX: 0.96, y: 0.96)
+        }
+    }
+
+    func collectionView(_ collectionView: UICollectionView, didUnhighlightItemAt indexPath: IndexPath) {
+        guard let cell = collectionView.cellForItem(at: indexPath) else { return }
+        VulpraMotion.spring(damping: 0.65, duration: 0.32) {
+            cell.transform = .identity
+        }
+    }
+
     func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout,
                         sizeForItemAt indexPath: IndexPath) -> CGSize {
         let columns: CGFloat = traitCollection.horizontalSizeClass == .regular ? 3 : 2

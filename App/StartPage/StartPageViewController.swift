@@ -33,10 +33,18 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         return label
     }()
 
+    private lazy var brandRow: UIStackView = {
+        let row = UIStackView(arrangedSubviews: [VulpraAppearance.logoMark(size: 10), brandLabel])
+        row.axis = .horizontal
+        row.spacing = 8
+        row.alignment = .center
+        return row
+    }()
+
     private let greetingLabel: UILabel = {
         let label = UILabel()
         label.font = UIFontMetrics(forTextStyle: .largeTitle).scaledFont(
-            for: .systemFont(ofSize: 38, weight: .semibold))
+            for: .systemFont(ofSize: 40, weight: .bold, design: .rounded))
         label.adjustsFontForContentSizeCategory = true
         label.textColor = .label
         label.numberOfLines = 0
@@ -54,7 +62,7 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
     private let searchField: UITextField = {
         let field = UITextField()
         field.placeholder = L10n.tr("Search or enter website", "搜索或输入网址")
-        field.backgroundColor = VulpraAppearance.cardFill
+        field.backgroundColor = VulpraAppearance.surfaceElevated
         field.font = .preferredFont(forTextStyle: .body)
         field.clearButtonMode = .whileEditing
         field.returnKeyType = .go
@@ -62,18 +70,28 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         field.autocapitalizationType = .none
         field.autocorrectionType = .no
 
+        // Magnifier sits in a soft ember-tinted disc — a small deliberate
+        // accent instead of a bare gray glyph.
+        let disc = UIView(frame: CGRect(x: 0, y: 0, width: 46, height: 34))
+        let discView = UIView(frame: CGRect(x: 10, y: 3, width: 28, height: 28))
+        discView.backgroundColor = VulpraAppearance.mutedAccent
+        discView.layer.cornerCurve = .continuous
+        discView.layer.cornerRadius = 9.5
+        discView.isUserInteractionEnabled = false
         let magnifier = UIImageView(image: UIImage(systemName: "magnifyingglass",
-                                                   withConfiguration: UIImage.SymbolConfiguration(pointSize: 16, weight: .medium)))
-        magnifier.tintColor = .secondaryLabel
+                                                   withConfiguration: UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)))
+        magnifier.tintColor = VulpraAppearance.accent
         magnifier.contentMode = .center
-        magnifier.frame = CGRect(x: 0, y: 0, width: 42, height: 24)
-        field.leftView = magnifier
+        magnifier.frame = discView.bounds
+        discView.addSubview(magnifier)
+        disc.addSubview(discView)
+        field.leftView = disc
         field.leftViewMode = .always
         let rightPad = UIView(frame: CGRect(x: 0, y: 0, width: 18, height: 1))
         field.rightView = rightPad
         field.rightViewMode = .always
-        VulpraAppearance.elevate(field, radius: 20, opacity: 0.05)
-        field.heightAnchor.constraint(greaterThanOrEqualToConstant: 56).isActive = true
+        VulpraAppearance.elevate(field, radius: VulpraAppearance.Radius.field)
+        field.heightAnchor.constraint(greaterThanOrEqualToConstant: 58).isActive = true
         return field
     }()
 
@@ -130,7 +148,7 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         scrollView.addSubview(contentStack)
 
         configureMenu()
-        let header = UIStackView(arrangedSubviews: [brandLabel, UIView(), menuButton])
+        let header = UIStackView(arrangedSubviews: [brandRow, UIView(), menuButton])
         header.alignment = .center
 
         refreshGreeting()
@@ -304,11 +322,14 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
     }
 
     private func updateGradientColors() {
+        // Warm breath at the very top, clean middle, soft base — the ember
+        // tint stays subliminal but keeps the home from reading as flat white.
         gradient.colors = [
+            VulpraAppearance.accent.withAlphaComponent(0.05).cgColor,
             UIColor.systemBackground.cgColor,
-            UIColor.secondarySystemBackground.withAlphaComponent(0.55).cgColor,
-            UIColor.systemBackground.cgColor,
+            UIColor.secondarySystemBackground.withAlphaComponent(0.5).cgColor,
         ]
+        gradient.locations = [0, 0.28, 1]
     }
 
     func textFieldDidBeginEditing(_ textField: UITextField) {
@@ -323,9 +344,12 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         searchField.layer.borderColor = active
             ? VulpraAppearance.accent.resolvedColor(with: traitCollection).cgColor
             : VulpraAppearance.hairline.resolvedColor(with: traitCollection).cgColor
-        UIView.animate(withDuration: UIAccessibility.isReduceMotionEnabled ? 0 : 0.22) {
-            self.searchField.transform = active ? CGAffineTransform(scaleX: 0.995, y: 0.995) : .identity
+        VulpraMotion.spring(damping: 0.8, duration: 0.32) {
+            self.searchField.transform = active ? CGAffineTransform(scaleX: 0.99, y: 0.99) : .identity
         }
+        // Shadow layers don't participate in UIView animation blocks; swap
+        // the glow explicitly (it reads as instant, which suits focus).
+        VulpraAppearance.applyFocusGlow(searchField, active: active)
     }
 
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {

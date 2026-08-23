@@ -37,6 +37,11 @@ final class TabCardCell: UICollectionViewCell {
             ? VulpraAppearance.accent.cgColor
             : VulpraAppearance.hairline.resolvedColor(with: traitCollection).cgColor
         contentView.layer.borderWidth = selected ? 2 : 1 / UIScreen.main.scale
+        // Selected cards get a quiet ember halo; resting cards stay flat.
+        layer.shadowColor = VulpraAppearance.accent.cgColor
+        layer.shadowOpacity = selected ? 0.22 : 0
+        layer.shadowRadius = 12
+        layer.shadowOffset = CGSize(width: 0, height: 3)
 
         representedURL = tab.url
         if let thumbnail = tab.thumbnail {

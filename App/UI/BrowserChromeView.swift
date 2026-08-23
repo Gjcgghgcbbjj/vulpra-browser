@@ -45,7 +45,7 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: 27).cgPath
+        layer.shadowPath = UIBezierPath(roundedRect: bounds, cornerRadius: VulpraAppearance.Radius.bar).cgPath
     }
 
     /// The ⋯ menu is rebuilt by the owner whenever tab state changes, so the
@@ -94,12 +94,14 @@ final class BrowserChromeView: UIView, UITextFieldDelegate {
     }
 
     private func configure() {
-        layer.shadowColor = UIColor.black.cgColor
-        layer.shadowOpacity = 0.14
-        layer.shadowRadius = 18
+        layer.shadowColor = UIColor(red: 0.35, green: 0.20, blue: 0.12, alpha: 1).cgColor
+        layer.shadowOpacity = 0.13
+        layer.shadowRadius = 20
         layer.shadowOffset = CGSize(width: 0, height: 8)
         material.layer.cornerCurve = .continuous
-        material.layer.cornerRadius = 27
+        material.layer.cornerRadius = VulpraAppearance.Radius.bar
+        material.layer.borderWidth = 1 / UIScreen.main.scale
+        material.layer.borderColor = VulpraAppearance.hairline.resolvedColor(with: traitCollection).cgColor
         material.clipsToBounds = true
         material.translatesAutoresizingMaskIntoConstraints = false
         addSubview(material)
