@@ -296,19 +296,19 @@ jobs:
           tap "$(px 51)" "$(py 8)"
           sleep 2
           shot 02-start-menu
-          tap "$(px 55)" "$(py 30)"; sleep 3; shot 03-settings
-          tap "$(px 5)" "$(py 7)"; sleep 2
+          tap "$(px 55)" "$(py 33)"; sleep 3; shot 03-settings
+          tap "$(px 10)" "$(py 9)"; sleep 2
           tap "$(px 51)" "$(py 8)"; sleep 2
           tap "$(px 55)" "$(py 15)"; sleep 3; shot 04-library-bookmarks
-          tap "$(px 5)" "$(py 7)"; sleep 2
+          tap "$(px 10)" "$(py 9)"; sleep 2
           tap "$(px 51)" "$(py 8)"; sleep 2
-          tap "$(px 55)" "$(py 25)"; sleep 3; shot 05-downloads
-          tap "$(px 5)" "$(py 7)"; sleep 2
+          tap "$(px 55)" "$(py 26)"; sleep 3; shot 05-downloads
+          tap "$(px 10)" "$(py 9)"; sleep 2
 
           # Tab overview via the capsule tabs button.
           tap "$(px 89)" "$(py 90)"; sleep 3
           shot 06-tab-overview
-          tap "$(px 6)" "$(py 7)"; sleep 2
+          tap "$(px 10)" "$(py 9)"; sleep 2
 
           # Keyboard over the start-page search field.
           tap "$(px 30)" "$(py 26)"; sleep 2
@@ -316,6 +316,11 @@ jobs:
           tap "$(px 50)" "$(py 55)"; sleep 1
 
           # Real web page through the URL scheme (confirm the system hand-off dialog).
+          # Relaunch first so the loaded page is on the visible root, not behind a modal.
+          xcrun simctl terminate "$udid" com.vulpra.browser >/dev/null 2>&1 || true
+          sleep 2
+          xcrun simctl launch "$udid" com.vulpra.browser >/dev/null 2>&1 || true
+          sleep 5
           xcrun simctl openurl "$udid" "vulpra://open?url=https%3A%2F%2Fexample.com" >/dev/null 2>&1 || true
           sleep 3
           tap "$(px 69)" "$(py 53)"
