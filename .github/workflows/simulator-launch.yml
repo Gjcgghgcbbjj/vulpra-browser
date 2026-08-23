@@ -225,26 +225,53 @@ jobs:
 
           TAP_BACKEND=none
           if xcrun simctl ui "$udid" tap 3 3 >/dev/null 2>&1; then TAP_BACKEND=simctl; fi
-          {
-            if [ "$TAP_BACKEND" = none ]; then
-              echo "probe: simctl ui tap unavailable, trying idb"
-              (brew install idb-companion || brew install facebook/fb/idb-companion) 2>&1 | tail -2
-              python3 -m pip install --quiet --user --break-system-packages fb-idb 2>&1 | tail -2 \
-                || python3 -m pip install --quiet --user fb-idb 2>&1 | tail -2
-              IDB_BIN="$(python3 -c 'import sysconfig, pathlib; print(pathlib.Path(sysconfig.get_path("scripts", "posix_user")))' 2>/dev/null || true)"
-              export PATH="${IDB_BIN:-/nonexistent}:$HOME/.local/bin:$PATH"
-              echo "idb_companion: $(command -v idb_companion || echo MISSING)"
-              echo "idb: $(command -v idb || echo MISSING)"
-              if command -v idb_companion >/dev/null 2>&1 && command -v idb >/dev/null 2>&1; then
-                idb_companion --udid "$udid" --grpc-port 10003 >idb-companion.log 2>&1 &
-                sleep 10
-                idb connect "localhost:10003" 2>&1 | tail -1
-                idb list-targets 2>&1 | head -3
+          TOUR=screenshots/tour.log
+          : > "$TOUR"
+          tlog() { echo "$*" | tee -a "$TOUR"; }
+          if [ "$TAP_BACKEND" = none ]; then
+            tlog "probe: simctl ui tap unavailable, trying idb"
+            PY=""
+            for candidate in python3.11 python3.12 python3; do
+              if command -v "$candidate" >/dev/null 2>&1; then PY="$candidate"; break; fi
+            done
+            if [ -z "$PY" ]; then
+              brew install python@3.12 >> "$TOUR" 2>&1 || true
+              PY=python3.12
+            fi
+            tlog "python for idb: $PY"
+            "$PY" -m pip install --quiet --break-system-packages --user fb-idb >> "$TOUR" 2>&1 \
+              || "$PY" -m pip install --quiet --user fb-idb >> "$TOUR" 2>&1 \
+              || tlog "pip fb-idb install failed"
+            (brew install idb-companion || brew install facebook/fb/idb-companion) >> "$TOUR" 2>&1 || true
+            IDB_BIN="$("$PY" -c 'import sysconfig, pathlib; print(pathlib.Path(sysconfig.get_path("scripts", "posix_user")))' 2>/dev/null || true)"
+            export PATH="${IDB_BIN:-/nonexistent}:$HOME/.local/bin:$PATH"
+            tlog "idb_companion: $(command -v idb_companion || echo MISSING)"
+            mkdir -p "$HOME/.vulpra-idb-bin"
+            cat > "$HOME/.vulpra-idb-bin/idb_main.py" <<'PYEOF'
+          import asyncio, sys
+          try:
+              asyncio.get_event_loop()
+          except RuntimeError:
+              asyncio.set_event_loop(asyncio.new_event_loop())
+          from idb.cli.main import main
+          sys.exit(main())
+          PYEOF
+            printf '#!/bin/bash\nexec %s "$HOME/.vulpra-idb-bin/idb_main.py" "$@"\n' "$PY" > "$HOME/.vulpra-idb-bin/idb"
+            chmod +x "$HOME/.vulpra-idb-bin/idb"
+            export PATH="$HOME/.vulpra-idb-bin:$PATH"
+            tlog "idb: $(command -v idb || echo MISSING)"
+            if command -v idb_companion >/dev/null 2>&1 && command -v idb >/dev/null 2>&1; then
+              idb_companion --udid "$udid" --grpc-port 10003 >idb-companion.log 2>&1 &
+              sleep 10
+              idb connect "localhost:10003" >> "$TOUR" 2>&1 || true
+              if idb list-targets >> "$TOUR" 2>&1; then
                 TAP_BACKEND=idb
+              else
+                tlog "idb list-targets failed; taps disabled"
               fi
             fi
-            echo "TAP_BACKEND=$TAP_BACKEND PT=${PT_W}x${PT_H}"
-          } 2>&1 | tee screenshots/tour.log
+          fi
+          tlog "TAP_BACKEND=$TAP_BACKEND PT=${PT_W}x${PT_H}"
           tap() {
             if [ "$TAP_BACKEND" = simctl ]; then xcrun simctl ui "$udid" tap "$1" "$2" >/dev/null 2>&1 || true
             elif [ "$TAP_BACKEND" = idb ]; then idb ui tap --udid "$udid" "$1" "$2" >/dev/null 2>&1 || true
