@@ -225,20 +225,26 @@ jobs:
 
           TAP_BACKEND=none
           if xcrun simctl ui "$udid" tap 3 3 >/dev/null 2>&1; then TAP_BACKEND=simctl; fi
-          if [ "$TAP_BACKEND" = none ]; then
-            brew tap facebook/fb >/dev/null 2>&1 || true
-            brew install idb-companion >/dev/null 2>&1 || true
-            python3 -m pip install --quiet --user fb-idb >/dev/null 2>&1 || true
-            IDB_BIN="$(python3 -c 'import sysconfig, pathlib; print(pathlib.Path(sysconfig.get_path("scripts", "posix_user")))' 2>/dev/null || true)"
-            export PATH="${IDB_BIN:-/nonexistent}:$HOME/.local/bin:$PATH"
-            if command -v idb_companion >/dev/null 2>&1 && command -v idb >/dev/null 2>&1; then
-              idb_companion --udid "$udid" >idb-companion.log 2>&1 &
-              sleep 8
-              idb connect "localhost:10003" >/dev/null 2>&1 || true
-              if idb list-targets >/dev/null 2>&1; then TAP_BACKEND=idb; fi
+          {
+            if [ "$TAP_BACKEND" = none ]; then
+              echo "probe: simctl ui tap unavailable, trying idb"
+              (brew install idb-companion || brew install facebook/fb/idb-companion) 2>&1 | tail -2
+              python3 -m pip install --quiet --user --break-system-packages fb-idb 2>&1 | tail -2 \
+                || python3 -m pip install --quiet --user fb-idb 2>&1 | tail -2
+              IDB_BIN="$(python3 -c 'import sysconfig, pathlib; print(pathlib.Path(sysconfig.get_path("scripts", "posix_user")))' 2>/dev/null || true)"
+              export PATH="${IDB_BIN:-/nonexistent}:$HOME/.local/bin:$PATH"
+              echo "idb_companion: $(command -v idb_companion || echo MISSING)"
+              echo "idb: $(command -v idb || echo MISSING)"
+              if command -v idb_companion >/dev/null 2>&1 && command -v idb >/dev/null 2>&1; then
+                idb_companion --udid "$udid" --grpc-port 10003 >idb-companion.log 2>&1 &
+                sleep 10
+                idb connect "localhost:10003" 2>&1 | tail -1
+                idb list-targets 2>&1 | head -3
+                TAP_BACKEND=idb
+              fi
             fi
-          fi
-          echo "TAP_BACKEND=$TAP_BACKEND PT=${PT_W}x${PT_H}" | tee screenshots/tour.log
+            echo "TAP_BACKEND=$TAP_BACKEND PT=${PT_W}x${PT_H}"
+          } 2>&1 | tee screenshots/tour.log
           tap() {
             if [ "$TAP_BACKEND" = simctl ]; then xcrun simctl ui "$udid" tap "$1" "$2" >/dev/null 2>&1 || true
             elif [ "$TAP_BACKEND" = idb ]; then idb ui tap --udid "$udid" "$1" "$2" >/dev/null 2>&1 || true
@@ -246,6 +252,14 @@ jobs:
           }
           px() { echo $((PT_W * $1 / 100)); }
           py() { echo $((PT_H * $1 / 100)); }
+          LAST_HASH=""
+          shot() {
+            xcrun simctl io "$udid" screenshot "screenshots/$1.png" >/dev/null 2>&1 || true
+            hash="" && [ -f "screenshots/$1.png" ] && hash="$(md5 -q "screenshots/$1.png")"
+            if [ "$hash" = "$LAST_HASH" ]; then echo "shot $1: UNCHANGED" >> screenshots/tour.log
+            else echo "shot $1: changed" >> screenshots/tour.log; fi
+            LAST_HASH="$hash"
+          }
 
           set +e
           sleep 3
@@ -274,9 +288,11 @@ jobs:
           shot 07-start-keyboard
           tap "$(px 50)" "$(py 55)"; sleep 1
 
-          # Real web page through the URL scheme.
+          # Real web page through the URL scheme (confirm the system hand-off dialog).
           xcrun simctl openurl "$udid" "vulpra://open?url=https%3A%2F%2Fexample.com" >/dev/null 2>&1 || true
-          sleep 12
+          sleep 3
+          tap "$(px 69)" "$(py 53)"
+          sleep 10
           shot 08-web-page
 
           # Dark-mode smoke on the web screen.
