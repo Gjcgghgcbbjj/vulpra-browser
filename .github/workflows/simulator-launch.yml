@@ -206,6 +206,87 @@ jobs:
           sleep 1
           xcrun simctl io "$udid" screenshot simulator-launch.png
 
+          # ---------- UI tour: capture every main in-app screen ----------
+          mkdir -p screenshots
+          shot() { xcrun simctl io "$udid" screenshot "screenshots/$1.png" >/dev/null 2>&1 || true; }
+
+          probe="$(mktemp /tmp/vulpra-probe.XXXXXX.png)"
+          xcrun simctl io "$udid" screenshot "$probe" >/dev/null 2>&1 || true
+          PT_W=440; PT_H=956
+          if [ -s "$probe" ]; then
+            read -r PT_W PT_H < <(python3 -c '
+          import struct, sys
+          with open(sys.argv[1], "rb") as handle:
+              head = handle.read(24)
+          width, height = struct.unpack(">II", head[16:24])
+          print(width // 3, height // 3)' "$probe" 2>/dev/null || echo "440 956")
+          fi
+          rm -f "$probe"
+
+          TAP_BACKEND=none
+          if xcrun simctl ui "$udid" tap 3 3 >/dev/null 2>&1; then TAP_BACKEND=simctl; fi
+          if [ "$TAP_BACKEND" = none ]; then
+            brew tap facebook/fb >/dev/null 2>&1 || true
+            brew install idb-companion >/dev/null 2>&1 || true
+            python3 -m pip install --quiet --user fb-idb >/dev/null 2>&1 || true
+            IDB_BIN="$(python3 -c 'import sysconfig, pathlib; print(pathlib.Path(sysconfig.get_path("scripts", "posix_user")))' 2>/dev/null || true)"
+            export PATH="${IDB_BIN:-/nonexistent}:$HOME/.local/bin:$PATH"
+            if command -v idb_companion >/dev/null 2>&1 && command -v idb >/dev/null 2>&1; then
+              idb_companion --udid "$udid" >idb-companion.log 2>&1 &
+              sleep 8
+              idb connect "localhost:10003" >/dev/null 2>&1 || true
+              if idb list-targets >/dev/null 2>&1; then TAP_BACKEND=idb; fi
+            fi
+          fi
+          echo "TAP_BACKEND=$TAP_BACKEND PT=${PT_W}x${PT_H}" | tee screenshots/tour.log
+          tap() {
+            if [ "$TAP_BACKEND" = simctl ]; then xcrun simctl ui "$udid" tap "$1" "$2" >/dev/null 2>&1 || true
+            elif [ "$TAP_BACKEND" = idb ]; then idb ui tap --udid "$udid" "$1" "$2" >/dev/null 2>&1 || true
+            fi
+          }
+          px() { echo $((PT_W * $1 / 100)); }
+          py() { echo $((PT_H * $1 / 100)); }
+
+          set +e
+          sleep 3
+          shot 01-start-page
+
+          # Start-page ⋯ menu: Private Tab / Bookmarks / History / Downloads / Settings
+          tap "$(px 51)" "$(py 8)"
+          sleep 2
+          shot 02-start-menu
+          tap "$(px 55)" "$(py 30)"; sleep 3; shot 03-settings
+          tap "$(px 5)" "$(py 7)"; sleep 2
+          tap "$(px 51)" "$(py 8)"; sleep 2
+          tap "$(px 55)" "$(py 15)"; sleep 3; shot 04-library-bookmarks
+          tap "$(px 5)" "$(py 7)"; sleep 2
+          tap "$(px 51)" "$(py 8)"; sleep 2
+          tap "$(px 55)" "$(py 25)"; sleep 3; shot 05-downloads
+          tap "$(px 5)" "$(py 7)"; sleep 2
+
+          # Tab overview via the capsule tabs button.
+          tap "$(px 89)" "$(py 90)"; sleep 3
+          shot 06-tab-overview
+          tap "$(px 6)" "$(py 7)"; sleep 2
+
+          # Keyboard over the start-page search field.
+          tap "$(px 30)" "$(py 26)"; sleep 2
+          shot 07-start-keyboard
+          tap "$(px 50)" "$(py 55)"; sleep 1
+
+          # Real web page through the URL scheme.
+          xcrun simctl openurl "$udid" "vulpra://open?url=https%3A%2F%2Fexample.com" >/dev/null 2>&1 || true
+          sleep 12
+          shot 08-web-page
+
+          # Dark-mode smoke on the web screen.
+          xcrun simctl ui "$udid" appearance dark >/dev/null 2>&1 || true
+          sleep 2
+          shot 09-web-dark
+          xcrun simctl ui "$udid" appearance light >/dev/null 2>&1 || true
+          ls -la screenshots | tee -a screenshots/tour.log
+          set -e
+
           set +e
           xcrun simctl terminate "$udid" com.vulpra.browser 2>&1 | tee simulator-terminate.log
           terminate_status=${PIPESTATUS[0]}
@@ -245,6 +326,8 @@ jobs:
           path: |
             simulator-*.log
             simulator-launch.png
+            screenshots/
+            idb-companion.log
             Vulpra*.crash
             Vulpra*.ips
           if-no-files-found: warn
