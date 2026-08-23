@@ -20,8 +20,10 @@ APP="$WORK/Payload/Vulpra.app"
 
 fail() { echo "AUDIT FAIL: $*" >&2; exit 1; }
 
+# `file` prints "Mach-O 64-bit executable arm64" on macOS but
+# "Mach-O 64-bit arm64 executable" on GNU file; accept both word orders.
 macho_list=$(find "$APP" -type f \( -perm -111 -o -name '*.dylib' -o -name 'XUL' \) -exec file {} \; \
-    | awk -F: '/Mach-O 64-bit executable arm64|Mach-O 64-bit dynamically linked shared library arm64/ {print $1}')
+    | awk -F: '/Mach-O 64-bit (executable arm64|arm64 executable)|Mach-O 64-bit (dynamically linked shared library arm64|arm64 dynamically linked shared library)/ {print $1}')
 macho_count=$(printf '%s\n' "$macho_list" | grep -c .)
 
 # ── 1. every Mach-O carries a code signature (LC_CODE_SIGNATURE) ─────────
@@ -47,7 +49,7 @@ echo "audit: privileged binaries carry mandatory entitlements"
 
 # ── 2b. default-browser candidacy ──────────────────────────────────────────
 # The picker only lists apps whose Info.plist registers the web schemes.
-python3 - "$app" <<'PY'
+python3 - "$APP" <<'PY'
 import plistlib, sys
 from pathlib import Path
 app = Path(sys.argv[1])

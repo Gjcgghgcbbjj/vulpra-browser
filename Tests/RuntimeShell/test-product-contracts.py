@@ -71,9 +71,16 @@ def main() -> None:
     require(helper_info.get("CFBundleExecutable") == "$(EXECUTABLE_NAME)", "Helper executable metadata is missing")
     require(helper_info.get("CFBundlePackageType") == "XPC!", "Helper package type is wrong")
 
+    # Default-browser candidacy requires the http/https registration while the
+    # vulpra scheme remains the app-owned deep-link entry point.
     url_types = info.get("CFBundleURLTypes")
-    require(isinstance(url_types, list) and len(url_types) == 1, "expected one URL type")
-    require(url_types[0].get("CFBundleURLSchemes") == ["vulpra"], "expected only the vulpra URL scheme")
+    require(isinstance(url_types, list) and len(url_types) == 2, "expected web and deep-link URL types")
+    web_type = url_types[0] if len(url_types) == 2 else None
+    deep_link_type = url_types[1] if len(url_types) == 2 else None
+    require(web_type is not None and web_type.get("CFBundleURLName") == "com.vulpra.browser.web", "wrong web URL identity")
+    require(web_type is not None and web_type.get("CFBundleURLSchemes") == ["http", "https"], "default-browser schemes must be http and https")
+    require(deep_link_type is not None and deep_link_type.get("CFBundleURLName") == "com.vulpra.browser", "wrong deep-link URL identity")
+    require(deep_link_type is not None and deep_link_type.get("CFBundleURLSchemes") == ["vulpra"], "deep-link URL type must own only the vulpra scheme")
 
     manifest = info.get("UIApplicationSceneManifest")
     require(isinstance(manifest, dict), "scene manifest is required")

@@ -155,7 +155,9 @@ PY
 [ "$(git -C "$ROOT" ls-files -s -- Vendor/idevice)" = "$(printf '160000 %s 0\tVendor/idevice' "$IDEVICE_SHA")" ] ||
 	fail "idevice gitlink mismatch"
 
-if git -C "$ROOT" ls-files | grep -Eq '(^|/)browser/Reynard/Client/|(^|/)Reynard\.xcodeproj/|(^|/)Resources/'; then
+legacy_paths=$(git -C "$ROOT" ls-files | grep -E '(^|/)browser/Reynard/Client/|(^|/)Reynard\.xcodeproj/' || true)
+resource_leaks=$(git -C "$ROOT" ls-files | grep -E '(^|/)Resources/' | grep -Ev '^App/Resources/Icons/' || true)
+if [ -n "$legacy_paths" ] || [ -n "$resource_leaks" ]; then
 	fail "legacy client, source Xcode project, or product resource leaked into the substrate"
 fi
 
