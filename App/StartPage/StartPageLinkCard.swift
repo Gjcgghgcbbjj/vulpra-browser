@@ -31,10 +31,14 @@ final class StartPageLinkCard: UIView {
 
         let host = url.host ?? ""
         titleLabel.text = title
-        titleLabel.font = style == .pinned
-            ? UIFontMetrics(forTextStyle: .body).scaledFont(
-                for: .systemFont(ofSize: 16, weight: .semibold, design: .rounded))
-            : .preferredFont(forTextStyle: .subheadline)
+        titleLabel.font = style == .pinned ? {
+            let base = UIFont.systemFont(ofSize: 16, weight: .semibold)
+            if let descriptor = base.fontDescriptor.withDesign(.rounded) {
+                return UIFontMetrics(forTextStyle: .body).scaledFont(
+                    for: UIFont(descriptor: descriptor, size: base.pointSize))
+            }
+            return UIFontMetrics(forTextStyle: .body).scaledFont(for: base)
+        }() : .preferredFont(forTextStyle: .subheadline)
         titleLabel.adjustsFontForContentSizeCategory = true
         titleLabel.textColor = .label
         titleLabel.lineBreakMode = .byTruncatingTail

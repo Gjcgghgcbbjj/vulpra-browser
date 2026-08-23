@@ -43,8 +43,16 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
 
     private let greetingLabel: UILabel = {
         let label = UILabel()
-        label.font = UIFontMetrics(forTextStyle: .largeTitle).scaledFont(
-            for: .systemFont(ofSize: 40, weight: .bold, design: .rounded))
+        // SF Rounded for the hero — the single highest-leverage "designed"
+        // signal on the home screen.
+        let base = UIFont.systemFont(ofSize: 40, weight: .bold)
+        let rounded: UIFont
+        if let descriptor = base.fontDescriptor.withDesign(.rounded) {
+            rounded = UIFont(descriptor: descriptor, size: base.pointSize)
+        } else {
+            rounded = base
+        }
+        label.font = UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: rounded)
         label.adjustsFontForContentSizeCategory = true
         label.textColor = .label
         label.numberOfLines = 0
