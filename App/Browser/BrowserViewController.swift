@@ -25,6 +25,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private var contentTopToChrome: NSLayoutConstraint?
     private var contentTopToSafe: NSLayoutConstraint?
     private var failureOverlay: UIStackView?
+    var findBar: FindInPageBar?
     /// Scroll-aware chrome: engine scroll telemetry drives visibility.
     private let scrollObserver = GeckoScrollObserver()
     private var lastScrollY: CGFloat = 0
@@ -138,6 +139,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     func showSelectedTab() {
         guard isViewLoaded, let tab = tabManager.selectedTab else { return }
         chrome.update(tab: tab, tabCount: tabManager.tabs.count)
+        refreshToolsMenu()
 
         guard tab.url != nil else { showStartPage(); return }
         let session = tab.activate(settings: BrowserSettingsStore.shared.value)
@@ -162,9 +164,11 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             engineView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
         ])
         attachedEngineView = engineView
+        setChromeDisplayed(true)
     }
 
     private func showStartPage() {
+        setChromeDisplayed(false)
         if attachedEngineView != nil { removeCurrentContent() }
         guard startPage.parent !== self else { return }
         addChild(startPage)
@@ -246,11 +250,24 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     }
 
     /// Start-page vs web mode: the bar exists only while web content shows.
+    /// Appearance is animated — the bar drops in from beneath the status bar.
     func setChromeDisplayed(_ displayed: Bool) {
         let targetHidden = !displayed
         guard chrome.isHidden != targetHidden else { return }
+        if targetHidden { dismissFindBar() }
         chrome.isHidden = targetHidden
         suggestionsView.isHidden = targetHidden
+        if !targetHidden, !UIAccessibility.isReduceMotionEnabled {
+            chrome.alpha = 0
+            chrome.transform = CGAffineTransform(translationX: 0, y: -18)
+            VulpraMotion.spring {
+                self.chrome.alpha = 1
+                self.chrome.transform = .identity
+            }
+        } else {
+            chrome.alpha = 1
+            chrome.transform = .identity
+        }
         refreshContentTop()
     }
 
@@ -265,10 +282,11 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private func hideChrome() {
         guard !isChromeHidden else { return }
         isChromeHidden = true
+        dismissFindBar()
         animateChrome(hidden: true)
     }
 
-    private func showChrome() {
+    func showChrome() {
         guard isChromeHidden else { return }
         isChromeHidden = false
         animateChrome(hidden: false)

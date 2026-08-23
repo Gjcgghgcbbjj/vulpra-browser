@@ -1,14 +1,16 @@
+import GeckoView
 import UIKit
 
 // MARK: - User-facing shell routing
 
 extension BrowserViewController {
     func browserChromeDidBeginEditing(_ chrome: BrowserChromeView) {
-        setChromeKeyboardRide(true)
+        // Editing implies the bar must be visible, whatever the scroll state.
+        showChrome()
     }
 
     func browserChromeDidEndEditing(_ chrome: BrowserChromeView) {
-        setChromeKeyboardRide(false)
+        suggestionsView.update([])
     }
 
     func browserChrome(_ chrome: BrowserChromeView, submitted text: String) {
@@ -19,18 +21,6 @@ extension BrowserViewController {
 
     func browserChrome(_ chrome: BrowserChromeView, textDidChange text: String) {
         suggestionsView.update(OmniboxSuggestionProvider.suggestions(for: text, tabs: tabManager.tabs))
-    }
-
-    func browserChromeDidRequestTools(_ chrome: BrowserChromeView) {
-        guard let tab = tabManager.selectedTab else { return }
-        pageTools.present(
-            from: self,
-            sourceView: chrome,
-            url: tab.url,
-            isLoading: tab.isLoading,
-            canGoBack: tab.canGoBack,
-            canGoForward: tab.canGoForward
-        )
     }
 
     func browserChromeDidRequestTabs(_ chrome: BrowserChromeView) {
@@ -52,13 +42,27 @@ extension BrowserViewController {
         _ = tabManager.newTab(url: nil, privateMode: true)
         showSelectedTab()
     }
-
     func startPageDidRequestBookmarks(_ controller: StartPageViewController) { presentLibrary(.bookmarks) }
     func startPageDidRequestHistory(_ controller: StartPageViewController) { presentLibrary(.history) }
     func startPageDidRequestDownloads(_ controller: StartPageViewController) { presentNavigation(DownloadsViewController()) }
     func startPageDidRequestSettings(_ controller: StartPageViewController) { presentNavigation(SettingsViewController()) }
 
-    // MARK: Command panel
+    // MARK: Command menu (system UIMenu, rebuilt on every tab state change)
+
+    /// Rebuilds the ⋯ menu so the system always presents live navigation,
+    /// page, and zoom state. Cheap enough to call on every presentation tick.
+    func refreshToolsMenu() {
+        guard let tab = tabManager.selectedTab else {
+            chrome.updateToolsMenu(nil)
+            return
+        }
+        let menu = pageTools.menu(url: tab.url,
+                                  isLoading: tab.isLoading,
+                                  canGoBack: tab.canGoBack,
+                                  canGoForward: tab.canGoForward,
+                                  zoomLevel: BrowserSettingsStore.shared.value.pageZoom)
+        chrome.updateToolsMenu(menu)
+    }
 
     func pageToolsDidRequestPrivateTab(_ controller: PageToolsController) {
         _ = tabManager.newTab(url: nil, privateMode: true)
@@ -88,11 +92,6 @@ extension BrowserViewController {
         BookmarkStore.shared.add(title: tab.title, url: url)
     }
 
-    func pageTools(_ controller: PageToolsController, find text: String) {
-        guard !text.isEmpty, let finder = tabManager.selectedTab?.session?.finder else { return }
-        Task { _ = try? await finder.find(text); finder.setDisplayOptions([.highlightAll, .dimPage]) }
-    }
-
     func pageToolsDidRequestDesktopMode(_ controller: PageToolsController) {
         BrowserSettingsStore.shared.update { $0.defaultDesktopMode.toggle() }
         tabManager.selectedTab?.applySettings(BrowserSettingsStore.shared.value)
@@ -107,6 +106,7 @@ extension BrowserViewController {
         let work = DispatchWorkItem { BrowserSettingsStore.shared.persist() }
         zoomPersistWork = work
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: work)
+        refreshToolsMenu()
     }
 
     func pageToolsDidRequestPictureInPicture(_ controller: PageToolsController) {
@@ -127,6 +127,78 @@ extension BrowserViewController {
         }
         present(UINavigationController(rootViewController: scanner), animated: true)
     }
+
+    // MARK: Find in page
+
+    func pageToolsDidRequestFindInPage(_ controller: PageToolsController) {
+        presentFindBar()
+    }
+
+    func presentFindBar() {
+        guard let session = tabManager.selectedTab?.session, session.isOpen() else { return }
+        session.finder.setDisplayOptions([.highlightAll, .dimPage])
+
+        let bar: FindInPageBar
+        if let existing = findBar {
+            bar = existing
+        } else {
+            bar = FindInPageBar()
+            findBar = bar
+            view.insertSubview(bar, aboveSubview: contentContainer)
+            NSLayoutConstraint.activate([
+                bar.topAnchor.constraint(equalTo: chrome.bottomAnchor, constant: 8),
+                bar.leadingAnchor.constraint(equalTo: chrome.leadingAnchor),
+                bar.trailingAnchor.constraint(equalTo: chrome.trailingAnchor),
+            ])
+            bar.onTextChange = { [weak self] text in
+                self?.runFind(text, direction: .forward)
+            }
+            bar.onNext = { [weak self] in self?.stepFind(.forward) }
+            bar.onPrevious = { [weak self] in self?.stepFind(.backward) }
+            bar.onClose = { [weak self] in self?.dismissFindBar() }
+        }
+
+        bar.transform = CGAffineTransform(translationX: 0, y: -16)
+        bar.alpha = 0
+        VulpraMotion.spring {
+            bar.transform = .identity
+            bar.alpha = 1
+        }
+        bar.focus()
+    }
+
+    func dismissFindBar() {
+        guard let bar = findBar else { return }
+        findBar = nil
+        tabManager.selectedTab?.session?.finder.clear()
+        bar.endEditing(true)
+        VulpraMotion.settle({
+            bar.transform = CGAffineTransform(translationX: 0, y: -16)
+            bar.alpha = 0
+        }, duration: 0.22)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) { bar.removeFromSuperview() }
+    }
+
+    private func runFind(_ text: String, direction: FindInPageDirection) {
+        guard !text.isEmpty, let finder = tabManager.selectedTab?.session?.finder else {
+            findBar?.update(count: 0, current: 0)
+            return
+        }
+        finder.setDisplayOptions([.highlightAll, .dimPage])
+        Task { [weak self] in
+            guard let result = try? await finder.find(text, direction: direction) else { return }
+            self?.findBar?.update(count: max(result.total, 0), current: max(result.current, 0))
+        }
+    }
+
+    private func stepFind(_ direction: FindInPageDirection) {
+        guard let text = findBar?.textForSearch, !text.isEmpty,
+              let finder = tabManager.selectedTab?.session?.finder else { return }
+        Task { [weak self] in
+            guard let result = try? await finder.find(text, direction: direction) else { return }
+            self?.findBar?.update(count: max(result.total, 0), current: max(result.current, 0))
+        }
+    }
 }
 
 // MARK: - Tab truth routing
@@ -140,17 +212,20 @@ extension BrowserViewController {
     func tabManager(_ manager: TabManager, didUpdatePresentationFor tab: BrowserTab) {
         guard tab === manager.selectedTab else { return }
         chrome.update(tab: tab, tabCount: manager.tabs.count)
+        refreshToolsMenu()
         if !tab.isLoading { recordHistoryIfNeeded(for: tab) }
     }
 
     func tabManager(_ manager: TabManager, didUpdatePersistableStateFor tab: BrowserTab) {
         guard tab === manager.selectedTab else { return }
         chrome.update(tab: tab, tabCount: manager.tabs.count)
+        refreshToolsMenu()
         if !tab.isLoading { recordHistoryIfNeeded(for: tab) }
     }
 
     func tabManager(_ manager: TabManager, didChangeSessionFor tab: BrowserTab) {
         guard tab === manager.selectedTab else { return }
+        dismissFindBar()
         showSelectedTab()
     }
 

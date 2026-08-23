@@ -315,17 +315,16 @@ jobs:
           shot 07-start-keyboard
           tap "$(px 50)" "$(py 55)"; sleep 1
 
-          # Real web page through the URL scheme (confirm the system hand-off dialog).
-          # Relaunch first so the loaded page is on the visible root, not behind a modal.
-          xcrun simctl terminate "$udid" com.vulpra.browser >/dev/null 2>&1 || true
-          sleep 2
-          xcrun simctl launch "$udid" com.vulpra.browser >/dev/null 2>&1 || true
-          sleep 5
+          # Real web page through the URL scheme (confirm the system hand-off
+          # dialog). The app stays warm from the tour — no relaunch — so the
+          # engine gate is already open when the load lands.
           xcrun simctl openurl "$udid" "vulpra://open?url=https%3A%2F%2Fexample.com" >/dev/null 2>&1 || true
           sleep 3
           tap "$(px 69)" "$(py 53)"
-          sleep 10
+          sleep 14
           shot 08-web-page
+          sleep 12
+          shot 10-web-page-late
 
           # Dark-mode smoke on the web screen.
           xcrun simctl ui "$udid" appearance dark >/dev/null 2>&1 || true

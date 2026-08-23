@@ -171,11 +171,25 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
             contentStack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor, constant: 22),
             contentStack.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor, constant: -22),
             contentStack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -36),
+            // Pin the width to the visible frame explicitly: on some iOS 26
+            // builds the contentLayoutGuide trailing edge fails to stretch
+            // stack children, collapsing the whole home column to intrinsic
+            // width (~59% of screen). The frame pin is unconditional.
+            contentStack.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -44),
 
             menuButton.widthAnchor.constraint(equalToConstant: 40),
         ])
         searchField.delegate = self
     }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        guard !hasPlayedEntrance else { return }
+        hasPlayedEntrance = true
+        VulpraMotion.entrance([brandLabel, greetingLabel, contextLabel, searchField, menuButton],
+                              baseOffset: 16, step: 0.06)
+    }
+    private var hasPlayedEntrance = false
 
     private func configureMenu() {
         let privateTab = UIAction(title: L10n.tr("New Private Tab", "新建私密标签页"),
@@ -217,7 +231,14 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
 
     private func refreshGreeting() {
         greetingLabel.text = greeting()
-        contextLabel.text = DateFormatter.localizedString(from: Date(), dateStyle: .full, timeStyle: .none)
+        // Speak one language: the UI ships Chinese-first (see L10n), so the
+        // date must follow the UI language, not the raw device locale —
+        // otherwise the hero mixes scripts on non-Chinese devices.
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        formatter.locale = Locale(identifier: "zh_CN")
+        contextLabel.text = formatter.string(from: Date())
     }
 
     private func sectionHeader(_ title: String) -> UILabel {

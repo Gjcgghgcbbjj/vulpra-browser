@@ -49,7 +49,8 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
 
     convenience init(url: URL?, isPrivate: Bool) {
         self.init(record: BrowserTabRecord(
-            id: UUID(), url: url?.absoluteString, title: "New Tab",
+            id: UUID(), url: url?.absoluteString,
+            title: L10n.tr("New Tab", "新标签页"),
             isPrivate: isPrivate, lastAccess: Date()
         ))
     }
@@ -188,7 +189,7 @@ final class BrowserTab: NavigationDelegate, ProgressDelegate, ContentDelegate {
     }
 
     func onTitleChange(session: GeckoSession, title: String) {
-        self.title = title.isEmpty ? "New Tab" : title
+        self.title = title.isEmpty ? L10n.tr("New Tab", "新标签页") : title
         observer?.browserTabPersistableStateDidChange(self)
     }
 

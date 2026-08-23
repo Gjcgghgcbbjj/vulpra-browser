@@ -134,7 +134,7 @@ final class SettingsViewController: UITableViewController {
             content.secondaryText = "\(settings.pageZoom)%"
             cell.accessoryType = .disclosureIndicator
         case .trackingProtection:
-            content.secondaryText = settings.trackingProtection.rawValue.capitalized
+            content.secondaryText = trackingLabel(settings.trackingProtection)
             cell.accessoryType = .disclosureIndicator
         case .historyRetention:
             content.secondaryText = "\(settings.historyRetentionDays)" + L10n.tr(" days", " 天")
@@ -165,7 +165,7 @@ final class SettingsViewController: UITableViewController {
                    label: { "\($0)%" }) { zoom in BrowserSettingsStore.shared.update { $0.pageZoom = zoom } }
         case .trackingProtection:
             choose(title: L10n.tr("Tracking Protection", "跟踪保护"), values: TrackingProtectionLevel.allCases,
-                   label: { $0.rawValue.capitalized }) { level in BrowserSettingsStore.shared.update { $0.trackingProtection = level } }
+                   label: { trackingLabel($0) }) { level in BrowserSettingsStore.shared.update { $0.trackingProtection = level } }
         case .historyRetention:
             choose(title: L10n.tr("History Retention", "历史保留"), values: [7, 30, 90, 365],
                    label: { "\($0)" + L10n.tr(" days", " 天") }) { days in BrowserSettingsStore.shared.update { $0.historyRetentionDays = days } }
@@ -212,4 +212,13 @@ final class SettingsViewController: UITableViewController {
     @objc private func toggleDark(_ sender: UISwitch) { BrowserSettingsStore.shared.update { $0.darkAppearance = sender.isOn }; overrideUserInterfaceStyle = sender.isOn ? .dark : .unspecified }
     @objc private func toggleDesktop(_ sender: UISwitch) { BrowserSettingsStore.shared.update { $0.defaultDesktopMode = sender.isOn } }
     @objc private func toggleHTTPS(_ sender: UISwitch) { BrowserSettingsStore.shared.update { $0.httpsOnly = sender.isOn } }
+
+    /// Raw enum values ("standard") must never leak into the UI.
+    private func trackingLabel(_ level: TrackingProtectionLevel) -> String {
+        switch level {
+        case .standard: return L10n.tr("Standard", "标准")
+        case .strict: return L10n.tr("Strict", "严格")
+        case .custom: return L10n.tr("Custom", "自定义")
+        }
+    }
 }

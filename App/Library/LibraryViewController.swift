@@ -5,6 +5,9 @@ enum LibrarySection { case bookmarks, history }
 final class LibraryViewController: UITableViewController, UISearchResultsUpdating {
     private let section: LibrarySection
     private var query = ""
+    private let emptyTitle = UILabel()
+    private let emptyHint = UILabel()
+    private let emptyIcon = UIImageView()
     var onOpenURL: ((URL) -> Void)?
 
     init(section: LibrarySection) {
@@ -17,21 +20,68 @@ final class LibraryViewController: UITableViewController, UISearchResultsUpdatin
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = section == .bookmarks ? "Bookmarks" : "History"
+        title = section == .bookmarks ? L10n.tr("Bookmarks", "书签") : L10n.tr("History", "历史记录")
         navigationItem.rightBarButtonItem = section == .history
-            ? UIBarButtonItem(title: "Clear", style: .plain, target: self, action: #selector(clearHistory)) : nil
+            ? UIBarButtonItem(title: L10n.tr("Clear", "清除"), style: .plain,
+                              target: self, action: #selector(clearHistory)) : nil
         let search = UISearchController(searchResultsController: nil)
         search.searchResultsUpdater = self
         search.obscuresBackgroundDuringPresentation = false
+        search.searchBar.placeholder = L10n.tr("Search", "搜索")
         navigationItem.searchController = search
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "LibraryCell")
+        configureEmptyState()
     }
 
     private var bookmarks: [Bookmark] { BookmarkStore.shared.search(query).filter { !$0.isFolder } }
     private var history: [HistoryVisit] { HistoryStore.shared.search(query) }
 
+    private func configureEmptyState() {
+        emptyIcon.image = UIImage(systemName: section == .bookmarks ? "star" : "clock.arrow.circlepath")
+        emptyIcon.tintColor = .tertiaryLabel
+        emptyIcon.contentMode = .center
+        emptyIcon.translatesAutoresizingMaskIntoConstraints = false
+        emptyTitle.text = section == .bookmarks
+            ? L10n.tr("No bookmarks yet", "还没有书签")
+            : L10n.tr("No history yet", "还没有历史记录")
+        emptyTitle.font = .preferredFont(forTextStyle: .title3)
+        emptyTitle.textColor = .secondaryLabel
+        emptyTitle.textAlignment = .center
+        emptyHint.text = section == .bookmarks
+            ? L10n.tr("Tap ⋯ → Add Bookmark on any page.", "在任意页面点 ⋯ → 添加书签。")
+            : L10n.tr("Pages you visit will appear here.", "访问过的网页会出现在这里。")
+        emptyHint.font = .preferredFont(forTextStyle: .footnote)
+        emptyHint.textColor = .tertiaryLabel
+        emptyHint.textAlignment = .center
+        [emptyIcon, emptyTitle, emptyHint].forEach {
+            $0.translatesAutoresizingMaskIntoConstraints = false
+            $0.isHidden = true
+            view.addSubview($0)
+        }
+        NSLayoutConstraint.activate([
+            emptyIcon.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyIcon.centerYAnchor.constraint(equalTo: view.centerYAnchor, constant: -44),
+            emptyIcon.heightAnchor.constraint(equalToConstant: 44),
+            emptyTitle.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyTitle.topAnchor.constraint(equalTo: emptyIcon.bottomAnchor, constant: 14),
+            emptyTitle.leadingAnchor.constraint(greaterThanOrEqualTo: view.layoutMarginsGuide.leadingAnchor),
+            emptyHint.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            emptyHint.topAnchor.constraint(equalTo: emptyTitle.bottomAnchor, constant: 6),
+            emptyHint.leadingAnchor.constraint(greaterThanOrEqualTo: view.layoutMarginsGuide.leadingAnchor),
+        ])
+    }
+
+    private func updateEmptyState() {
+        let empty = section == .bookmarks ? bookmarks.isEmpty : history.isEmpty
+        emptyIcon.isHidden = !empty
+        emptyTitle.isHidden = !empty
+        emptyHint.isHidden = !empty
+    }
+
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        self.section == .bookmarks ? bookmarks.count : history.count
+        let count = self.section == .bookmarks ? bookmarks.count : history.count
+        updateEmptyState()
+        return count
     }
 
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -73,11 +123,19 @@ final class LibraryViewController: UITableViewController, UISearchResultsUpdatin
     }
 
     @objc private func clearHistory() {
-        let alert = UIAlertController(title: "Clear History?", message: "Bookmarks and downloads are not removed.", preferredStyle: .actionSheet)
-        alert.addAction(UIAlertAction(title: "Clear History", style: .destructive) { _ in
-            HistoryStore.shared.clear(); self.tableView.reloadData()
+        let alert = UIAlertController(
+            title: L10n.tr("Clear History?", "清除历史记录？"),
+            message: L10n.tr("Bookmarks and downloads are not removed.", "书签和下载不会被删除。"),
+            preferredStyle: .actionSheet)
+        alert.addAction(UIAlertAction(title: L10n.tr("Clear History", "清除历史记录"), style: .destructive) { _ in
+            HistoryStore.shared.clear()
+            self.tableView.reloadData()
         })
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.addAction(UIAlertAction(title: L10n.tr("Cancel", "取消"), style: .cancel))
+        // Required popover anchor on iPad — without it the system terminates the app.
+        if let popover = alert.popoverPresentationController {
+            popover.barButtonItem = navigationItem.rightBarButtonItem
+        }
         present(alert, animated: true)
     }
 }
