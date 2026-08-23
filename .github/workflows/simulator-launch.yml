@@ -292,22 +292,19 @@ jobs:
           sleep 3
           shot 01-start-page
 
-          # Start-page ⋯ menu: Private Tab / Bookmarks / History / Downloads / Settings
-          tap "$(px 51)" "$(py 8)"
+          # Start-page ⋯ menu (v24: top-right at ~90%,8): Private / Bookmarks /
+          # History / Downloads / Settings. The popover hangs right-aligned
+          # under the button, so item centers sit near x=60%.
+          tap "$(px 90)" "$(py 8)"
           sleep 2
           shot 02-start-menu
-          tap "$(px 55)" "$(py 33)"; sleep 3; shot 03-settings
+          tap "$(px 60)" "$(py 33)"; sleep 3; shot 03-settings
           tap "$(px 10)" "$(py 9)"; sleep 2
-          tap "$(px 51)" "$(py 8)"; sleep 2
-          tap "$(px 55)" "$(py 15)"; sleep 3; shot 04-library-bookmarks
+          tap "$(px 90)" "$(py 8)"; sleep 2
+          tap "$(px 60)" "$(py 16)"; sleep 3; shot 04-library-bookmarks
           tap "$(px 10)" "$(py 9)"; sleep 2
-          tap "$(px 51)" "$(py 8)"; sleep 2
-          tap "$(px 55)" "$(py 26)"; sleep 3; shot 05-downloads
-          tap "$(px 10)" "$(py 9)"; sleep 2
-
-          # Tab overview via the capsule tabs button.
-          tap "$(px 89)" "$(py 90)"; sleep 3
-          shot 06-tab-overview
+          tap "$(px 90)" "$(py 8)"; sleep 2
+          tap "$(px 60)" "$(py 26)"; sleep 3; shot 05-downloads
           tap "$(px 10)" "$(py 9)"; sleep 2
 
           # Keyboard over the start-page search field.
@@ -323,7 +320,11 @@ jobs:
           tap "$(px 69)" "$(py 53)"
           sleep 14
           shot 08-web-page
-          sleep 12
+          # Tab overview from the web-mode top bar (tabs glyph at ~77%,6).
+          tap "$(px 77)" "$(py 6)"; sleep 3
+          shot 11-tab-overview-web
+          tap "$(px 10)" "$(py 9)"; sleep 2
+          sleep 10
           shot 10-web-page-late
 
           # Dark-mode smoke on the web screen.
