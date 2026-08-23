@@ -41,7 +41,7 @@ final class FindInPageBar: UIView, UITextFieldDelegate {
 
         countLabel.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .regular)
         countLabel.textColor = .secondaryLabel
-        countLabel.contentCompressionResistancePriority = .required
+        countLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         countLabel.translatesAutoresizingMaskIntoConstraints = false
         material.contentView.addSubview(countLabel)
 
