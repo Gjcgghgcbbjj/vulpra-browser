@@ -17,10 +17,10 @@ final class StartPageLinkCard: UIView {
     private var representedAccessibilityLabel: String = ""
 
     init(title: String, url: URL, style: StartPageCardStyle, onOpen: @escaping (URL) -> Void) {
+        self.siteURL = url
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         self.onOpen = onOpen
-        self.siteURL = url
         representedAccessibilityLabel = title
 
         let imageSize: CGFloat = style == .pinned ? 46 : 36
