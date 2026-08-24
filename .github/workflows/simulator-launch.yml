@@ -320,8 +320,8 @@ jobs:
           tap "$(px 69)" "$(py 53)"
           sleep 14
           shot 08-web-page
-          # Tab overview from the web-mode top bar (tabs glyph at ~77%,6).
-          tap "$(px 77)" "$(py 6)"; sleep 3
+          # Tab overview from the Safari-style bottom bar (tabs glyph at ~80%,92).
+          tap "$(px 80)" "$(py 92)"; sleep 3
           shot 11-tab-overview-web
           tap "$(px 10)" "$(py 9)"; sleep 2
           sleep 10

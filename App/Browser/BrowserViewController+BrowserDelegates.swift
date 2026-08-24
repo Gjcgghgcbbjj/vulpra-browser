@@ -5,11 +5,14 @@ import UIKit
 
 extension BrowserViewController {
     func browserChromeDidBeginEditing(_ chrome: BrowserChromeView) {
-        // Editing implies the bar must be visible, whatever the scroll state.
+        // Editing implies the bar must be visible, whatever the scroll state,
+        // and it must ride the keyboard (Safari-style bottom dock).
         showChrome()
+        setChromeKeyboardRide(true)
     }
 
     func browserChromeDidEndEditing(_ chrome: BrowserChromeView) {
+        setChromeKeyboardRide(false)
         suggestionsView.update([])
     }
 
@@ -146,7 +149,7 @@ extension BrowserViewController {
             findBar = bar
             view.insertSubview(bar, aboveSubview: contentContainer)
             NSLayoutConstraint.activate([
-                bar.topAnchor.constraint(equalTo: chrome.bottomAnchor, constant: 8),
+                bar.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -8),
                 bar.leadingAnchor.constraint(equalTo: chrome.leadingAnchor),
                 bar.trailingAnchor.constraint(equalTo: chrome.trailingAnchor),
             ])
@@ -158,7 +161,7 @@ extension BrowserViewController {
             bar.onClose = { [weak self] in self?.dismissFindBar() }
         }
 
-        bar.transform = CGAffineTransform(translationX: 0, y: -16)
+        bar.transform = CGAffineTransform(translationX: 0, y: 16)
         bar.alpha = 0
         VulpraMotion.spring {
             bar.transform = .identity
@@ -173,7 +176,7 @@ extension BrowserViewController {
         tabManager.selectedTab?.session?.finder.clear()
         bar.endEditing(true)
         VulpraMotion.settle(duration: 0.22) {
-            bar.transform = CGAffineTransform(translationX: 0, y: -16)
+            bar.transform = CGAffineTransform(translationX: 0, y: 16)
             bar.alpha = 0
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) { bar.removeFromSuperview() }

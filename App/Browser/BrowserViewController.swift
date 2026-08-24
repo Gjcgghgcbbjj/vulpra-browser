@@ -22,8 +22,6 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     var recordedURLs: [UUID: String] = [:]
     var initialURL: URL?
     private var isSceneActive = false
-    private var contentTopToChrome: NSLayoutConstraint?
-    private var contentTopToSafe: NSLayoutConstraint?
     private var failureOverlay: UIStackView?
     var findBar: FindInPageBar?
     /// Scroll-aware chrome: engine scroll telemetry drives visibility.
@@ -109,23 +107,24 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         view.addSubview(contentContainer)
         view.addSubview(chrome)
         view.insertSubview(suggestionsView, belowSubview: chrome)
-        // v24 Quiet Deck: one command bar floats below the status bar; the
-        // page owns everything beneath it, down to the home-indicator edge.
-        // A top bar is always above the keyboard by construction, so no
-        // keyboard-ride constraints exist at all.
-        contentTopToChrome = contentContainer.topAnchor.constraint(equalTo: chrome.bottomAnchor, constant: 8)
-        contentTopToSafe = contentContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor)
+        // Safari-style bottom dock: the page is full-bleed edge to edge and
+        // the command capsule floats over its bottom. While the address field
+        // is edited the capsule rides the keyboard, and the suggestion panel
+        // (anchored above the capsule) rides with it.
+        chromeBottomDock = chrome.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -6)
+        chromeBottomKeyboard = chrome.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -8)
         NSLayoutConstraint.activate([
-            contentTopToSafe!,
+            contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            chrome.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             chrome.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
             chrome.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            suggestionsView.topAnchor.constraint(equalTo: chrome.bottomAnchor, constant: 8),
+            chromeBottomDock!,
+            suggestionsView.bottomAnchor.constraint(equalTo: chrome.topAnchor, constant: -8),
             suggestionsView.leadingAnchor.constraint(equalTo: chrome.leadingAnchor),
             suggestionsView.trailingAnchor.constraint(equalTo: chrome.trailingAnchor),
+            suggestionsView.heightAnchor.constraint(lessThanOrEqualToConstant: 320),
         ])
 
         let backEdge = UIScreenEdgePanGestureRecognizer(target: self, action: #selector(edgeNavigation(_:)))
@@ -259,7 +258,7 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         suggestionsView.isHidden = targetHidden
         if !targetHidden, !UIAccessibility.isReduceMotionEnabled {
             chrome.alpha = 0
-            chrome.transform = CGAffineTransform(translationX: 0, y: -18)
+            chrome.transform = CGAffineTransform(translationX: 0, y: 18)
             VulpraMotion.spring {
                 self.chrome.alpha = 1
                 self.chrome.transform = .identity
@@ -268,13 +267,22 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
             chrome.alpha = 1
             chrome.transform = .identity
         }
-        refreshContentTop()
     }
 
-    private func refreshContentTop() {
-        let attachToChrome = !chrome.isHidden && !isChromeHidden
-        contentTopToChrome?.isActive = attachToChrome
-        contentTopToSafe?.isActive = !attachToChrome
+    /// Safari-style keyboard ride: while the address field is edited the
+    /// capsule leaves its dock and sits on top of the keyboard; suggestions
+    /// ride with it because they anchor to the capsule.
+    func setChromeKeyboardRide(_ enabled: Bool) {
+        guard let dock = chromeBottomDock, let ride = chromeBottomKeyboard else { return }
+        guard ride.isActive != enabled else { return }
+        if enabled {
+            dock.isActive = false
+            ride.isActive = true
+        } else {
+            ride.isActive = false
+            dock.isActive = true
+        }
+        view.setNeedsLayout()
     }
 
     // MARK: - Scroll-aware chrome (Safari-style)
@@ -305,11 +313,10 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
 
     private func applyChromeState(hidden: Bool) {
         chrome.alpha = hidden ? 0 : 1
-        // Slide up beneath the status bar; nothing ever overlays the page.
+        // Slide down beneath the home indicator; the page stays full-bleed.
         chrome.transform = hidden
-            ? CGAffineTransform(translationX: 0, y: -(chrome.bounds.height + view.safeAreaInsets.top + 8))
+            ? CGAffineTransform(translationX: 0, y: chrome.bounds.height + view.safeAreaInsets.bottom + 12)
             : .identity
-        refreshContentTop()
         view.layoutIfNeeded()
     }
 
