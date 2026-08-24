@@ -40,6 +40,16 @@ for dep in $(otool -L "${FRAMEWORKS_DIR}/XUL" | awk '/@rpath\// {gsub("@rpath/",
 	fi
 done
 
+# Second-level dependencies (libsoftokn3 -> libfreebl3, ...) are @rpath/*
+# too, and a spawned binary resolves them against its own LC_RPATH. Give
+# every GRE binary the same self-referencing rpath.
+for binary in "${FRAMEWORKS_DIR}/XUL" "${FRAMEWORKS_DIR}/"*.dylib; do
+	[ -f "$binary" ] || continue
+	if ! otool -l "$binary" | grep -q LC_RPATH; then
+		install_name_tool -add_rpath @loader_path "$binary" || true
+	fi
+done
+
 if [ "${CODE_SIGNING_ALLOWED:-YES}" != "NO" ]; then
 	[ -n "$SIGN_IDENTITY" ] || {
 		echo "Missing expanded code-sign identity" >&2
