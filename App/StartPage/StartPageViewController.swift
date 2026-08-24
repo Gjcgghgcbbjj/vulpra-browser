@@ -156,7 +156,13 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         scrollView.addSubview(contentStack)
 
         configureMenu()
-        let header = UIStackView(arrangedSubviews: [brandRow, UIView(), menuButton])
+        // The spacer must be the single stretchiest element, or the header
+        // collapses to the right on some stack distributions (observed on
+        // iOS 26: brand and menu bunched at trailing).
+        let headerSpacer = UIView()
+        headerSpacer.setContentHuggingPriority(UILayoutPriority(249), for: .horizontal)
+        headerSpacer.setContentCompressionResistancePriority(UILayoutPriority(749), for: .horizontal)
+        let header = UIStackView(arrangedSubviews: [brandRow, headerSpacer, menuButton])
         header.alignment = .center
 
         refreshGreeting()

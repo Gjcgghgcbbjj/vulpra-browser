@@ -100,6 +100,8 @@ enum VulpraAppearance {
         mark.layer.cornerRadius = size * 0.32
         mark.backgroundColor = accent
         mark.isUserInteractionEnabled = false
+        mark.widthAnchor.constraint(equalToConstant: size).isActive = true
+        mark.heightAnchor.constraint(equalToConstant: size).isActive = true
         return mark
     }
 }
