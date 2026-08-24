@@ -117,7 +117,10 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         chromeBottomDock = chrome.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -6)
         chromeBottomKeyboard = chrome.bottomAnchor.constraint(equalTo: view.keyboardLayoutGuide.topAnchor, constant: -8)
         NSLayoutConstraint.activate([
-            contentContainer.topAnchor.constraint(equalTo: view.topAnchor),
+            // Content starts below the status bar: Gecko exposes no safe-area
+            // insets to pages, so full-bleed would put every page under the
+            // clock/wifi glyphs.
+            contentContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             contentContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             contentContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             contentContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),

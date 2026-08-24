@@ -45,7 +45,8 @@ enum VulpraAppearance {
         static let chip: CGFloat = 14
         static let card: CGFloat = 20
         static let field: CGFloat = 22
-        static let bar: CGFloat = 27
+        /// Command bar: clearly rounded but not a pill.
+        static let bar: CGFloat = 16
     }
 
     static func applyGlobal() {

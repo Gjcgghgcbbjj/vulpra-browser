@@ -23,7 +23,7 @@ final class FindInPageBar: UIView, UITextFieldDelegate {
         layer.shadowRadius = 14
         layer.shadowOffset = CGSize(width: 0, height: 6)
         material.layer.cornerCurve = .continuous
-        material.layer.cornerRadius = 19
+        material.layer.cornerRadius = VulpraAppearance.Radius.bar
         material.layer.borderWidth = 1 / UIScreen.main.scale
         material.layer.borderColor = VulpraAppearance.hairline.resolvedColor(with: traitCollection).cgColor
         material.clipsToBounds = true
