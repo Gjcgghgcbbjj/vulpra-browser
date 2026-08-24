@@ -206,6 +206,18 @@ jobs:
             else
               echo "no app container resolved"
             fi
+
+            # simctl install strips the execute bit from Frameworks/XUL
+            # (built: rwxr-xr-x -> installed: rw-r--r--) and the helper's
+            # posix_spawn of a non-executable file is exactly our failure.
+            if [ -n "$APP_CONTAINER" ] && [ -f "$APP_CONTAINER/Frameworks/XUL" ]; then
+              echo "=== restoring execute bit ==="
+              chmod +x "$APP_CONTAINER/Frameworks/XUL"
+              ls -la "$APP_CONTAINER/Frameworks/XUL"
+              echo "=== direct spawn probe (real dyld verdict) ==="
+              xcrun simctl spawn "$udid" "$APP_CONTAINER/Frameworks/XUL" 2>&1 | head -14 || true
+              sleep 1
+            fi
           } > xul-diagnostic.log 2>&1 || true
           cat xul-diagnostic.log
 
