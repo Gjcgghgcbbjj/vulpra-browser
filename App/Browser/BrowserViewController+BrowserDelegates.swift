@@ -172,10 +172,10 @@ extension BrowserViewController {
         findBar = nil
         tabManager.selectedTab?.session?.finder.clear()
         bar.endEditing(true)
-        VulpraMotion.settle({
+        VulpraMotion.settle(duration: 0.22) {
             bar.transform = CGAffineTransform(translationX: 0, y: -16)
             bar.alpha = 0
-        }, duration: 0.22)
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) { bar.removeFromSuperview() }
     }
 

@@ -5,9 +5,9 @@ import UIKit
 /// to instant changes in a single place.
 enum VulpraMotion {
     /// The standard interactive spring — controls, panels, entrances.
-    static func spring(_ changes: @escaping () -> Void,
-                       damping: CGFloat = 0.84,
-                       duration: TimeInterval = 0.42) {
+    static func spring(damping: CGFloat = 0.84,
+                       duration: TimeInterval = 0.42,
+                       _ changes: @escaping () -> Void) {
         guard !UIAccessibility.isReduceMotionEnabled else {
             UIView.performWithoutAnimation(changes)
             return
@@ -19,8 +19,8 @@ enum VulpraMotion {
     }
 
     /// A softer settle for large surfaces (start page blocks, cards).
-    static func settle(_ changes: @escaping () -> Void,
-                       duration: TimeInterval = 0.34) {
+    static func settle(duration: TimeInterval = 0.34,
+                       _ changes: @escaping () -> Void) {
         guard !UIAccessibility.isReduceMotionEnabled else {
             UIView.performWithoutAnimation(changes)
             return
