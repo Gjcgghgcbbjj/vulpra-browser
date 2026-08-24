@@ -24,6 +24,9 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
     private var isSceneActive = false
     private var failureOverlay: UIStackView?
     var findBar: FindInPageBar?
+    /// Safari-style bottom dock: resting anchor vs keyboard-riding anchor.
+    private var chromeBottomDock: NSLayoutConstraint?
+    private var chromeBottomKeyboard: NSLayoutConstraint?
     /// Scroll-aware chrome: engine scroll telemetry drives visibility.
     private let scrollObserver = GeckoScrollObserver()
     private var lastScrollY: CGFloat = 0
