@@ -180,6 +180,22 @@ jobs:
           xcrun simctl bootstatus "$udid" -b
           xcrun simctl install "$udid" "$app"
 
+          # XUL embedding diagnostic (audit P0): is the Gecko payload inside
+          # the built bundle, and did it survive the install into the
+          # app container? One look resolves where the payload is lost.
+          APP_CONTAINER="$(xcrun simctl get_app_container "$udid" com.vulpra.browser app 2>/dev/null || true)"
+          {
+            echo "=== built bundle: XUL entries ==="
+            find "$app" -maxdepth 3 \( -name 'XUL' -o -name 'XUL.*' \) -exec ls -la {} \; 2>&1
+            echo "=== installed container: XUL entries ==="
+            if [ -n "$APP_CONTAINER" ]; then
+              find "$APP_CONTAINER" -maxdepth 3 \( -name 'XUL' -o -name 'XUL.*' \) -exec ls -la {} \; 2>&1
+            else
+              echo "no app container resolved"
+            fi
+          } > xul-diagnostic.log 2>&1 || true
+          cat xul-diagnostic.log
+
           {
             sudo -n /usr/sbin/DevToolsSecurity -enable
             sudo -n xcrun lldb --batch -o "version" -o "quit"
@@ -292,19 +308,29 @@ jobs:
           sleep 3
           shot 01-start-page
 
-          # Start-page ⋯ menu (v24: top-right at ~90%,8): Private / Bookmarks /
-          # History / Downloads / Settings. The popover hangs right-aligned
-          # under the button, so item centers sit near x=60%.
+          # Start-page ⋯ menu (visual check only).
           tap "$(px 90)" "$(py 8)"
           sleep 2
           shot 02-start-menu
-          tap "$(px 60)" "$(py 33)"; sleep 3; shot 03-settings
+          tap "$(px 50)" "$(py 55)"; sleep 1
+
+          # Deep-link navigation — no more menu-item coordinate guessing.
+          # simctl openurl raises the "Open in Vulpra?" hand-off dialog every
+          # time; confirming it is part of the flow. Each screen is closed
+          # before the next link so the confirm-tap never lands on a row.
+          deeplink() {
+            xcrun simctl openurl "$udid" "$1" >/dev/null 2>&1 || true
+            sleep 2
+            tap "$(px 69)" "$(py 53)"
+            sleep 3
+          }
+          deeplink "vulpra://settings";  shot 03-settings
           tap "$(px 10)" "$(py 9)"; sleep 2
-          tap "$(px 90)" "$(py 8)"; sleep 2
-          tap "$(px 60)" "$(py 16)"; sleep 3; shot 04-library-bookmarks
+          deeplink "vulpra://bookmarks"; shot 04-library-bookmarks
           tap "$(px 10)" "$(py 9)"; sleep 2
-          tap "$(px 90)" "$(py 8)"; sleep 2
-          tap "$(px 60)" "$(py 26)"; sleep 3; shot 05-downloads
+          deeplink "vulpra://downloads"; shot 05-downloads
+          tap "$(px 10)" "$(py 9)"; sleep 2
+          deeplink "vulpra://tabs";      shot 06-tab-overview
           tap "$(px 10)" "$(py 9)"; sleep 2
 
           # Keyboard over the start-page search field.
@@ -312,13 +338,10 @@ jobs:
           shot 07-start-keyboard
           tap "$(px 50)" "$(py 55)"; sleep 1
 
-          # Real web page through the URL scheme (confirm the system hand-off
-          # dialog). The app stays warm from the tour — no relaunch — so the
-          # engine gate is already open when the load lands.
-          xcrun simctl openurl "$udid" "vulpra://open?url=https%3A%2F%2Fexample.com" >/dev/null 2>&1 || true
-          sleep 3
-          tap "$(px 69)" "$(py 53)"
-          sleep 14
+          # Real web page through the URL scheme. The app stays warm from the
+          # tour — no relaunch — so the engine gate is already open.
+          deeplink "vulpra://open?url=https%3A%2F%2Fexample.com"
+          sleep 12
           shot 08-web-page
           # Tab overview from the Safari-style bottom bar (tabs glyph at ~80%,92).
           tap "$(px 80)" "$(py 92)"; sleep 3
@@ -374,6 +397,7 @@ jobs:
           path: |
             simulator-*.log
             simulator-launch.png
+            xul-diagnostic.log
             screenshots/
             idb-companion.log
             Vulpra*.crash

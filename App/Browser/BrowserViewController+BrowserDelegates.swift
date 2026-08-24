@@ -27,9 +27,7 @@ extension BrowserViewController {
     }
 
     func browserChromeDidRequestTabs(_ chrome: BrowserChromeView) {
-        let overview = TabOverviewViewController(manager: tabManager)
-        overview.onDismiss = { [weak self] in self?.showSelectedTab() }
-        present(UINavigationController(rootViewController: overview), animated: true)
+        presentTabsOverview()
     }
 
     func browserChrome(_ chrome: BrowserChromeView, requestedAdjacentTab offset: Int) {

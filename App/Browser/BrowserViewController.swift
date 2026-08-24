@@ -254,6 +254,39 @@ final class BrowserViewController: UIViewController, BrowserChromeViewDelegate, 
         present(UINavigationController(rootViewController: controller), animated: true)
     }
 
+    /// Single entry point for `vulpra://` deep links and shell navigation.
+    func handle(_ route: InternalRoute) {
+        switch route {
+        case .web(let url):
+            open(url)
+        case .settings:
+            presentNavigation(SettingsViewController())
+        case .bookmarks:
+            presentLibrary(.bookmarks)
+        case .history:
+            presentLibrary(.history)
+        case .downloads:
+            presentNavigation(DownloadsViewController())
+        case .tabs:
+            presentTabsOverview()
+        case .extensions:
+            presentNavigation(AddonManagementViewController())
+        case .sitePermissions:
+            presentNavigation(SitePermissionsViewController())
+        case .privacyData:
+            presentNavigation(PrivacyDataViewController())
+        case .newTab(let isPrivate):
+            _ = tabManager.newTab(url: nil, privateMode: isPrivate)
+            showSelectedTab()
+        }
+    }
+
+    func presentTabsOverview() {
+        let overview = TabOverviewViewController(manager: tabManager)
+        overview.onDismiss = { [weak self] in self?.showSelectedTab() }
+        present(UINavigationController(rootViewController: overview), animated: true)
+    }
+
     /// Start-page vs web mode: the bar exists only while web content shows.
     /// Appearance is animated — the bar drops in from beneath the status bar.
     func setChromeDisplayed(_ displayed: Bool) {

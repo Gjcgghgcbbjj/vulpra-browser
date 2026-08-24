@@ -7,7 +7,7 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
                options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
-        let initialURL = RuntimeURLRouter.resolve(connectionOptions.urlContexts.first?.url)
+        let initialRoute = RuntimeURLRouter.resolve(connectionOptions.urlContexts.first?.url)
 
         // State restoration: if the system is reconnecting an existing session,
         // restore the saved tab URLs from the NSUserActivity.
@@ -19,7 +19,13 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         }
 
         VulpraAppearance.applyGlobal()
-        let browser = BrowserViewController(initialURL: initialURL)
+        let initialWebURL: URL?
+        if case .web(let url) = initialRoute {
+            initialWebURL = url
+        } else {
+            initialWebURL = nil
+        }
+        let browser = BrowserViewController(initialURL: initialWebURL)
         let window = UIWindow(windowScene: windowScene)
         window.backgroundColor = .systemBackground
         window.tintColor = VulpraAppearance.accent
@@ -29,14 +35,27 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window.makeKeyAndVisible()
 
         // Restore tabs that were open before the app was killed.
-        if initialURL == nil && !restoredURLs.isEmpty {
+        if initialWebURL == nil && !restoredURLs.isEmpty {
             browser.restoreTabs(urls: restoredURLs)
+        }
+
+        // Non-web routes (settings/tabs/…) need a loaded presentation context,
+        // so they are handled on the next runloop tick after makeKeyAndVisible.
+        if let route = initialRoute, !isWebRoute(route) {
+            DispatchQueue.main.async { [weak browser] in
+                browser?.handle(route)
+            }
         }
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
-        guard let url = RuntimeURLRouter.resolve(URLContexts.first?.url) else { return }
-        browser?.open(url)
+        guard let route = RuntimeURLRouter.resolve(URLContexts.first?.url) else { return }
+        browser?.handle(route)
+    }
+
+    private func isWebRoute(_ route: InternalRoute) -> Bool {
+        if case .web = route { return true }
+        return false
     }
 
     func sceneDidBecomeActive(_ scene: UIScene) {
