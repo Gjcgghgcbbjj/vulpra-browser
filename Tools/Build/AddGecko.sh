@@ -20,6 +20,15 @@ mkdir -p "${GECKOVIEW_FW_FRAMEWORKS}"
 cp -fL "${GECKO_DIST_BIN}/"*.dylib "${FRAMEWORKS_DIR}/"
 cp -fL "${GECKO_DIST_BIN}/XUL" "${FRAMEWORKS_DIR}/XUL"
 
+# XUL is spawned directly as the helper's GRE executable (Reynard-style).
+# Every Gecko dependency is @rpath/*, and @rpath inside a spawned binary
+# resolves against the spawned binary's OWN LC_RPATH — the dist ships XUL
+# without one, so dyld aborts the spawn with ENOENT even though every
+# library sits in this exact directory. Point the rpath at ourselves.
+if ! otool -l "${FRAMEWORKS_DIR}/XUL" | grep -q LC_RPATH; then
+	install_name_tool -add_rpath @loader_path "${FRAMEWORKS_DIR}/XUL"
+fi
+
 if [ "${CODE_SIGNING_ALLOWED:-YES}" != "NO" ]; then
 	[ -n "$SIGN_IDENTITY" ] || {
 		echo "Missing expanded code-sign identity" >&2
