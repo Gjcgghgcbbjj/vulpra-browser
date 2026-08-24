@@ -190,6 +190,20 @@ jobs:
             echo "=== installed container: XUL entries ==="
             if [ -n "$APP_CONTAINER" ]; then
               find "$APP_CONTAINER" -maxdepth 3 \( -name 'XUL' -o -name 'XUL.*' \) -exec ls -la {} \; 2>&1
+              XUL_INSTALLED="$APP_CONTAINER/Frameworks/XUL"
+              if [ -f "$XUL_INSTALLED" ]; then
+                echo "=== XUL Mach-O identity ==="
+                file "$XUL_INSTALLED" 2>&1
+                echo "=== XUL id/load commands (first 40) ==="
+                otool -l "$XUL_INSTALLED" 2>&1 | grep -A3 -e LC_ID_DYLIB -e LC_LOAD_DYLIB | head -40
+                echo "=== XUL signature ==="
+                codesign -dv "$XUL_INSTALLED" 2>&1 | head -8
+                echo "=== XUL first dependency spawn probe ==="
+                # The helper spawn fails with ENOENT even though the file
+                # exists; a missing @rpath/@executable_path dependency or a
+                # dylib-typed Mach-O explains ENOENT-on-existing-file.
+                otool -L "$XUL_INSTALLED" 2>&1 | head -12
+              fi
             else
               echo "no app container resolved"
             fi

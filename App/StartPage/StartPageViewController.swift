@@ -10,7 +10,7 @@ protocol StartPageViewControllerDelegate: AnyObject {
 }
 
 /// A calm spatial home: large typography, one command field, and quiet cards.
-final class StartPageViewController: UIViewController, UITextFieldDelegate {
+final class StartPageViewController: UIViewController, UITextFieldDelegate, UIContextMenuInteractionDelegate {
     weak var delegate: StartPageViewControllerDelegate?
 
     private let scrollView = UIScrollView()
@@ -120,6 +120,14 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         super.viewDidLoad()
         configure()
         refreshGreeting()
+        NotificationCenter.default.addObserver(self, selector: #selector(pinnedSitesChanged),
+                                               name: .pinnedSitesDidChange, object: nil)
+    }
+
+    @objc private func pinnedSitesChanged() { reloadLinks() }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -177,7 +185,7 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         shortcutGrid.spacing = 12
         recentStack.axis = .vertical
         recentStack.spacing = 10
-        emptyHint.text = L10n.tr("Pin a site and it will live here.", "固定网站后，它会出现在这里。")
+        emptyHint.text = L10n.tr("Pin a page with ⋯ → Pin to Home.", "在网页菜单点 ⋯ → 固定到主页，它就会出现在这里。")
         emptyHint.font = .preferredFont(forTextStyle: .callout)
         emptyHint.textColor = .tertiaryLabel
         emptyHint.textAlignment = .center
@@ -288,12 +296,12 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
     }
 
     private func reloadLinks() {
-        let bookmarks = BookmarkStore.shared.items.prefix(6).compactMap { item -> (String, URL)? in
-            guard !item.isFolder, let value = item.url, let url = URL(string: value) else { return nil }
-            return (item.title.isEmpty ? (url.host ?? "") : item.title, url)
+        let pinned = PinnedSitesStore.shared.sites.prefix(6).compactMap { site -> (String, URL)? in
+            guard let url = URL(string: site.url) else { return nil }
+            return (site.title.isEmpty ? (url.host ?? "") : site.title, url)
         }
-        var seen = Set(BookmarkStore.shared.items.compactMap(\.url))
-        let uniqueBookmarks = bookmarks.filter { seen.insert($0.1.absoluteString).inserted }
+        var seen = Set(PinnedSitesStore.shared.sites.map(\.url))
+        let uniqueBookmarks = pinned
 
         let visits = HistoryStore.shared.visits.prefix(30).compactMap { visit -> (String, URL)? in
             guard let url = URL(string: visit.url) else { return nil }
@@ -323,9 +331,13 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
             for _ in 0..<columns {
                 if index < pairs.count {
                     let pair = pairs[index]
-                    row.addArrangedSubview(StartPageLinkCard(title: pair.0, url: pair.1, style: style) { [weak self] url in
+                    let card = StartPageLinkCard(title: pair.0, url: pair.1, style: style) { [weak self] url in
                         self?.delegate?.startPage(self!, open: url.absoluteString)
-                    })
+                    }
+                    if style == .pinned {
+                        card.addInteraction(UIContextMenuInteraction(delegate: self))
+                    }
+                    row.addArrangedSubview(card)
                 } else {
                     row.addArrangedSubview(UIView())
                 }
@@ -370,5 +382,25 @@ final class StartPageViewController: UIViewController, UITextFieldDelegate {
         delegate?.startPage(self, open: textField.text ?? "")
         textField.resignFirstResponder()
         return true
+    }
+
+    // MARK: - Pinned-card context menu
+
+    func contextMenuInteraction(_ interaction: UIContextMenuInteraction,
+                                configurationForMenuAtLocation location: CGPoint) -> UIContextMenuConfiguration? {
+        guard let card = interaction.view as? StartPageLinkCard else { return nil }
+        let url = card.siteURL
+        return UIContextMenuConfiguration(actionProvider: { _ in
+            UIMenu(children: [
+                UIAction(title: L10n.tr("Open", "打开"), image: UIImage(systemName: "safari")) { [weak self] _ in
+                    self?.delegate?.startPage(self!, open: url.absoluteString)
+                },
+                UIAction(title: L10n.tr("Unpin from Home", "从主页移除"),
+                         image: UIImage(systemName: "pin.slash"),
+                         attributes: .destructive) { _ in
+                    PinnedSitesStore.shared.unpin(url: url)
+                },
+            ])
+        })
     }
 }

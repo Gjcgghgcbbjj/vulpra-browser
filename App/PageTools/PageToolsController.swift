@@ -17,6 +17,7 @@ protocol PageToolsControllerDelegate: AnyObject {
     func pageToolsDidRequestGoBack(_ controller: PageToolsController)
     func pageToolsDidRequestGoForward(_ controller: PageToolsController)
     func pageToolsDidRequestReloadOrStop(_ controller: PageToolsController)
+    func pageToolsDidRequestTogglePinToHome(_ controller: PageToolsController)
 }
 
 /// v24 builds every command as a system UIMenu. iOS owns the presentation,
@@ -26,7 +27,7 @@ final class PageToolsController {
     weak var delegate: PageToolsControllerDelegate?
 
     func menu(url: URL?, isLoading: Bool, canGoBack: Bool, canGoForward: Bool,
-              zoomLevel: Int) -> UIMenu {
+              zoomLevel: Int, isPinnedToHome: Bool = false) -> UIMenu {
         var navigation: [UIMenuElement] = []
         if canGoBack {
             navigation.append(action(L10n.tr("Back", "后退"), "chevron.backward") { [weak self] in
@@ -67,6 +68,13 @@ final class PageToolsController {
             page.append(action(L10n.tr("Request Desktop Site", "请求桌面版网站"), "desktopcomputer") { [weak self] in
                 guard let self else { return }
                 self.delegate?.pageToolsDidRequestDesktopMode(self)
+            })
+            page.append(action(
+                isPinnedToHome ? L10n.tr("Unpin from Home", "从主页移除") : L10n.tr("Pin to Home", "固定到主页"),
+                isPinnedToHome ? "pin.slash" : "pin.fill"
+            ) { [weak self] in
+                guard let self else { return }
+                self.delegate?.pageToolsDidRequestTogglePinToHome(self)
             })
             page.append(UIAction(title: L10n.tr("Copy Link", "拷贝链接"),
                                  image: UIImage(systemName: "link")) { _ in

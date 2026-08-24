@@ -8,6 +8,7 @@ enum StartPageCardStyle {
 /// A home card with real surface quality: opaque elevated fill, warm ambient
 /// shadow, press-down micro-interaction, and haptic confirmation.
 final class StartPageLinkCard: UIView {
+    let siteURL: URL
     private let icon = UIImageView()
     private let titleLabel = UILabel()
     private let hostLabel = UILabel()
@@ -19,6 +20,7 @@ final class StartPageLinkCard: UIView {
         super.init(frame: .zero)
         translatesAutoresizingMaskIntoConstraints = false
         self.onOpen = onOpen
+        self.siteURL = url
         representedAccessibilityLabel = title
 
         let imageSize: CGFloat = style == .pinned ? 46 : 36
@@ -70,12 +72,12 @@ final class StartPageLinkCard: UIView {
             labels.trailingAnchor.constraint(lessThanOrEqualTo: trailingAnchor, constant: -14),
         ])
 
-        // Touch-down/up press feedback: a zero-duration long-press recognizer
-        // reports .began on touch-down and .ended on release — exactly what a
-        // card-scale interaction needs (tap recognizers only fire on release).
-        let press = UILongPressGestureRecognizer(target: self, action: #selector(handlePress(_:)))
-        press.minimumPressDuration = 0
-        addGestureRecognizer(press)
+        // Quick tap opens; a long-press is reserved for the context menu
+        // interaction the owner attaches (pin management). The scale feedback
+        // rides on raw touches so it works alongside both.
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleTap(_:)))
+        tap.cancelsTouchesInView = false
+        addGestureRecognizer(tap)
 
         isAccessibilityElement = true
         accessibilityTraits = .button
@@ -104,21 +106,24 @@ final class StartPageLinkCard: UIView {
         if pressed { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
     }
 
-    @objc private func handlePress(_ gesture: UILongPressGestureRecognizer) {
-        switch gesture.state {
-        case .began:
-            setPressed(true)
-        case .ended:
-            setPressed(false)
-            let point = gesture.location(in: self)
-            if bounds.contains(point), let onOpen, let url = representedURL {
-                onOpen(url)
-            }
-        case .cancelled, .failed:
-            setPressed(false)
-        default:
-            break
-        }
+    @objc private func handleTap(_ gesture: UITapGestureRecognizer) {
+        guard let onOpen else { return }
+        onOpen(siteURL)
+    }
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesBegan(touches, with: event)
+        setPressed(true)
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesCancelled(touches, with: event)
+        setPressed(false)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        setPressed(false)
     }
 
     private func loadFavicon(for url: URL, size: CGFloat) {

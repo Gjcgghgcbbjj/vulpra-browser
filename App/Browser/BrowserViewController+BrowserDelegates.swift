@@ -61,7 +61,8 @@ extension BrowserViewController {
                                   isLoading: tab.isLoading,
                                   canGoBack: tab.canGoBack,
                                   canGoForward: tab.canGoForward,
-                                  zoomLevel: BrowserSettingsStore.shared.value.pageZoom)
+                                  zoomLevel: BrowserSettingsStore.shared.value.pageZoom,
+                                  isPinnedToHome: tab.url.map { PinnedSitesStore.shared.contains(url: $0) } ?? false)
         chrome.updateToolsMenu(menu)
     }
 
@@ -91,6 +92,15 @@ extension BrowserViewController {
     func pageToolsDidRequestBookmark(_ controller: PageToolsController) {
         guard let tab = tabManager.selectedTab, let url = tab.url else { return }
         BookmarkStore.shared.add(title: tab.title, url: url)
+    }
+
+    func pageToolsDidRequestTogglePinToHome(_ controller: PageToolsController) {
+        guard let tab = tabManager.selectedTab, let url = tab.url else { return }
+        if PinnedSitesStore.shared.contains(url: url) {
+            PinnedSitesStore.shared.unpin(url: url)
+        } else {
+            PinnedSitesStore.shared.pin(title: tab.title, url: url)
+        }
     }
 
     func pageToolsDidRequestDesktopMode(_ controller: PageToolsController) {
