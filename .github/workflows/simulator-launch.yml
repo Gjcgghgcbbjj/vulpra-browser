@@ -198,11 +198,10 @@ jobs:
                 otool -l "$XUL_INSTALLED" 2>&1 | grep -A3 -e LC_ID_DYLIB -e LC_LOAD_DYLIB | head -40
                 echo "=== XUL signature ==="
                 codesign -dv "$XUL_INSTALLED" 2>&1 | head -8
-                echo "=== XUL first dependency spawn probe ==="
-                # The helper spawn fails with ENOENT even though the file
-                # exists; a missing @rpath/@executable_path dependency or a
-                # dylib-typed Mach-O explains ENOENT-on-existing-file.
-                otool -L "$XUL_INSTALLED" 2>&1 | head -12
+                echo "=== Frameworks/ contents ==="
+                ls -la "$APP_CONTAINER/Frameworks/" 2>&1 | head -24
+                echo "=== XUL dependencies after rewrite ==="
+                otool -L "$XUL_INSTALLED" 2>&1 | head -14
               fi
             else
               echo "no app container resolved"

@@ -20,14 +20,25 @@ mkdir -p "${GECKOVIEW_FW_FRAMEWORKS}"
 cp -fL "${GECKO_DIST_BIN}/"*.dylib "${FRAMEWORKS_DIR}/"
 cp -fL "${GECKO_DIST_BIN}/XUL" "${FRAMEWORKS_DIR}/XUL"
 
-# XUL is spawned directly as the helper's GRE executable (Reynard-style).
-# Every Gecko dependency is @rpath/*, and @rpath inside a spawned binary
-# resolves against the spawned binary's OWN LC_RPATH — the dist ships XUL
-# without one, so dyld aborts the spawn with ENOENT even though every
-# library sits in this exact directory. Point the rpath at ourselves.
-if ! otool -l "${FRAMEWORKS_DIR}/XUL" | grep -q LC_RPATH; then
-	install_name_tool -add_rpath @loader_path "${FRAMEWORKS_DIR}/XUL"
-fi
+# XUL is spawned directly as the helper's GRE executable (Utils.m posix_spawn).
+# Its Gecko dependencies are @rpath/*, and @rpath inside a spawned binary
+# resolves against the spawned binary's OWN LC_RPATH — which is either absent
+# or points at build-machine paths — so dyld aborts the spawn with ENOENT
+# even though every library sits right here. Rewrite each reference to
+# @loader_path and make sure the library is physically present.
+for dep in $(otool -L "${FRAMEWORKS_DIR}/XUL" | awk '/@rpath\// {gsub("@rpath/", "", $1); print $1}'); do
+	if [ ! -f "${FRAMEWORKS_DIR}/${dep}" ]; then
+		for src_dir in "${GECKO_DIST_BIN}" "${GECKO_DIST}/lib"; do
+			if [ -f "${src_dir}/${dep}" ]; then
+				cp -fL "${src_dir}/${dep}" "${FRAMEWORKS_DIR}/${dep}"
+				break
+			fi
+		done
+	fi
+	if [ -f "${FRAMEWORKS_DIR}/${dep}" ]; then
+		install_name_tool -change "@rpath/${dep}" "@loader_path/${dep}" "${FRAMEWORKS_DIR}/XUL" || true
+	fi
+done
 
 if [ "${CODE_SIGNING_ALLOWED:-YES}" != "NO" ]; then
 	[ -n "$SIGN_IDENTITY" ] || {
