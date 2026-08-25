@@ -6,7 +6,7 @@ on:
         description: 'Continue past non-fatal build errors to save partial results'
         type: boolean
         default: true
-permissions: { contents: read }
+permissions: { contents: read, actions: write }
 jobs:
   build:
     runs-on: macos-26
@@ -124,3 +124,14 @@ jobs:
       - name: Show ccache stats
         if: always()
         run: ccache -s
+
+      - name: Chain to simulator verification
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Auto-chain: a fresh simulator runtime is immediately exercised by
+          # the launch tour, so rendering regressions surface right away.
+          gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/simulator-launch.yml/dispatches" \
+            -f ref='${{ github.ref_name }}'
+          echo "Chained: simulator-launch dispatched on ${{ github.ref_name }}"

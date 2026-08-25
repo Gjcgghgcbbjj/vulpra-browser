@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: vulpra-runtime-${{ github.ref }}
@@ -206,3 +207,14 @@ jobs:
           path: "*.log"
           if-no-files-found: warn
           retention-days: 14
+
+      - name: Chain to package build
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Auto-chain: a fresh substrate is immediately packaged into an IPA,
+          # so a runner-toolchain rotation self-heals with zero manual steps.
+          gh api -X POST "repos/$GITHUB_REPOSITORY/actions/workflows/build-ios-packages.yml/dispatches" \
+            -f ref='${{ github.ref_name }}'
+          echo "Chained: build-ios-packages dispatched on ${{ github.ref_name }}"
