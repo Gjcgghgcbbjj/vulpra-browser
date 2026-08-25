@@ -225,7 +225,7 @@ jobs:
               }
               print("dlopen OK")
               dlclose(handle)
-              SWIFT
+          SWIFT
               xcrun --sdk iphonesimulator swiftc -target arm64-apple-ios15.0-simulator \
                 -o /tmp/dlprobe /tmp/dlprobe.swift 2>&1 | head -4 || true
               if [ -f /tmp/dlprobe ]; then
