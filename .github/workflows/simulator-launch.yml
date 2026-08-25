@@ -377,8 +377,13 @@ jobs:
           shot 07-start-keyboard
           tap "$(px 50)" "$(py 55)"; sleep 1
 
-          # Real web page through the URL scheme. The app stays warm from the
-          # tour — no relaunch — so the engine gate is already open.
+          # Real web page through the URL scheme. Relaunch under --console so
+          # Gecko's stderr (main process + every helper) is captured verbatim —
+          # this is where XRE/compositor/bootstrap diagnostics actually land.
+          xcrun simctl terminate "$udid" com.vulpra.browser >/dev/null 2>&1 || true
+          sleep 2
+          (xcrun simctl launch --console "$udid" com.vulpra.browser >app-console.log 2>&1 &) || true
+          sleep 6
           deeplink "vulpra://open?url=https%3A%2F%2Fexample.com"
           sleep 12
           shot 08-web-page
@@ -437,6 +442,7 @@ jobs:
             simulator-*.log
             simulator-launch.png
             xul-diagnostic.log
+            app-console.log
             screenshots/
             idb-companion.log
             Vulpra*.crash
