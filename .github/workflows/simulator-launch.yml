@@ -208,15 +208,29 @@ jobs:
             fi
 
             # simctl install strips the execute bit from Frameworks/XUL
-            # (built: rwxr-xr-x -> installed: rw-r--r--) and the helper's
-            # posix_spawn of a non-executable file is exactly our failure.
+            # (built: rwxr-xr-x -> installed: rw-r--r--).
             if [ -n "$APP_CONTAINER" ] && [ -f "$APP_CONTAINER/Frameworks/XUL" ]; then
               echo "=== restoring execute bit ==="
               chmod +x "$APP_CONTAINER/Frameworks/XUL"
               ls -la "$APP_CONTAINER/Frameworks/XUL"
-              echo "=== direct spawn probe (real dyld verdict) ==="
-              xcrun simctl spawn "$udid" "$APP_CONTAINER/Frameworks/XUL" 2>&1 | head -14 || true
-              sleep 1
+
+              echo "=== dlopen probe inside the simulator (dlerror verbatim) ==="
+              cat > /tmp/dlprobe.swift <<'SWIFT'
+              import Foundation
+              import Darwin
+              let path = CommandLine.arguments[1]
+              guard let handle = dlopen(path, RTLD_NOW) else {
+                  print("dlopen FAILED: \(String(cString: dlerror()))")
+                  exit(1)
+              }
+              print("dlopen OK")
+              dlclose(handle)
+              SWIFT
+              xcrun --sdk iphonesimulator swiftc -target arm64-apple-ios15.0-simulator \
+                -o /tmp/dlprobe /tmp/dlprobe.swift 2>&1 | head -4 || true
+              if [ -f /tmp/dlprobe ]; then
+                xcrun simctl spawn "$udid" /tmp/dlprobe "$APP_CONTAINER/Frameworks/XUL" 2>&1 | head -8 || true
+              fi
             fi
           } > xul-diagnostic.log 2>&1 || true
           cat xul-diagnostic.log
