@@ -40,6 +40,10 @@ echo "Using Firefox commit: $PINNED_COMMIT"
 
 echo "Ensuring checkout at $PINNED_COMMIT"
 if [ ! -d "$SUBMODULE_PATH/.git" ]; then
+	# A Vendor/firefox without .git is a stale partial checkout (CI cache
+	# residue / materialized headers) — it can never satisfy the pinned
+	# commit. Wipe it and clone fresh.
+	rm -rf "$SUBMODULE_PATH"
 	git clone --depth 1 "$FIREFOX_URL" "$SUBMODULE_PATH"
 fi
 # Fetch the exact commit if not present (shallow clone may not have it).
